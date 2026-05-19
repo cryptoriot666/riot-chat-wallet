@@ -12,8 +12,8 @@ app = Flask(__name__)
 CORS(app)
 
 # ─── Config ─────────────────────────────────────────────
-WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://publisher.walrus-mainnet.walrus.space")
-WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://aggregator.walrus-mainnet.walrus.space")
+WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://publisher.walrus-testnet.walrus.space")
+WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://aggregator.walrus-testnet.walrus.space")
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "riot-chat-wallet-secret-key-2026")
 EPOCHS = int(os.getenv("WALRUS_EPOCHS", "1"))
 DB_PATH = os.getenv("DB_PATH", "riot_chat.db")
