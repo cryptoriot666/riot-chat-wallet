@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: riot-chat-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r server/requirements.txt
+    startCommand: cd server && gunicorn server:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: WALRUS_EPOCHS
+        value: "1"
