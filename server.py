@@ -12,8 +12,9 @@ app = Flask(__name__)
 CORS(app)
 
 # ─── Config ─────────────────────────────────────────────
-WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://publisher.walrus-testnet.walrus.space")
-WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://aggregator.walrus-testnet.walrus.space")
+# Working Walrus Testnet URLs (from community aggregators)
+WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://walrus-testnet-publisher.stakely.io")
+WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://walrus-testnet-aggregator.stakely.io")
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "riot-chat-wallet-secret-key-2026")
 EPOCHS = int(os.getenv("WALRUS_EPOCHS", "1"))
 DB_PATH = os.getenv("DB_PATH", "riot_chat.db")
@@ -78,6 +79,7 @@ def get_db():
 
 # ─── Walrus Functions ───────────────────────────────────
 def store_on_walrus(data: dict) -> str:
+    """Store encrypted JSON on Walrus testnet, return blob ID"""
     json_str = json.dumps(data)
     encrypted = encrypt_data(json_str, ENCRYPTION_KEY)
     encrypted_bytes = encrypted.encode("utf-8")
@@ -100,6 +102,7 @@ def store_on_walrus(data: dict) -> str:
         raise Exception(f"Unexpected Walrus response: {result}")
 
 def read_from_walrus(blob_id: str) -> dict:
+    """Read and decrypt blob from Walrus"""
     response = requests.get(
         f"{WALRUS_AGGREGATOR}/v1/{blob_id}",
         timeout=30
@@ -117,14 +120,11 @@ def chat_with_deepseek(agent_id: str, messages: list, memory_summary: str = "") 
 
     system_prompt = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["J4"])
 
-    # Add memory context if available
     if memory_summary:
         system_prompt += f"\n\nUser memory context: {memory_summary}"
 
-    # Build messages array
     api_messages = [{"role": "system", "content": system_prompt}]
 
-    # Add conversation history (last 10 messages)
     for msg in messages[-10:]:
         role = "user" if msg.get("role") == "user" else "assistant"
         content = msg.get("content", "")
@@ -160,7 +160,7 @@ def chat_with_deepseek(agent_id: str, messages: list, memory_summary: str = "") 
 def health():
     return jsonify({
         "status": "RIOT Chat Wallet API is LIVE",
-        "network": "mainnet",
+        "network": "testnet",
         "encryption": "enabled",
         "deepseek": "connected" if DEEPSEEK_API_KEY else "disabled",
         "timestamp": int(time.time())
@@ -174,7 +174,6 @@ def chat():
     messages = data.get("messages", [])
     memory_summary = data.get("memory_summary", "")
 
-    # Try DeepSeek first
     if DEEPSEEK_API_KEY:
         response = chat_with_deepseek(agent_id, messages, memory_summary)
         if response:
@@ -185,7 +184,6 @@ def chat():
                 "agent_id": agent_id
             })
 
-    # Fallback to hardcoded responses
     fallback = generate_fallback_response(agent_id, messages)
     return jsonify({
         "success": True,
@@ -252,7 +250,7 @@ def save_memory():
         return jsonify({
             "success": True,
             "blob_id": blob_id,
-            "message": "Memory encrypted and stored on Walrus mainnet"
+            "message": "Memory encrypted and stored on Walrus testnet"
         })
 
     except Exception as e:
@@ -379,7 +377,7 @@ def get_stats():
         "total_users": total_users,
         "total_memories": total_memories,
         "total_agents": total_agents,
-        "network": "Walrus Mainnet",
+        "network": "Walrus Testnet",
         "encryption": "AES-256"
     })
 
