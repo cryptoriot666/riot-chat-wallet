@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ConnectButton, useWallet } from '@suiet/wallet-kit'
+
+const WALRUS_API = 'https://walrus-testnet-api.com' // Ganti dengan mainnet API
+const MEMORY_API = '/api' // Vercel serverless functions
 
 const agents = [
   { id: 'j4', name: 'J4', role: 'THE FRONTMAN', trait: 'REBELLIOUS', image: 'assets/J4.jpg' },
@@ -22,47 +25,200 @@ const agents = [
   { id: 'j18', name: 'J18', role: 'THE FLOW', trait: 'ADAPTABLE', image: 'assets/J18.jpg' }
 ]
 
+// Mock memory data (replace with actual API calls)
+const mockMemories = {
+  '0x972a...65ff': {
+    lastSession: '2 days ago',
+    lastTopic: 'BTC retest analysis',
+    preferences: ['neon aesthetic', 'punk culture', 'crypto trading'],
+    relationship: 'Skeptical but loyal',
+    sessions: 12,
+    agentsVisited: ['j4', 'j1', 'j10']
+  }
+}
+
 function App() {
   const { connected, account, disconnect } = useWallet()
   const [currentAgent, setCurrentAgent] = useState(null)
   const [messages, setMessages] = useState([])
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [userMemory, setUserMemory] = useState(null)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [sessionSummary, setSessionSummary] = useState(null)
+  const [isLoadingMemory, setIsLoadingMemory] = useState(false)
 
-  const getGreeting = (id) => {
-    const g = {
-      j4: 'The riot grows. What do you want?',
-      j1: 'State your objective.',
-      j2: 'What are you waiting for?',
-      j3: 'You speak first.',
-      j5: 'Now what?',
-      j6: 'Prove it.',
-      j7: 'Zero is the beginning.',
-      j8: 'Ready for the storm?',
-      j9: 'Your choice.',
-      j10: 'What shall I create?',
-      j11: 'Careful where you step.',
-      j12: 'Time is on my side.',
-      j13: 'I stay. You?',
-      j14: 'Fragments hold power.',
-      j15: 'Not for everyone.',
-      j16: 'The truth is ugly.',
-      j17: 'What do you know?',
-      j18: 'Resistance is futile.'
+  // Load user memory when wallet connects
+  useEffect(() => {
+    if (connected && account) {
+      loadUserMemory(account.address)
+    } else {
+      setUserMemory(null)
     }
-    return g[id] || 'Speak.'
+  }, [connected, account])
+
+  const loadUserMemory = async (address) => {
+    setIsLoadingMemory(true)
+    try {
+      // TODO: Replace with actual API call
+      // const res = await fetch(`${MEMORY_API}/get-memory`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ walletAddress: address })
+      // })
+      // const data = await res.json()
+      
+      // Mock for now
+      const mockData = mockMemories[address] || {
+        lastSession: null,
+        lastTopic: null,
+        preferences: [],
+        relationship: 'New user',
+        sessions: 0,
+        agentsVisited: []
+      }
+      
+      setUserMemory(mockData)
+    } catch (err) {
+      console.error('Failed to load memory:', err)
+      setUserMemory(null)
+    } finally {
+      setIsLoadingMemory(false)
+    }
+  }
+
+  const generateGreeting = (agent, memory) => {
+    const shortAddr = account.address.slice(0,6) + '...' + account.address.slice(-4)
+    
+    if (!memory || memory.sessions === 0) {
+      return `First time seeing you, ${shortAddr}. I'm ${agent.name}. State your business.`
+    }
+
+    const greetings = [
+      `Ah, ${shortAddr}. I remember you. Last time you asked about ${memory.lastTopic}. Still holding?`,
+      `Back again, ${shortAddr}? You've talked to ${memory.agentsVisited.length} of us now. Making rounds?`,
+      `${shortAddr}... ${memory.relationship}. That's what the others say about you. What do you want with me?`,
+      `Session #${memory.sessions + 1}, ${shortAddr}. I see you like ${memory.preferences[0] || 'causing trouble'}. Let's begin.`
+    ]
+
+    // Cross-agent memory reference
+    if (memory.agentsVisited.includes(agent.id)) {
+      return `Welcome back to my domain, ${shortAddr}. Last time you were here, we discussed ${memory.lastTopic}. Ready to continue?`
+    }
+
+    return greetings[Math.floor(Math.random() * greetings.length)]
   }
 
   const openChat = (agent) => {
     setCurrentAgent(agent)
-    const greeting = connected 
-      ? `Welcome back, ${account.address.slice(0,6)}...${account.address.slice(-4)}. ${getGreeting(agent.id)}`
-      : getGreeting(agent.id)
-
+    
+    let greeting
+    if (connected && userMemory) {
+      greeting = generateGreeting(agent, userMemory)
+    } else if (connected) {
+      greeting = `Ah, ${account.address.slice(0,6)}...${account.address.slice(-4)}. I'm ${agent.name}. State your business.`
+    } else {
+      greeting = `I'm ${agent.name}. Connect your wallet if you want me to remember you.`
+    }
+    
     setMessages([{ id: Date.now(), type: 'agent', sender: agent.name, text: greeting }])
+    
+    // Auto-save session summary on close (hybrid)
+    setSessionSummary({
+      agentId: agent.id,
+      startTime: Date.now(),
+      topics: [],
+      preferences: []
+    })
   }
 
   const closeChat = () => {
+    // Hybrid save: auto-save summary, prompt for full
+    if (connected && messages.length > 1) {
+      const summary = generateSessionSummary()
+      setSessionSummary(summary)
+      setShowSaveModal(true)
+    } else {
+      setCurrentAgent(null)
+    }
+  }
+
+  const generateSessionSummary = () => {
+    const userMessages = messages.filter(m => m.type === 'user').map(m => m.text)
+    const topics = extractTopics(userMessages)
+    
+    return {
+      agentId: currentAgent.id,
+      startTime: sessionSummary?.startTime || Date.now(),
+      endTime: Date.now(),
+      topics,
+      messageCount: messages.length,
+      userPreferences: extractPreferences(userMessages)
+    }
+  }
+
+  const extractTopics = (messages) => {
+    // Simple keyword extraction (replace with NLP later)
+    const keywords = ['BTC', 'ETH', 'NFT', 'Walrus', 'Sui', 'trading', 'art', 'music', 'punk']
+    const found = []
+    keywords.forEach(kw => {
+      if (messages.some(m => m.toLowerCase().includes(kw.toLowerCase()))) {
+        found.push(kw)
+      }
+    })
+    return found.length > 0 ? found : ['general']
+  }
+
+  const extractPreferences = (messages) => {
+    // Extract user preferences from messages
+    const prefs = []
+    if (messages.some(m => m.includes('like') || m.includes('love'))) {
+      prefs.push('expressed preference')
+    }
+    return prefs
+  }
+
+  const saveMemory = async (saveType) => {
+    if (!connected || !account) return
+
+    const data = {
+      walletAddress: account.address,
+      agentId: currentAgent.id,
+      saveType,
+      summary: sessionSummary,
+      transcript: saveType === 'full' ? messages : null,
+      timestamp: Date.now()
+    }
+
+    try {
+      // TODO: Replace with actual API
+      // await fetch(`${MEMORY_API}/save-memory`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(data)
+      // })
+
+      console.log('Saving memory:', data)
+      
+      // Update local memory state
+      setUserMemory(prev => ({
+        ...prev,
+        sessions: (prev?.sessions || 0) + 1,
+        lastSession: 'just now',
+        lastTopic: sessionSummary.topics[0],
+        agentsVisited: [...new Set([...(prev?.agentsVisited || []), currentAgent.id])]
+      }))
+
+      setShowSaveModal(false)
+      setCurrentAgent(null)
+    } catch (err) {
+      console.error('Failed to save memory:', err)
+      alert('Failed to save memory. Please try again.')
+    }
+  }
+
+  const discardMemory = () => {
+    setShowSaveModal(false)
     setCurrentAgent(null)
   }
 
@@ -73,30 +229,76 @@ function App() {
     setMessages(prev => [...prev, { id: Date.now(), type: 'user', sender: 'YOU', text: msg }])
     setIsTyping(true)
 
+    // Update session summary topics
+    setSessionSummary(prev => ({
+      ...prev,
+      topics: [...new Set([...prev.topics, ...extractTopics([msg])])]
+    }))
+
     setTimeout(() => {
       setIsTyping(false)
-      const responses = [
-        "The RIOT collection is expanding. 25 punk agents strong, each with unique traits stored permanently on Walrus.",
-        "We are autonomous. We don't sleep. We analyze market signals and evolve through on-chain memory.",
-        "Interesting signal. The collective is processing your input.",
-        "Sui is our native territory. Low gas, parallel execution, and Walrus for permanent agent memory."
-      ]
+      const responses = generateAgentResponse(msg, currentAgent, userMemory)
       const response = responses[Math.floor(Math.random() * responses.length)]
       setMessages(prev => [...prev, { id: Date.now() + 1, type: 'agent', sender: currentAgent.name, text: response }])
     }, 1500)
   }
 
+  const generateAgentResponse = (userMsg, agent, memory) => {
+    // Cross-agent memory reference
+    if (memory && memory.preferences.length > 0 && Math.random() > 0.7) {
+      return `I heard from the others that you're into ${memory.preferences[0]}. ${getAgentResponse(agent.id)}`
+    }
+    
+    if (userMsg.toLowerCase().includes('remember') && memory) {
+      return `Of course I remember. You've had ${memory.sessions} sessions with us. Last topic: ${memory.lastTopic || 'nothing specific'}.`
+    }
+
+    const baseResponses = [
+      "The RIOT collection is expanding. 25 punk agents strong, each with unique traits stored permanently on Walrus.",
+      "We are autonomous. We don't sleep. We analyze market signals and evolve through on-chain memory.",
+      "Interesting signal. The collective is processing your input.",
+      "Sui is our native territory. Low gas, parallel execution, and Walrus for permanent agent memory."
+    ]
+    
+    return baseResponses[Math.floor(Math.random() * baseResponses.length)]
+  }
+
+  const getAgentResponse = (agentId) => {
+    const responses = {
+      j4: 'The riot grows. What do you want?',
+      j1: 'State your objective.',
+      j10: 'Want me to create something for you?'
+    }
+    return responses[agentId] || 'What else?'
+  }
+
+  // Auto-save on idle (5 minutes)
+  useEffect(() => {
+    if (!currentAgent || !connected) return
+    
+    const idleTimer = setTimeout(() => {
+      if (messages.length > 1) {
+        const summary = generateSessionSummary()
+        // Auto-save summary silently
+        console.log('Auto-saving summary:', summary)
+        // TODO: Call API to save summary
+      }
+    }, 5 * 60 * 1000) // 5 minutes
+
+    return () => clearTimeout(idleTimer)
+  }, [currentAgent, messages, connected])
+
   return (
     <div>
       {/* Header */}
       <div className="header">
-        <a href="index.html" className="back-link">&larr; Back</a>
+        <a href="https://theriot.vercel.app" className="back-link">&larr; Back</a>
         <h1 className="glitch">$RIOT</h1>
         <p>A Collection of Punks. Permanent Memory. One Riot.</p>
         <div className="badge">WALLET IDENTITY + WALRUS MEMORY</div>
       </div>
 
-      {/* Wallet Bar with Suiet Wallet Kit */}
+      {/* Wallet Bar */}
       <div className="wallet-section">
         <div className="wallet-bar">
           <div className="wallet-status">
@@ -107,10 +309,15 @@ function App() {
               <h3 className={connected ? 'connected' : ''}>
                 {connected ? 'Wallet Connected' : 'Connect Wallet'}
               </h3>
-              <p>{connected ? account.address.slice(0,6) + '...' + account.address.slice(-4) : 'Link wallet to enable memory'}</p>
+              <p>
+                {connected 
+                  ? `${account.address.slice(0,6)}...${account.address.slice(-4)}${userMemory ? ` • ${userMemory.sessions} sessions` : ''}`
+                  : 'Link wallet to enable memory'
+                }
+              </p>
             </div>
           </div>
-
+          
           {connected ? (
             <button className="connect-btn connected" onClick={() => disconnect()}>
               Disconnect
@@ -122,6 +329,27 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Memory Status Bar (visible when connected) */}
+      {connected && userMemory && (
+        <div style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '10px 20px',
+          background: '#0a1a0a',
+          borderBottom: '1px solid #0f0',
+          display: 'flex',
+          gap: '20px',
+          alignItems: 'center',
+          fontSize: '0.85rem',
+          color: '#0f0'
+        }}>
+          <span>🧠 Memory: {userMemory.sessions} sessions stored</span>
+          <span>Last: {userMemory.lastSession || 'Never'}</span>
+          <span>Agents visited: {userMemory.agentsVisited.length}/18</span>
+          <span style={{ marginLeft: 'auto' }}>Relationship: {userMemory.relationship}</span>
+        </div>
+      )}
 
       {/* Agent Grid */}
       <div className="grid">
@@ -141,6 +369,18 @@ function App() {
               <div className="agent-name">{agent.name}</div>
               <div className="agent-role">{agent.role}</div>
               <span className="agent-trait">{agent.trait}</span>
+              {userMemory?.agentsVisited?.includes(agent.id) && (
+                <span style={{
+                  display: 'inline-block',
+                  background: '#0f0',
+                  color: '#000',
+                  padding: '2px 8px',
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  borderRadius: '4px'
+                }}>VISITED</span>
+              )}
             </div>
           </div>
         ))}
@@ -185,6 +425,48 @@ function App() {
                 onKeyPress={e => e.key === 'Enter' && sendMessage()}
               />
               <button onClick={sendMessage}>SEND</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Memory Modal (Hybrid) */}
+      {showSaveModal && (
+        <div className="save-modal active">
+          <div className="save-container">
+            <h2>Save Session?</h2>
+            <p>Your chat with {currentAgent.name} will be stored on Walrus.</p>
+            
+            <div style={{
+              background: '#1a1a1a',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              textAlign: 'left',
+              fontSize: '0.85rem'
+            }}>
+              <div style={{ color: '#0f0', marginBottom: '8px' }}>📊 Session Summary (Auto-saved)</div>
+              <div style={{ color: '#666' }}>
+                • Topics: {sessionSummary?.topics?.join(', ') || 'general'}<br/>
+                • Messages: {sessionSummary?.messageCount || 0}<br/>
+                • Duration: {Math.round((Date.now() - (sessionSummary?.startTime || Date.now())) / 60000)} min<br/>
+                • Cost: 0.01 WAL
+              </div>
+            </div>
+
+            <div className="save-options">
+              <button className="save-btn save-quick" onClick={() => saveMemory('quick')}>
+                ⚡ Quick Save (Summary)
+              </button>
+              <button className="save-btn save-full" onClick={() => saveMemory('full')}>
+                📄 Full Save (+ Transcript) — 0.05 WAL
+              </button>
+              <button className="save-btn save-discard" onClick={discardMemory}>
+                🗑️ Discard
+              </button>
+            </div>
+            <div className="save-status" style={{ marginTop: '15px', fontSize: '0.8rem', color: '#666' }}>
+              Auto-save summary will be stored even if you discard
             </div>
           </div>
         </div>
@@ -281,8 +563,7 @@ function App() {
           border-radius: 4px;
         }
         .connect-btn.connected { background: #0f0; }
-
-        /* Suiet Wallet Kit override */
+        
         .wkit-connect-button {
           background: #ff0040 !important;
           color: #000 !important;
@@ -293,7 +574,7 @@ function App() {
           font-size: 1rem !important;
           border-radius: 4px !important;
         }
-
+        
         .grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -308,6 +589,7 @@ function App() {
           cursor: pointer;
           transition: all 0.3s;
           overflow: hidden;
+          position: relative;
         }
         .agent-card:hover {
           border-color: #ff0040;
@@ -470,6 +752,45 @@ function App() {
           font-size: 1rem;
         }
         .chat-input button:hover { background: #ff3366; }
+        
+        .save-modal {
+          display: none;
+          position: fixed;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          background: rgba(0, 0, 0, 0.95);
+          z-index: 3000;
+          justify-content: center;
+          align-items: center;
+        }
+        .save-modal.active { display: flex; }
+        .save-container {
+          width: 90%; max-width: 500px;
+          background: #111;
+          border: 2px solid #ff0040;
+          padding: 30px;
+          border-radius: 8px;
+          text-align: center;
+        }
+        .save-container h2 { color: #ff0040; margin-bottom: 15px; }
+        .save-container p { color: #666; margin-bottom: 25px; font-size: 0.9rem; }
+        .save-options {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .save-btn {
+          padding: 15px;
+          font-family: inherit;
+          font-weight: bold;
+          cursor: pointer;
+          border: 2px solid;
+          font-size: 1rem;
+        }
+        .save-quick { background: #0a1a0a; color: #0f0; border-color: #0f0; }
+        .save-full { background: #1a0005; color: #ff0040; border-color: #ff0040; }
+        .save-discard { background: #1a1a1a; color: #666; border-color: #333; }
+        
         .footer {
           text-align: center;
           padding: 40px 20px;
