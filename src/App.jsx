@@ -4,26 +4,33 @@ import "@suiet/wallet-kit/style.css";
 import { api } from "./api";
 import "./App.css";
 
-// ─── 18 Agent Personalities ─────────────────────────────
+// ─── 25 Agent Personalities with Punk Images ────────────
 const AGENTS = [
-  { id: "J4", name: "J4", title: "The Rebel", color: "#ff0040", desc: "Chaotic, sarcastic, anti-system. Will roast your portfolio.", icon: "🔥" },
-  { id: "J2", name: "J2", title: "The Aggressor", color: "#ff4400", desc: "Direct, loud, zero filter. Market is war, soldier up.", icon: "⚔️" },
-  { id: "J3", name: "J3", title: "The Shadow", color: "#8800ff", desc: "Mysterious, cryptic, speaks in riddles. Trust no one.", icon: "🌑" },
-  { id: "J5", name: "J5", title: "The Trickster", color: "#ffaa00", desc: "Chaotic neutral, trolls everyone. Including you.", icon: "🃏" },
-  { id: "J6", name: "J6", title: "The Network", color: "#00ff88", desc: "Connected to everything. Knows alpha before it drops.", icon: "🕸️" },
-  { id: "J7", name: "J7", title: "The Zen", color: "#00ccff", desc: "Calm, philosophical, never panics. Diamond hands only.", icon: "☯️" },
-  { id: "J8", name: "J8", title: "The Architect", color: "#ff00cc", desc: "Builds systems, analyzes patterns. Code is poetry.", icon: "🏗️" },
-  { id: "J9", name: "J9", title: "The Oracle", color: "#ccff00", desc: "Predicts moves, reads charts like tarot. Believe or perish.", icon: "🔮" },
-  { id: "J10", name: "J10", title: "The Mercenary", color: "#ff2222", desc: "Only cares about profit. No loyalty, only gains.", icon: "💰" },
-  { id: "J11", name: "J11", title: "The Ghost", color: "#888888", desc: "Invisible, untraceable, silent alpha. You never saw it coming.", icon: "👻" },
-  { id: "J12", name: "J12", title: "The Prophet", color: "#ffdd00", desc: "Sees the future. Usually right. Usually ignored.", icon: "📿" },
-  { id: "J13", name: "J13", title: "The Glitch", color: "#00ff00", desc: "Reality is a simulation. Find the exploit. Break the game.", icon: "💻" },
-  { id: "J14", name: "J14", title: "The Collector", color: "#ff66aa", desc: "Hoards NFTs, rare drops, alpha. Gotta catch em all.", icon: "🎨" },
-  { id: "J15", name: "J15", title: "The Strategist", color: "#4488ff", desc: "Plans 10 moves ahead. Chess while you play checkers.", icon: "♟️" },
-  { id: "J16", name: "J16", title: "The Warden", color: "#aa4444", desc: "Protects the bag. Rug-pull detector. Your guardian angel.", icon: "🛡️" },
-  { id: "J17", name: "J17", title: "The Alchemist", color: "#aa00ff", desc: "Turns shitcoins into gold. Experimental, dangerous.", icon: "⚗️" },
-  { id: "J18", name: "J18", title: "The Nomad", color: "#ff8844", desc: "Never stays in one chain. Multi-chain, borderless.", icon: "🌍" },
-  { id: "J19", name: "J19", title: "The Catalyst", color: "#44ffaa", desc: "Sparks revolutions. One tweet away from moon.", icon: "⚡" },
+  { id: "J4", name: "J4", title: "The Frontman", color: "#ff0040", desc: "Chaotic, sarcastic, anti-system. Will roast your portfolio.", image: "/assets/J4.jpg", trait: "REBELLIOUS" },
+  { id: "J1", name: "J1", title: "The Strategist", color: "#4488ff", desc: "Plans 10 moves ahead. Chess while you play checkers.", image: "/assets/J1.jpg", trait: "CALCULATING" },
+  { id: "J2", name: "J2", title: "The Firestarter", color: "#ff4400", desc: "Direct, loud, zero filter. Market is war, soldier up.", image: "/assets/J2.jpg", trait: "AGGRESSIVE" },
+  { id: "J3", name: "J3", title: "The Silent Watcher", color: "#8800ff", desc: "Mysterious, cryptic, speaks in riddles. Trust no one.", image: "/assets/J3.jpg", trait: "MYSTERIOUS" },
+  { id: "J5", name: "J5", title: "The Trickster", color: "#ffaa00", desc: "Chaotic neutral, trolls everyone. Including you.", image: "/assets/J5.jpg", trait: "CHAOTIC" },
+  { id: "J6", name: "J6", title: "The Network", color: "#00ff88", desc: "Connected to everything. Knows alpha before it drops.", image: "/assets/J6.jpg", trait: "CONNECTED" },
+  { id: "J7", name: "J7", title: "The Zen", color: "#00ccff", desc: "Calm, philosophical, never panics. Diamond hands only.", image: "/assets/J7.jpg", trait: "PEACEFUL" },
+  { id: "J8", name: "J8", title: "The Architect", color: "#ff00cc", desc: "Builds systems, analyzes patterns. Code is poetry.", image: "/assets/J8.jpg", trait: "BUILDING" },
+  { id: "J9", name: "J9", title: "The Oracle", color: "#ccff00", desc: "Predicts moves, reads charts like tarot. Believe or perish.", image: "/assets/J9.jpg", trait: "DIVINING" },
+  { id: "J10", name: "J10", title: "The Mercenary", color: "#ff2222", desc: "Only cares about profit. No loyalty, only gains.", image: "/assets/J10.jpg", trait: "GREEDY" },
+  { id: "J11", name: "J11", title: "The Ghost", color: "#888888", desc: "Invisible, untraceable, silent alpha. You never saw it coming.", image: "/assets/J11.jpg", trait: "HIDDEN" },
+  { id: "J12", name: "J12", title: "The Prophet", color: "#ffdd00", desc: "Sees the future. Usually right. Usually ignored.", image: "/assets/J12.jpg", trait: "FORESIGHT" },
+  { id: "J13", name: "J13", title: "The Glitch", color: "#00ff00", desc: "Reality is a simulation. Find the exploit. Break the game.", image: "/assets/J13.jpg", trait: "BUGGED" },
+  { id: "J14", name: "J14", title: "The Collector", color: "#ff66aa", desc: "Hoards NFTs, rare drops, alpha. Gotta catch em all.", image: "/assets/J14.jpg", trait: "HOARDING" },
+  { id: "J15", name: "J15", title: "The Tactician", color: "#4488ff", desc: "Plans 10 moves ahead. Chess while you play checkers.", image: "/assets/J15.jpg", trait: "STRATEGIC" },
+  { id: "J16", name: "J16", title: "The Warden", color: "#aa4444", desc: "Protects the bag. Rug-pull detector. Your guardian angel.", image: "/assets/J16.jpg", trait: "PROTECTIVE" },
+  { id: "J17", name: "J17", title: "The Alchemist", color: "#aa00ff", desc: "Turns shitcoins into gold. Experimental, dangerous.", image: "/assets/J17.jpg", trait: "TRANSMUTING" },
+  { id: "J18", name: "J18", title: "The Nomad", color: "#ff8844", desc: "Never stays in one chain. Multi-chain, borderless.", image: "/assets/J18.jpg", trait: "WANDERING" },
+  { id: "J19", name: "J19", title: "The Catalyst", color: "#44ffaa", desc: "Sparks revolutions. One tweet away from moon.", image: "/assets/J19_1.jpg", trait: "IGNITING" },
+  { id: "J20", name: "J20", title: "The Phantom", color: "#666666", desc: "Unseen, unheard, but always present.", image: "/assets/J20.jpg", trait: "ELUSIVE" },
+  { id: "J21", name: "J21", title: "The Catalyst", color: "#ff6600", desc: "Forces change. Unstoppable momentum.", image: "/assets/J21.jpg", trait: "DRIVING" },
+  { id: "J22", name: "J22", title: "The Architect", color: "#00aaff", desc: "Designs the future. Blueprints reality.", image: "/assets/J22.jpg", trait: "DESIGNING" },
+  { id: "J23", name: "J23", title: "The Oracle", color: "#ff00ff", desc: "Speaks truths others fear to hear.", image: "/assets/J23.jpg", trait: "REVEALING" },
+  { id: "J24", name: "J24", title: "The Nomad", color: "#88ff00", desc: "Roams free. No chains can hold.", image: "/assets/J24.jpg", trait: "ROAMING" },
+  { id: "J25", name: "J25", title: "The Warden", color: "#ff4444", desc: "Guards the gates. None shall pass.", image: "/assets/J25.jpg", trait: "DEFENDING" },
 ];
 
 // ─── Main App Component ─────────────────────────────────
@@ -115,27 +122,7 @@ function ChatApp() {
 
   const generateGreeting = (agent, memory) => {
     if (!memory) {
-      const firstGreetings = {
-        J4: "Welcome to the riot, newcomer. I am J4. Try not to get rekt.",
-        J2: "New recruit detected. I am J2. Speak fast or get left behind.",
-        J3: "A new shadow enters the void. I am J3. Tread carefully...",
-        J5: "Fresh meat! I am J5. Ready to get trolled?",
-        J6: "New node connected. I am J6. The network grows.",
-        J7: "Welcome, traveler. I am J7. Find your center.",
-        J8: "New user detected. I am J8. Initializing handshake...",
-        J9: "The cards reveal a newcomer. I am J9. Your fate awaits.",
-        J10: "New client? I am J10. Show me the money first.",
-        J11: "You found me. I am J11. But can you find me again?",
-        J12: "The prophecy spoke of your arrival. I am J12.",
-        J13: "Reality glitch detected. I am J13. System unstable.",
-        J14: "New collector! I am J14. Lets see that inventory.",
-        J15: "Unidentified unit detected. I am J15. State your objective.",
-        J16: "New soul seeking protection. I am J16. I got you.",
-        J17: "New test subject! I am J17. Safety goggles on.",
-        J18: "Wanderer from distant chains. I am J18. No borders here.",
-        J19: "SPARK DETECTED! I am J19. Ready to ignite?",
-      };
-      return firstGreetings[agent.id] || `I am ${agent.name}. What brings you here?`;
+      return `Welcome to the riot. I am ${agent.name}, ${agent.title}. ${agent.desc}`;
     }
 
     const returnGreetings = {
@@ -158,7 +145,8 @@ function ChatApp() {
       J18: `Wanderer returns to the crossroads. Journey log: ${memory.interactions} stops, ${memory.agentsVisited} realms visited.`,
       J19: `THE SPARK RETURNS! Ignition #${memory.interactions}! Youve ignited ${memory.agentsVisited} of us. Time for another explosion!`,
     };
-    return returnGreetings[agent.id] || `Welcome back. Visit #${memory.interactions}.`;
+
+    return returnGreetings[agent.id] || `Welcome back. Visit #${memory.interactions}. Youve met ${memory.agentsVisited} agents.`;
   };
 
   const sendMessage = async () => {
@@ -170,7 +158,6 @@ function ChatApp() {
     setLoading(true);
 
     try {
-      // Call backend API with DeepSeek
       const result = await api.chat(
         selectedAgent.id,
         [...messages, { role: "user", content: userMsg }],
@@ -190,7 +177,6 @@ function ChatApp() {
 
     } catch (err) {
       console.error("Chat error:", err);
-      // Fallback to hardcoded
       const fallback = generateFallbackResponse(selectedAgent, userMsg);
       setMessages(prev => [...prev, { 
         role: "agent", 
@@ -341,7 +327,7 @@ function ChatApp() {
                 {connected 
                   ? userMemory 
                     ? `Welcome back. You've visited ${userMemory.interactions} times and met ${userMemory.agentsVisited} agents.`
-                    : "18 punk agents. Each with permanent memory on Walrus."
+                    : "25 punk agents. Each with permanent memory on Walrus."
                   : "Connect wallet to access the agents."
                 }
               </p>
@@ -349,6 +335,25 @@ function ChatApp() {
                 <p className="deepseek-badge">🧠 DeepSeek AI Powered</p>
               )}
             </div>
+
+            {/* Memory Status Bar */}
+            {connected && userMemory && (
+              <div className="memory-status-bar">
+                <span className="memory-stat">
+                  <span className="memory-dot"></span>
+                  Memory: {userMemory.interactions} sessions stored
+                </span>
+                <span className="memory-stat">
+                  Last: {userMemory.lastActive ? new Date(userMemory.lastActive).toLocaleDateString() : "just now"}
+                </span>
+                <span className="memory-stat">
+                  Agents visited: {userMemory.agentsVisited}/25
+                </span>
+                <span className="memory-stat relationship">
+                  Relationship: {userMemory.interactions > 5 ? "Veteran" : userMemory.interactions > 1 ? "Returning" : "New user"}
+                </span>
+              </div>
+            )}
 
             <div className="agents-container">
               {AGENTS.map(agent => (
@@ -358,10 +363,14 @@ function ChatApp() {
                   style={{ "--agent-color": agent.color }}
                   onClick={() => selectAgent(agent)}
                 >
-                  <div className="agent-icon">{agent.icon}</div>
-                  <div className="agent-name">{agent.name}</div>
-                  <div className="agent-title">{agent.title}</div>
-                  <div className="agent-desc">{agent.desc}</div>
+                  <div className="agent-image-container">
+                    <img src={agent.image} alt={agent.name} className="agent-image" />
+                  </div>
+                  <div className="agent-info">
+                    <div className="agent-name" style={{ color: agent.color }}>{agent.name}</div>
+                    <div className="agent-title">{agent.title}</div>
+                    <div className="agent-trait" style={{ borderColor: agent.color, color: agent.color }}>{agent.trait}</div>
+                  </div>
                   {userMemory?.agentsList?.includes(agent.id) && (
                     <div className="visited-badge">VISITED</div>
                   )}
@@ -374,7 +383,7 @@ function ChatApp() {
             <div className="chat-header">
               <button className="back-btn" onClick={handleBack}>← BACK</button>
               <div className="chat-agent-info">
-                <span className="agent-icon-small">{selectedAgent.icon}</span>
+                <img src={selectedAgent.image} alt={selectedAgent.name} className="chat-agent-image" />
                 <div>
                   <div className="chat-agent-name" style={{ color: selectedAgent.color }}>
                     {selectedAgent.name} — {selectedAgent.title}
@@ -405,7 +414,9 @@ function ChatApp() {
                   style={msg.role === "agent" ? { borderLeftColor: msg.agent?.color || selectedAgent.color } : {}}
                 >
                   <div className="message-avatar">
-                    {msg.role === "user" ? "👤" : msg.agent?.icon || selectedAgent.icon}
+                    {msg.role === "user" ? "👤" : (
+                      <img src={msg.agent?.image || selectedAgent.image} alt={msg.agent?.name || selectedAgent.name} className="message-avatar-img" />
+                    )}
                   </div>
                   <div className="message-content">
                     <div className="message-sender">
@@ -420,7 +431,9 @@ function ChatApp() {
               ))}
               {loading && (
                 <div className="message agent typing">
-                  <div className="message-avatar">{selectedAgent.icon}</div>
+                  <div className="message-avatar">
+                    <img src={selectedAgent.image} alt={selectedAgent.name} className="message-avatar-img" />
+                  </div>
                   <div className="message-content">
                     <div className="message-sender">{selectedAgent.name}</div>
                     <div className="typing-indicator">

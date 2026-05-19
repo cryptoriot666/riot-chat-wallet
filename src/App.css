@@ -1,4 +1,4 @@
-/* RIOT Chat Wallet — Full CSS */
+/* RIOT Chat Wallet — Punk Images + DeepSeek */
 :root {
   --bg-primary: #0a0a0f;
   --bg-secondary: #12121a;
@@ -228,7 +228,7 @@ body {
 /* Grid Header */
 .grid-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .glitch-title {
@@ -261,10 +261,48 @@ body {
   50% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.6); }
 }
 
+/* Memory Status Bar */
+.memory-status-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 24px;
+  margin-bottom: 24px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  flex-wrap: wrap;
+}
+
+.memory-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.memory-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.memory-stat.relationship {
+  color: var(--accent-pink);
+  font-weight: bold;
+}
+
 /* Agents Container */
 .agents-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
   max-width: 1200px;
   margin: 0 auto;
@@ -274,12 +312,10 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 20px;
-  text-align: center;
+  overflow: hidden;
   cursor: pointer;
   transition: all 0.3s;
   position: relative;
-  overflow: hidden;
 }
 
 .agent-card::before {
@@ -290,46 +326,74 @@ body {
   background: var(--agent-color);
   opacity: 0;
   transition: opacity 0.3s;
+  z-index: 2;
 }
 
 .agent-card:hover {
   transform: translateY(-4px);
   border-color: var(--agent-color);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px var(--agent-color);
 }
 
 .agent-card:hover::before { opacity: 1; }
 
-.agent-icon { font-size: 40px; margin-bottom: 12px; }
+.agent-image-container {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.agent-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.agent-card:hover .agent-image {
+  transform: scale(1.05);
+}
+
+.agent-info {
+  padding: 12px;
+  text-align: center;
+}
 
 .agent-name {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
-  color: var(--agent-color);
   margin-bottom: 4px;
 }
 
 .agent-title {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
-.agent-desc {
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.4;
+.agent-trait {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .visited-badge {
   position: absolute;
-  top: 8px; right: 8px;
+  top: 8px;
+  right: 8px;
   background: var(--success);
   color: #000;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: bold;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 10px;
+  z-index: 3;
 }
 
 /* Chat Interface */
@@ -362,6 +426,11 @@ body {
   font-size: 12px;
 }
 
+.back-btn:hover {
+  border-color: var(--accent-pink);
+  color: var(--accent-pink);
+}
+
 .chat-agent-info {
   display: flex;
   align-items: center;
@@ -369,7 +438,13 @@ body {
   flex: 1;
 }
 
-.agent-icon-small { font-size: 28px; }
+.chat-agent-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--agent-color);
+}
 
 .chat-agent-name {
   font-size: 16px;
@@ -466,6 +541,14 @@ body {
 .message-avatar {
   font-size: 24px;
   flex-shrink: 0;
+}
+
+.message-avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--agent-color);
 }
 
 .message-content {
@@ -583,6 +666,7 @@ body {
   display: flex;
   justify-content: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .divider { color: var(--border-color); }
@@ -599,4 +683,5 @@ body {
   .chat-header { flex-wrap: wrap; }
   .memory-controls { width: 100%; justify-content: flex-end; margin-top: 8px; }
   .message { max-width: 90%; }
+  .memory-status-bar { gap: 12px; }
 }
