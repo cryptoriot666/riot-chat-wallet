@@ -25,6 +25,17 @@ class RiotAPI {
     return this.request("/api/health");
   }
 
+  async chat(agentId, messages, memorySummary = "") {
+    return this.request("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        agent_id: agentId,
+        messages: messages,
+        memory_summary: memorySummary
+      })
+    });
+  }
+
   async saveMemory(walletAddress, agentId, messages, summary) {
     return this.request("/api/memory/save", {
       method: "POST",

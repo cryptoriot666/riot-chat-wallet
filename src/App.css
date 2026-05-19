@@ -1,0 +1,29 @@
+/* DeepSeek Badge */
+.deepseek-badge {
+  display: inline-block;
+  background: linear-gradient(90deg, #1a1a2e, #16213e);
+  border: 1px solid #0f3460;
+  color: #00d4ff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 8px;
+  animation: glow 2s infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.6); }
+}
+
+/* Source Badge */
+.source-badge {
+  font-size: 9px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  border: 1px solid var(--border-color);
+}
