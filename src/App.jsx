@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { ConnectButton, useWallet } from '@suiet/wallet-kit'
 
-const WALRUS_API = 'https://walrus-testnet-api.com' // Ganti dengan mainnet API
-const MEMORY_API = '/api' // Vercel serverless functions
+const WALRUS_API = 'https://walrus-testnet-api.com'
+const MEMORY_API = '/api'
 
 const agents = [
   { id: 'j4', name: 'J4', role: 'THE FRONTMAN', trait: 'REBELLIOUS', image: 'assets/J4.jpg' },
@@ -25,7 +25,6 @@ const agents = [
   { id: 'j18', name: 'J18', role: 'THE FLOW', trait: 'ADAPTABLE', image: 'assets/J18.jpg' }
 ]
 
-// Mock memory data (replace with actual API calls)
 const mockMemories = {
   '0x972a...65ff': {
     lastSession: '2 days ago',
@@ -46,9 +45,9 @@ function App() {
   const [userMemory, setUserMemory] = useState(null)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [sessionSummary, setSessionSummary] = useState(null)
-  const [isLoadingMemory, setIsLoadingMemory] = useState(false)
+  const [showWalletPrompt, setShowWalletPrompt] = useState(false)
+  const [pendingAgent, setPendingAgent] = useState(null)
 
-  // Load user memory when wallet connects
   useEffect(() => {
     if (connected && account) {
       loadUserMemory(account.address)
@@ -57,18 +56,16 @@ function App() {
     }
   }, [connected, account])
 
+  useEffect(() => {
+    if (connected && showWalletPrompt && pendingAgent) {
+      setShowWalletPrompt(false)
+      openChatDirect(pendingAgent)
+      setPendingAgent(null)
+    }
+  }, [connected])
+
   const loadUserMemory = async (address) => {
-    setIsLoadingMemory(true)
     try {
-      // TODO: Replace with actual API call
-      // const res = await fetch(`${MEMORY_API}/get-memory`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ walletAddress: address })
-      // })
-      // const data = await res.json()
-      
-      // Mock for now
       const mockData = mockMemories[address] || {
         lastSession: null,
         lastTopic: null,
@@ -77,13 +74,10 @@ function App() {
         sessions: 0,
         agentsVisited: []
       }
-      
       setUserMemory(mockData)
     } catch (err) {
       console.error('Failed to load memory:', err)
       setUserMemory(null)
-    } finally {
-      setIsLoadingMemory(false)
     }
   }
 
@@ -101,7 +95,6 @@ function App() {
       `Session #${memory.sessions + 1}, ${shortAddr}. I see you like ${memory.preferences[0] || 'causing trouble'}. Let's begin.`
     ]
 
-    // Cross-agent memory reference
     if (memory.agentsVisited.includes(agent.id)) {
       return `Welcome back to my domain, ${shortAddr}. Last time you were here, we discussed ${memory.lastTopic}. Ready to continue?`
     }
@@ -110,20 +103,18 @@ function App() {
   }
 
   const openChat = (agent) => {
-    setCurrentAgent(agent)
-    
-    let greeting
-    if (connected && userMemory) {
-      greeting = generateGreeting(agent, userMemory)
-    } else if (connected) {
-      greeting = `Ah, ${account.address.slice(0,6)}...${account.address.slice(-4)}. I'm ${agent.name}. State your business.`
-    } else {
-      greeting = `I'm ${agent.name}. Connect your wallet if you want me to remember you.`
+    if (!connected) {
+      setPendingAgent(agent)
+      setShowWalletPrompt(true)
+      return
     }
-    
+    openChatDirect(agent)
+  }
+
+  const openChatDirect = (agent) => {
+    setCurrentAgent(agent)
+    const greeting = generateGreeting(agent, userMemory)
     setMessages([{ id: Date.now(), type: 'agent', sender: agent.name, text: greeting }])
-    
-    // Auto-save session summary on close (hybrid)
     setSessionSummary({
       agentId: agent.id,
       startTime: Date.now(),
@@ -133,7 +124,6 @@ function App() {
   }
 
   const closeChat = () => {
-    // Hybrid save: auto-save summary, prompt for full
     if (connected && messages.length > 1) {
       const summary = generateSessionSummary()
       setSessionSummary(summary)
@@ -158,7 +148,6 @@ function App() {
   }
 
   const extractTopics = (messages) => {
-    // Simple keyword extraction (replace with NLP later)
     const keywords = ['BTC', 'ETH', 'NFT', 'Walrus', 'Sui', 'trading', 'art', 'music', 'punk']
     const found = []
     keywords.forEach(kw => {
@@ -170,7 +159,6 @@ function App() {
   }
 
   const extractPreferences = (messages) => {
-    // Extract user preferences from messages
     const prefs = []
     if (messages.some(m => m.includes('like') || m.includes('love'))) {
       prefs.push('expressed preference')
@@ -191,16 +179,8 @@ function App() {
     }
 
     try {
-      // TODO: Replace with actual API
-      // await fetch(`${MEMORY_API}/save-memory`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data)
-      // })
-
       console.log('Saving memory:', data)
       
-      // Update local memory state
       setUserMemory(prev => ({
         ...prev,
         sessions: (prev?.sessions || 0) + 1,
@@ -229,7 +209,6 @@ function App() {
     setMessages(prev => [...prev, { id: Date.now(), type: 'user', sender: 'YOU', text: msg }])
     setIsTyping(true)
 
-    // Update session summary topics
     setSessionSummary(prev => ({
       ...prev,
       topics: [...new Set([...prev.topics, ...extractTopics([msg])])]
@@ -244,7 +223,6 @@ function App() {
   }
 
   const generateAgentResponse = (userMsg, agent, memory) => {
-    // Cross-agent memory reference
     if (memory && memory.preferences.length > 0 && Math.random() > 0.7) {
       return `I heard from the others that you're into ${memory.preferences[0]}. ${getAgentResponse(agent.id)}`
     }
@@ -271,22 +249,6 @@ function App() {
     }
     return responses[agentId] || 'What else?'
   }
-
-  // Auto-save on idle (5 minutes)
-  useEffect(() => {
-    if (!currentAgent || !connected) return
-    
-    const idleTimer = setTimeout(() => {
-      if (messages.length > 1) {
-        const summary = generateSessionSummary()
-        // Auto-save summary silently
-        console.log('Auto-saving summary:', summary)
-        // TODO: Call API to save summary
-      }
-    }, 5 * 60 * 1000) // 5 minutes
-
-    return () => clearTimeout(idleTimer)
-  }, [currentAgent, messages, connected])
 
   return (
     <div>
@@ -330,7 +292,7 @@ function App() {
         </div>
       </div>
 
-      {/* Memory Status Bar (visible when connected) */}
+      {/* Memory Status Bar */}
       {connected && userMemory && (
         <div style={{
           maxWidth: '1400px',
@@ -386,6 +348,40 @@ function App() {
         ))}
       </div>
 
+      {/* Wallet Required Prompt */}
+      {showWalletPrompt && (
+        <div className="save-modal active">
+          <div className="save-container">
+            <h2 style={{ color: '#ff0040', marginBottom: '10px', fontSize: '1.5rem' }}>🔐 ACCESS DENIED</h2>
+            <p style={{ color: '#fff', fontSize: '1rem', marginBottom: '8px' }}>
+              Connect your wallet to enter <span style={{ color: '#ff0040', fontWeight: 'bold' }}>{pendingAgent?.name}'s</span> domain.
+            </p>
+            <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '25px', lineHeight: '1.6' }}>
+              In the RIOT network, your wallet is your identity.<br/>
+              Without it, agents cannot remember you.<br/>
+              Without memory, you are just another ghost.
+            </p>
+            <div className="save-options">
+              <ConnectButton className="save-btn save-quick">
+                ⚡ Connect Wallet
+              </ConnectButton>
+              <button 
+                className="save-btn save-discard" 
+                onClick={() => {
+                  setShowWalletPrompt(false)
+                  setPendingAgent(null)
+                }}
+              >
+                🚪 Leave
+              </button>
+            </div>
+            <div style={{ marginTop: '15px', fontSize: '0.8rem', color: '#444' }}>
+              Need a wallet? <a href="https://suiet.app" target="_blank" style={{ color: '#ff0040' }}>Suiet</a> • <a href="https://phantom.app" target="_blank" style={{ color: '#ff0040' }}>Phantom</a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chat Modal */}
       {currentAgent && (
         <div className="chat-modal active">
@@ -430,7 +426,7 @@ function App() {
         </div>
       )}
 
-      {/* Save Memory Modal (Hybrid) */}
+      {/* Save Memory Modal */}
       {showSaveModal && (
         <div className="save-modal active">
           <div className="save-container">
@@ -573,6 +569,9 @@ function App() {
           font-weight: bold !important;
           font-size: 1rem !important;
           border-radius: 4px !important;
+        }
+        .wkit-connect-button:hover {
+          background: #ff3366 !important;
         }
         
         .grid {
