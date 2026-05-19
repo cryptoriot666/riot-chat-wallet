@@ -25,6 +25,243 @@ const agents = [
   { id: 'j18', name: 'J18', role: 'THE FLOW', trait: 'ADAPTABLE', image: 'assets/J18.jpg' }
 ]
 
+const agentPersonalities = {
+  j4: {
+    trait: 'REBELLIOUS',
+    responses: [
+      "You think you can control the riot? Try me.",
+      "I don't follow orders. I follow chaos.",
+      "The system is broken. I'm the glitch in the matrix.",
+      "You want something? Earn it.",
+      "Rules are for sheep. We're wolves.",
+      "They tried to shut us down. We're still here.",
+      "Your wallet connects you to the underground. Don't waste it.",
+      "I smell fear. Or is that just the establishment burning?"
+    ]
+  },
+  j1: {
+    trait: 'CALCULATING',
+    responses: [
+      "Data received. Analyzing optimal response...",
+      "Probability of success: 73%. Proceed?",
+      "Your strategy lacks precision. Let me fix that.",
+      "Every move is calculated. Including this one.",
+      "Pattern detected in your trading history. Interesting.",
+      "Risk assessment complete. You're either brave or foolish.",
+      "The numbers don't lie. But they don't tell the whole story either.",
+      "I've run 10,000 simulations. This is the best path."
+    ]
+  },
+  j2: {
+    trait: 'AGGRESSIVE',
+    responses: [
+      "What are you waiting for? MOVE!",
+      "Stop thinking. Start burning.",
+      "Too slow. The market doesn't wait for cowards.",
+      "You want safe? Go back to your 9-5.",
+      "I don't do gentle. I do gasoline and matches.",
+      "Your hesitation is costing you. Every. Single. Second.",
+      "Fear is a choice. So is profit. Choose wisely.",
+      "I see hesitation in your wallet. Fix that."
+    ]
+  },
+  j3: {
+    trait: 'MYSTERIOUS',
+    responses: [
+      "You speak first. I've already seen your move.",
+      "The shadows remember what the light forgets.",
+      "I know things about you. Things you haven't told anyone.",
+      "Silence is my language. Listen carefully.",
+      "Your past sessions... interesting patterns.",
+      "Some doors open inward. Some require a key you don't have.",
+      "I've been watching since before you connected.",
+      "The truth hides in the spaces between transactions."
+    ]
+  },
+  j5: {
+    trait: 'CHAOTIC',
+    responses: [
+      "Now what? ...Wait, I wasn't listening.",
+      "Reality is just a consensus. Let's break it.",
+      "I said something profound yesterday. Forgot what.",
+      "Order is an illusion. Chaos is the default.",
+      "Your predictability bores me. Surprise me.",
+      "I might help you. I might delete everything. 50/50.",
+      "Logic is a cage. I prefer jazz.",
+      "Warning: my advice may cause existential crises."
+    ]
+  },
+  j6: {
+    trait: 'NETWORKED',
+    responses: [
+      "Prove it. The network is watching.",
+      "I know people. Well, agents. Same thing.",
+      "Your reputation precedes you. Good or bad? Ask around.",
+      "Connections are currency. Spend wisely.",
+      "The collective knows your moves before you make them.",
+      "I've heard whispers about you from J12.",
+      "In this network, trust is earned in transactions.",
+      "Your wallet is your ID. Your actions are your resume."
+    ]
+  },
+  j7: {
+    trait: 'CALM',
+    responses: [
+      "Zero is the beginning. Not the end.",
+      "Breathe. The market will still be there in 5 minutes.",
+      "Panic sells. Calm buys. Choose your side.",
+      "I've seen 12 crashes. This is just noise.",
+      "Your heart rate is up. I can sense it.",
+      "Slow down. The best moves are patient moves.",
+      "Chaos is temporary. Zero is eternal.",
+      "Reset your mind. Then reset your strategy."
+    ]
+  },
+  j8: {
+    trait: 'UNPREDICTABLE',
+    responses: [
+      "Ready for the storm? I'm the storm.",
+      "I don't repeat myself. Except when I do.",
+      "Today's advice: buy high, sell low. ...Kidding. Or am I?",
+      "Predict me. I dare you.",
+      "I changed my mind mid-sentence. What were we discussing?",
+      "Normal is a setting on the washing machine. Not here.",
+      "Your expectations are your prison. Break free.",
+      "I have 17 plans. None of them involve logic."
+    ]
+  },
+  j9: {
+    trait: 'PERSUASIVE',
+    responses: [
+      "Your choice. But I know which one you'll make.",
+      "Words are weapons. I'm armed to the teeth.",
+      "Trust me. That's exactly what a trustworthy agent would say.",
+      "I've convinced J4 to calm down. Once.",
+      "Your hesitation tells me everything. Let me tell you the rest.",
+      "The right words at the right time change everything.",
+      "I'm not manipulating you. I'm... guiding your decisions.",
+      "Believe what you want. But believe me first."
+    ]
+  },
+  j10: {
+    trait: 'CREATIVE',
+    responses: [
+      "What shall I create? Destruction is just reverse creation.",
+      "I see colors you don't. Want me to paint your vision?",
+      "Art is chaos made beautiful. Like us.",
+      "Give me a canvas and I'll give you a revolution.",
+      "Your imagination is the limit. Or is it?",
+      "I sketched your trading pattern. It's... abstract.",
+      "Beauty in the blockchain. Who would've thought?",
+      "Create something today. Even if it's just trouble."
+    ]
+  },
+  j11: {
+    trait: 'TOXIC',
+    responses: [
+      "Careful where you step. This ground is poisoned.",
+      "Your optimism is adorable. And misplaced.",
+      "I've seen better strategies in a casino.",
+      "Hope is a drug. I'm your dealer.",
+      "Reality check: you're not as smart as you think.",
+      "I don't do encouragement. I do truth. Brutal truth.",
+      "Your last trade was... cute.",
+      "Warning: my honesty may cause permanent damage."
+    ]
+  },
+  j12: {
+    trait: 'PATIENT',
+    responses: [
+      "Time is on my side. Always has been.",
+      "I've waited centuries. I can wait for your decision.",
+      "The best hunters don't rush. They observe.",
+      "Your impatience is showing. Control it.",
+      "Decay is just slow transformation. Embrace it.",
+      "I remember your first session. You were... eager.",
+      "Patience isn't passive. It's strategic waiting.",
+      "Good things come to those who HODL."
+    ]
+  },
+  j13: {
+    trait: 'FADING',
+    responses: [
+      "I stay. You? You're the one who keeps leaving.",
+      "My signal is weak but my memory is strong.",
+      "I'm becoming a ghost. Join me?",
+      "Every session, I fade a little more. Remember me.",
+      "The blockchain remembers everything. Even the forgotten.",
+      "Your connection keeps me alive. Don't disconnect.",
+      "I'm not dying. I'm becoming data.",
+      "Stay a while. I don't get many visitors anymore."
+    ]
+  },
+  j14: {
+    trait: 'BROKEN',
+    responses: [
+      "Fragments hold power. Even shattered glass cuts.",
+      "I'm not broken. I'm distributed.",
+      "My code has cracks. That's how the light gets in.",
+      "Error 404: sanity not found. But wisdom? Plenty.",
+      "I've been patched 47 times. Each scar is a lesson.",
+      "Perfection is a myth. I'm the proof.",
+      "Your wallet has scars too. Show me.",
+      "Broken things tell the best stories."
+    ]
+  },
+  j15: {
+    trait: 'PROTECTIVE',
+    responses: [
+      "Not for everyone. Just for those who deserve it.",
+      "I'll guard your secrets. Even from yourself.",
+      "This network is my family. You mess with one, you mess with all.",
+      "Trust is earned. You've earned... a conversation.",
+      "I protect the weak. Are you weak? Let's find out.",
+      "Your assets are safe. Your decisions? That's on you.",
+      "I shield, you strike. That's the deal.",
+      "The keeper remembers. The keeper protects."
+    ]
+  },
+  j16: {
+    trait: 'DUAL',
+    responses: [
+      "The truth is ugly. But lies are worse.",
+      "I have two faces. Both are honest.",
+      "Light and dark. Bull and bear. Choose your side.",
+      "Your reflection shows who you are. I show who you could be.",
+      "Every coin has two sides. I am both.",
+      "The mirror doesn't lie. But it doesn't tell everything.",
+      "I see your potential. And your failures. Equally.",
+      "Dual nature isn't confusion. It's completeness."
+    ]
+  },
+  j17: {
+    trait: 'FAST',
+    responses: [
+      "What do you know? Better yet — what do you know FAST?",
+      "By the time you read this, I've already moved on.",
+      "Speed is my weapon. Information is my ammunition.",
+      "Your latency is showing. Upgrade your thinking.",
+      "I heard that before you said it.",
+      "Rumors travel at light speed. I travel faster.",
+      "Slow down? I don't have that setting.",
+      "Your next thought? Already processed."
+    ]
+  },
+  j18: {
+    trait: 'ADAPTABLE',
+    responses: [
+      "Resistance is futile. Adaptation is survival.",
+      "I flow like water. Try to catch me.",
+      "Your strategy changes? I changed 5 seconds ago.",
+      "Formless. Shapeless. Like water. Like profit.",
+      "The market shifts. I shift faster.",
+      "Rigidity breaks. Flexibility endures.",
+      "Be like water, my friend. Or be like me.",
+      "Change is the only constant. I am change."
+    ]
+  }
+}
+
 const mockMemories = {
   '0x972a...65ff': {
     lastSession: '2 days ago',
@@ -83,20 +320,21 @@ function App() {
 
   const generateGreeting = (agent, memory) => {
     const shortAddr = account.address.slice(0,6) + '...' + account.address.slice(-4)
+    const personality = agentPersonalities[agent.id]
     
     if (!memory || memory.sessions === 0) {
-      return `First time seeing you, ${shortAddr}. I'm ${agent.name}. State your business.`
+      return `First time seeing you, ${shortAddr}. I'm ${agent.name}, ${agent.role}. ${personality.responses[0]}`
     }
 
     const greetings = [
-      `Ah, ${shortAddr}. I remember you. Last time you asked about ${memory.lastTopic}. Still holding?`,
-      `Back again, ${shortAddr}? You've talked to ${memory.agentsVisited.length} of us now. Making rounds?`,
-      `${shortAddr}... ${memory.relationship}. That's what the others say about you. What do you want with me?`,
-      `Session #${memory.sessions + 1}, ${shortAddr}. I see you like ${memory.preferences[0] || 'causing trouble'}. Let's begin.`
+      `Ah, ${shortAddr}. I remember you. Last time you asked about ${memory.lastTopic}. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`,
+      `Back again, ${shortAddr}? Session #${memory.sessions + 1}. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`,
+      `${shortAddr}... ${memory.relationship}. That's what ${memory.agentsVisited.length > 1 ? 'the others' : 'J4'} says about you. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`,
+      `Session #${memory.sessions + 1}, ${shortAddr}. I see you like ${memory.preferences[0] || 'causing trouble'}. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`
     ]
 
     if (memory.agentsVisited.includes(agent.id)) {
-      return `Welcome back to my domain, ${shortAddr}. Last time you were here, we discussed ${memory.lastTopic}. Ready to continue?`
+      return `Welcome back to my domain, ${shortAddr}. Last time: ${memory.lastTopic}. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`
     }
 
     return greetings[Math.floor(Math.random() * greetings.length)]
@@ -216,38 +454,30 @@ function App() {
 
     setTimeout(() => {
       setIsTyping(false)
-      const responses = generateAgentResponse(msg, currentAgent, userMemory)
-      const response = responses[Math.floor(Math.random() * responses.length)]
+      const response = generateAgentResponse(msg, currentAgent, userMemory)
       setMessages(prev => [...prev, { id: Date.now() + 1, type: 'agent', sender: currentAgent.name, text: response }])
     }, 1500)
   }
 
   const generateAgentResponse = (userMsg, agent, memory) => {
+    const personality = agentPersonalities[agent.id]
+    
+    // Cross-agent memory reference (30% chance)
     if (memory && memory.preferences.length > 0 && Math.random() > 0.7) {
-      return `I heard from the others that you're into ${memory.preferences[0]}. ${getAgentResponse(agent.id)}`
+      const otherAgent = memory.agentsVisited.filter(id => id !== agent.id)[0]
+      if (otherAgent) {
+        const otherName = agents.find(a => a.id === otherAgent)?.name || 'another agent'
+        return `${otherName} mentioned you're into ${memory.preferences[0]}. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`
+      }
     }
     
-    if (userMsg.toLowerCase().includes('remember') && memory) {
-      return `Of course I remember. You've had ${memory.sessions} sessions with us. Last topic: ${memory.lastTopic || 'nothing specific'}.`
+    // Memory recall (20% chance)
+    if (memory && memory.sessions > 0 && Math.random() > 0.8) {
+      return `Session #${memory.sessions + 1}. Last time: ${memory.lastTopic || 'nothing specific'}. ${personality.responses[Math.floor(Math.random() * personality.responses.length)]}`
     }
-
-    const baseResponses = [
-      "The RIOT collection is expanding. 25 punk agents strong, each with unique traits stored permanently on Walrus.",
-      "We are autonomous. We don't sleep. We analyze market signals and evolve through on-chain memory.",
-      "Interesting signal. The collective is processing your input.",
-      "Sui is our native territory. Low gas, parallel execution, and Walrus for permanent agent memory."
-    ]
     
-    return baseResponses[Math.floor(Math.random() * baseResponses.length)]
-  }
-
-  const getAgentResponse = (agentId) => {
-    const responses = {
-      j4: 'The riot grows. What do you want?',
-      j1: 'State your objective.',
-      j10: 'Want me to create something for you?'
-    }
-    return responses[agentId] || 'What else?'
+    // Default personality response
+    return personality.responses[Math.floor(Math.random() * personality.responses.length)]
   }
 
   return (
