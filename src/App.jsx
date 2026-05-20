@@ -37,6 +37,42 @@ const AGENTS = [
   { id: "J25", name: "J25", title: "The Warden", color: "#ff4444", desc: "Guards the gates. None shall pass.", image: "/assets/J25.jpg", trait: "DEFENDING" },
 ];
 
+// ─── Helper: Extract Memory Facts ────────────────────────
+const extractMemoryFacts = (messages) => {
+  const facts = [];
+  if (!messages || messages.length === 0) return facts;
+
+  messages.forEach(msg => {
+    if (msg.role === "user" && msg.content) {
+      // Extract name
+      const nameMatch = msg.content.match(/my name is (\w+)/i);
+      if (nameMatch && !facts.some(f => f.includes("name"))) {
+        facts.push(`User's name is ${nameMatch[1]}`);
+      }
+
+      // Extract preferences
+      if (msg.content.toLowerCase().includes("rich") && !facts.some(f => f.includes("rich"))) {
+        facts.push("User wants to get rich");
+      }
+      if (msg.content.toLowerCase().includes("trading") && !facts.some(f => f.includes("trading"))) {
+        facts.push("User is interested in trading");
+      }
+      if (msg.content.toLowerCase().includes("nft") && !facts.some(f => f.includes("NFT"))) {
+        facts.push("User is interested in NFTs");
+      }
+    }
+  });
+
+  return facts;
+};
+
+// ─── Helper: Build Enhanced Prompt ──────────────────────
+const buildEnhancedPrompt = (userMsg, facts) => {
+  if (facts.length === 0) return userMsg;
+
+  return `[MEMORY FACTS - YOU MUST ACKNOWLEDGE THESE: ${facts.join(". ")}] ${userMsg}`;
+};
+
 // ─── Main App Component ─────────────────────────────────
 function ChatApp() {
   const wallet = useWallet();
@@ -150,7 +186,7 @@ function ChatApp() {
       return `Welcome to the riot. I am ${agent.name}, ${agent.title}. ${agent.desc}`;
     }
 
-    // Extract name from previous messages if available
+    // Extract name from previous messages
     let userName = "";
     memory.allMessages?.forEach(msg => {
       if (msg.role === "user" && msg.content) {
@@ -191,11 +227,17 @@ function ChatApp() {
     const userMsg = input.trim();
     setInput("");
 
-    // Build context with ALL previous messages from memory
+    // Extract memory facts from all previous messages
+    const memoryFacts = extractMemoryFacts(allPreviousMessages);
+
+    // Build enhanced prompt with memory injection
+    const enhancedMsg = buildEnhancedPrompt(userMsg, memoryFacts);
+
+    // Build context with ALL previous messages + enhanced current message
     const contextMessages = [
       ...(userMemory?.allMessages || []),
       ...messages,
-      { role: "user", content: userMsg }
+      { role: "user", content: enhancedMsg }
     ];
 
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
@@ -204,7 +246,7 @@ function ChatApp() {
     try {
       const result = await api.chat(
         selectedAgent.id,
-        contextMessages,  // Send ALL messages with context
+        contextMessages,
         userMemory?.summary || ""
       );
 
