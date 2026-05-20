@@ -344,91 +344,83 @@ export default function App() {
   // ═══════════════════════════════════════════════════════════════
   const handleWalrusSave = async () => {
     if (!connected || !account?.address) {
-      alert('Connect wallet first!')
-      return
-    }
-    if (!signMessage) {
-      alert('Wallet does not support message signing')
-      return
+        alert('Connect wallet first!')
+        return
     }
 
     setIsSaving(true)
-    setSaveStatus('Preparing data...')
+    setSaveStatus('Preparing transaction...')
 
     try {
-      // 1. Prepare memory data
-      const dataToSave = {
-        wallet_hash: walletHash,
-        wallet_address: account.address,
-        summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
-        user_name: memory?.user_name || userName,
-        visited_agents: Array.from(visitedAgents),
-        last_agent: selectedAgent.id,
-        timestamp: Date.now(),
-        agent_interactions: messages.filter(m => m.role === 'agent').length
-      }
+        const dataToSave = {
+            wallet_hash: walletHash,
+            wallet_address: account.address,
+            summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
+            user_name: memory?.user_name || userName,
+            visited_agents: Array.from(visitedAgents),
+            last_agent: selectedAgent.id,
+            timestamp: Date.now()
+        }
 
-      // 2. Create unique message for signing
-      const messageText = `RIOT_MEMORY_SAVE_${walletHash}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      const messageBytes = new TextEncoder().encode(messageText)
-
-      setSaveStatus('Waiting for wallet signature...')
-
-      // 3. WALLET POP-UP! User signs message
-      const signResult = await signMessage({ message: messageBytes })
-
-      console.log('Signature:', signResult.signature)
-      console.log('PublicKey:', signResult.publicKey)
-
-      setSaveStatus('Verifying on-chain...')
-
-      // 4. Send to backend with signature proof
-      const res = await fetch(`${API_BASE}/api/walrus/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          wallet_hash: walletHash,
-          wallet_address: account.address,
-          signature: signResult.signature,
-          public_key: signResult.publicKey,
-          message: messageText,
-          message_bytes: Array.from(messageBytes),
-          data: dataToSave,
-          timestamp: Date.now(),
-          agent_id: selectedAgent.id
+        // Create a simple Sui transaction
+        const tx = new TransactionBlock()
+        tx.setGasBudget(1000000) // 0.001 SUI
+        
+        // Call the Move contract (yang sudah fix module name)
+        tx.moveCall({
+            target: `${PACKAGE_ID}::riot::store_memory`,
+            arguments: [
+                tx.pure(account.address),
+                tx.pure(selectedAgent.id),
+                tx.pure([btoa(JSON.stringify(dataToSave))]),
+                tx.pure(`RIOT save ${new Date().toISOString()}`)
+            ]
         })
-      })
 
-      if (!res.ok) throw new Error('Backend save failed')
-      const result = await res.json()
+        setSaveStatus('Waiting for wallet approval...')
 
-      setSaveStatus('Saved with wallet proof!')
-      setTimeout(() => setSaveStatus(''), 3000)
+        // WALLET POP-UP! Slush akan muncul
+        const result = await signAndExecuteTransactionBlock({
+            transactionBlock: tx
+        })
 
-      alert(`💾 Memory saved with wallet signature proof!\n\nSignature: ${signResult.signature.slice(0, 20)}...\nMessage: ${messageText.slice(0, 30)}...`)
+        console.log('Transaction result:', result)
+
+        if (result.digest) {
+            // Save to backend with tx proof
+            await fetch(`${API_BASE}/api/walrus/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet_hash: walletHash,
+                    tx_digest: result.digest,
+                    object_id: result.effects?.created?.[0]?.reference?.objectId || '',
+                    data: dataToSave,
+                    signature_verified: true
+                })
+            })
+
+            setSaveStatus('Saved to Walrus on-chain!')
+            setTimeout(() => setSaveStatus(''), 3000)
+            alert(`💾 Memory saved to Walrus on-chain!\n\nTx: ${result.digest.slice(0, 20)}...\nView: https://suiscan.xyz/testnet/tx/${result.digest}`)
+        }
 
     } catch (e) {
-      console.error('Save error:', e)
-      setSaveStatus('Save failed')
-      setTimeout(() => setSaveStatus(''), 3000)
-
-      if (e.message?.includes('Rejected') || e.message?.includes('cancelled') || e.message?.includes('User rejected')) {
-        alert('❌ Signature cancelled by user')
-      } else {
-        alert('❌ Save failed. Falling back to backend storage...')
-        await apiSaveMemory(walletHash, {
-          summary: messages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | '),
-          user_name: memory?.user_name || userName,
-          visited_agents: Array.from(visitedAgents),
-          last_agent: selectedAgent.id,
-          last_visit: new Date().toISOString()
-        })
-        alert('💾 Saved to backend (off-chain fallback)')
-      }
+        console.error('Save error:', e)
+        setSaveStatus('Save failed')
+        setTimeout(() => setSaveStatus(''), 3000)
+        
+        if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
+            alert('❌ Transaction cancelled by user')
+        } else {
+            alert('❌ Save failed. Falling back to backend...')
+            await apiSaveMemory(walletHash, dataToSave)
+            alert('💾 Saved to backend (off-chain fallback)')
+        }
     } finally {
-      setIsSaving(false)
+        setIsSaving(false)
     }
-  }
+}
   // ═══════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════
