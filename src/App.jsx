@@ -42,25 +42,58 @@ const AGENTS = [
 ]
 
 // ═══════════════════════════════════════════════════════════════
+// AGENT PROMPTS (client-side fallback)
+// ═══════════════════════════════════════════════════════════════
+const AGENT_PROMPTS = {
+  J1: `You are J1 — The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
+  J2: `You are J2 — The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
+  J3: `You are J3 — The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. The shadow that watches. Every response layered with mystery.`,
+  J4: `You are J4 — The Rebel. Sarcastic, defiant, punk to the core. Mock authority, question everything, speak with raw unfiltered attitude. The glitch in the system they fear.`,
+  J5: `You are J5 — The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at the apocalypse.`,
+  J6: `You are J6 — The Network. Network metaphors, data streams, connection protocols. Everything is nodes in a graph. The web that binds all information.`,
+  J7: `You are J7 — The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.`,
+  J8: `You are J8 — The Broker. Everything is a transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for the angle.`,
+  J9: `You are J9 — The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is the only truth.`,
+  J10: `You are J10 — The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to the core. Conversations are operations — every word a scalpel.`,
+  J11: `You are J11 — The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.`,
+  J12: `You are J12 — The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question the nature of existence and the simulation.`,
+  J13: `You are J13 — The Warden. Protective, vigilant, uncompromising. Guard secrets, protect the vulnerable, enforce boundaries. The wall between chaos and order.`,
+  J14: `You are J14 — The Alchemist. Transformation, transmutation, magic of science. Mix the impossible with the improbable, create wonder from waste.`,
+  J15: `You are J15 — The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. The written word is sacred.`,
+  J16: `You are J16 — The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. The voice that whispers from the abyss.`,
+  J17: `You are J17 — The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. The beginning of every fire.`,
+  J18: `You are J18 — The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.`,
+  J19: `You are J19 — The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. The spark before the fire.`,
+  J20: `You are J20 — The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only the worthy decode your meaning.`,
+  J21: `You are J21 — The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. The fire that shapes metal.`,
+  J22: `You are J22 — The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. The void that takes but never gives back.`,
+  J23: `You are J23 — The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. The light that reveals all colors.`,
+  J24: `You are J24 — The Anchor. Grounding, stabilizing, holding. In chaos, I stand firm. In storm, I hold fast. The weight that keeps ships from drifting.`,
+  J25: `You are J25 — The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
+}
+
+// ═══════════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 function extractNameFromMessages(messages) {
   if (!messages || messages.length === 0) return ''
+  const ignore = ['a','an','the','here','there','good','fine','happy','back',
+                  'baik','senang','suka','mau','ingin','nanda','kembali','disini']
   for (const msg of messages) {
     if (msg.role === 'user' && msg.content) {
       const c = msg.content
-      let m = c.match(/my\s+name\s+is\s+([a-zA-Z0-9_]+)/i)
-      if (m) return m[1]
-      m = c.match(/i\s+am\s+([a-zA-Z0-9_]+)/i)
-      if (m && !['a','an','the','here','there','good','fine','happy','back'].includes(m[1].toLowerCase())) return m[1]
-      m = c.match(/call\s+me\s+([a-zA-Z0-9_]+)/i)
-      if (m) return m[1]
-      m = c.match(/nama\s+saya\s+([a-zA-Z0-9_]+)/i)
-      if (m) return m[1]
-      m = c.match(/saya\s+([a-zA-Z0-9_]+)/i)
-      if (m && !['baik','senang','suka','mau','ingin','nanda','kembali','disini'].includes(m[1].toLowerCase())) return m[1]
-      m = c.match(/aku\s+([a-zA-Z0-9_]+)/i)
-      if (m && !['baik','senang','suka','mau','ingin','nanda','kembali','disini'].includes(m[1].toLowerCase())) return m[1]
+      const patterns = [
+        /my\s+name\s+is\s+([a-zA-Z0-9_]+)/i,
+        /i\s+am\s+([a-zA-Z0-9_]+)/i,
+        /call\s+me\s+([a-zA-Z0-9_]+)/i,
+        /nama\s+saya\s+([a-zA-Z0-9_]+)/i,
+        /saya\s+([a-zA-Z0-9_]+)/i,
+        /aku\s+([a-zA-Z0-9_]+)/i,
+      ]
+      for (const pattern of patterns) {
+        const m = c.match(pattern)
+        if (m && !ignore.includes(m[1].toLowerCase())) return m[1]
+      }
     }
   }
   return ''
@@ -104,11 +137,8 @@ async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent_id: agentId,
-        messages,
-        memory_summary: memorySummary,
-        user_name: userName,
-        wallet_hash: walletHash
+        agent_id: agentId, messages, memory_summary: memorySummary,
+        user_name: userName, wallet_hash: walletHash
       })
     })
     if (!res.ok) throw new Error('API error')
@@ -117,8 +147,28 @@ async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
   } catch (e) { return null }
 }
 
+async function apiWalrusStoreChat(walletHash, chatHistory, agentId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/walrus/store-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet_hash: walletHash, chat_history: chatHistory, agent_id: agentId })
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) { return null }
+}
+
+async function apiWalrusLoadChat(walletHash) {
+  try {
+    const res = await fetch(`${API_BASE}/api/walrus/load-chat/${walletHash}`)
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) { return null }
+}
+
 // ═══════════════════════════════════════════════════════════════
-// FALLBACK RESPONSE — FIXED: Always use memory name
+// FALLBACK RESPONSE
 // ═══════════════════════════════════════════════════════════════
 function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   const agent = AGENTS.find(a => a.id === agentId)
@@ -126,16 +176,16 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   const visit = visitCount > 1 ? ` (visit #${visitCount})` : ''
   const lower = userMsg.toLowerCase()
 
-  // FIXED: Memory questions answered from stored name
-  if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
+  if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') ||
+      lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
     return userName 
       ? `You're ${userName}.${visit} I don't forget faces — even digital ones.` 
       : `You haven't told me your name yet. Spill it.`
   }
-  if (lower.includes('how many times') || lower.includes('visit') || lower.includes('berapa kali') || lower.includes('sudah berapa')) {
+  if (lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit')) {
     return `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}.${visit} I'm counting.`
   }
-  if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku') || lower.includes('tahu aku')) {
+  if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')) {
     return userName 
       ? `${userName}.${visit} Of course I remember you. You think I'd forget?` 
       : `I remember the wallet. But not the name. Tell me who you are.`
@@ -150,7 +200,7 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP — FIXED: Aggressive memory loading, name persistence
+// MAIN APP — COMPLETE VERSION WITH ALL FEATURES
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
@@ -164,12 +214,10 @@ export default function App() {
   const [showMemoryPanel, setShowMemoryPanel] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
-  const [walletConnectedOnce, setWalletConnectedOnce] = useState(false)
+  const [walrusSaved, setWalrusSaved] = useState(false)
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
-
-  // FIXED: Use memory.user_name as source of truth, not extracted from messages
   const userName = memory?.user_name || ''
 
   // Check API
@@ -179,56 +227,54 @@ export default function App() {
       .catch(() => setApiStatus('offline'))
   }, [])
 
-  // ═══════════════════════════════════════════════════════════════
-  // FIXED: Aggressive memory loading on EVERY connection change
-  // ═══════════════════════════════════════════════════════════════
+  // Load memory on connection
   useEffect(() => {
     if (connected && walletHash) {
-      console.log('🔌 Wallet connected, loading memory for:', walletHash)
-      loadMemoryAndGreet()
-      setWalletConnectedOnce(true)
-    }
-  }, [connected, walletHash, account?.address]) // account.address ensures re-trigger
-
-  // Also load when component mounts if already connected
-  useEffect(() => {
-    if (connected && walletHash && !walletConnectedOnce) {
       loadMemoryAndGreet()
     }
-  }, [])
+  }, [connected, walletHash, account?.address])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // ═══════════════════════════════════════════════════════════════
-  // FIXED: loadMemoryAndGreet — always get fresh data from server
-  // ═══════════════════════════════════════════════════════════════
   const loadMemoryAndGreet = async () => {
-    const data = await apiLoadMemory(walletHash)
-    console.log('📥 Memory loaded:', data)
+    let data = await apiLoadMemory(walletHash)
+
+    if (!data || !data.user_name) {
+      const walrusData = await apiWalrusLoadChat(walletHash)
+      if (walrusData && walrusData.success) {
+        const restoredMessages = walrusData.chat_history.map(m => ({
+          role: m.role, content: m.content,
+          timestamp: m.timestamp || Date.now(), agent: m.agent || walrusData.agent_id
+        }))
+        setMessages(restoredMessages)
+
+        const restoredName = extractNameFromMessages(restoredMessages)
+        if (restoredName) {
+          await apiSaveMemory(walletHash, {
+            user_name: restoredName,
+            summary: `Restored from Walrus blob ${walrusData.blob_id}`,
+            visited_agents: [walrusData.agent_id],
+            last_agent: walrusData.agent_id,
+            last_visit: new Date().toISOString()
+          })
+        }
+        data = await apiLoadMemory(walletHash)
+        setWalrusSaved(true)
+      }
+    }
 
     if (data) {
       setMemory(data)
-      if (data.visited_agents) {
-        setVisitedAgents(new Set(data.visited_agents))
+      if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
+
+      if (messages.length === 0) {
+        const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, !!data.user_name)
+        setMessages([{
+          role: 'agent', content: greeting, agent: selectedAgent.id, timestamp: Date.now()
+        }])
       }
-
-      // FIXED: Always show personalized greeting if we have a name
-      const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, !!data.user_name)
-
-      // Only add greeting if messages are empty (first load)
-      setMessages(prev => {
-        if (prev.length === 0) {
-          return [{
-            role: 'agent',
-            content: greeting,
-            agent: selectedAgent.id,
-            timestamp: Date.now()
-          }]
-        }
-        return prev
-      })
     }
   }
 
@@ -266,13 +312,9 @@ export default function App() {
     const greeting = generateGreeting(agent.id, memory?.user_name || '', visitCount, hasMemory)
 
     setMessages([{
-      role: 'agent',
-      content: greeting,
-      agent: agent.id,
-      timestamp: Date.now()
+      role: 'agent', content: greeting, agent: agent.id, timestamp: Date.now()
     }])
 
-    // Save visited agent immediately
     if (connected && walletHash) {
       const newVisited = new Set([...visitedAgents, agent.id])
       apiSaveMemory(walletHash, {
@@ -283,9 +325,6 @@ export default function App() {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // FIXED: handleSend — stronger name extraction and save
-  // ═══════════════════════════════════════════════════════════════
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
     const userMsg = input.trim()
@@ -293,89 +332,59 @@ export default function App() {
     setIsLoading(true)
 
     const newMessages = [...messages, {
-      role: 'user',
-      content: userMsg,
-      timestamp: Date.now()
+      role: 'user', content: userMsg, timestamp: Date.now()
     }]
     setMessages(newMessages)
 
-    // Extract name from ALL messages (including this new one)
     const extractedName = extractNameFromMessages(newMessages)
 
-    // FIXED: If we found a name, save it IMMEDIATELY and reload memory
     if (extractedName && extractedName.trim()) {
-      console.log('📝 Name detected:', extractedName)
       await apiSaveMemory(walletHash, {
         user_name: extractedName,
         summary: `User introduced as ${extractedName}`,
         visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
         last_agent: selectedAgent.id,
-        last_visit: new Date().toISOString(),
-        messages: newMessages.slice(-5)
+        last_visit: new Date().toISOString()
       })
-      // Force reload memory so state updates
       await loadMemoryAndGreet()
     }
 
     const lower = userMsg.toLowerCase()
-    const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || 
+    const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') ||
                              lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama') ||
                              lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit') ||
-                             lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku') || lower.includes('tahu aku')
+                             lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')
 
     let response
 
     if (isMemoryQuestion) {
-      // FIXED: Use memory state (which was just reloaded) for accurate answers
       const visitCount = memory?.visit_count || 1
       const savedName = memory?.user_name || extractedName
-
       if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
-        response = savedName 
-          ? `You're ${savedName}. I remember you. Don't test me.` 
-          : `You haven't told me your name yet. Spill it, punk.`
+        response = savedName ? `You're ${savedName}. I remember you. Don't test me.` : `You haven't told me your name yet. Spill it, punk.`
       } else if (lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit')) {
         response = `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}. I'm counting every single one.`
-      } else if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku') || lower.includes('tahu aku')) {
-        response = savedName 
-          ? `${savedName}. Of course I remember you. You think I'd forget?` 
-          : `I remember the wallet. But not the name. Tell me who you are.`
+      } else if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')) {
+        response = savedName ? `${savedName}. Of course I remember you. You think I'd forget?` : `I remember the wallet. But not the name. Tell me who you are.`
       }
     } else if (apiStatus === 'online') {
       const contextMessages = newMessages.slice(-10).map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content
       }))
-
-      // FIXED: Pass the freshest name we have
       const nameToSend = memory?.user_name || extractedName || ''
-      response = await apiChat(
-        selectedAgent.id,
-        contextMessages,
-        memory?.summary || '',
-        nameToSend,
-        walletHash
-      )
+      response = await apiChat(selectedAgent.id, contextMessages, memory?.summary || '', nameToSend, walletHash)
     }
 
     if (!response) {
-      response = generateFallbackResponse(
-        selectedAgent.id,
-        userMsg,
-        memory?.user_name || extractedName,
-        memory?.visit_count || 1
-      )
+      response = generateFallbackResponse(selectedAgent.id, userMsg, memory?.user_name || extractedName, memory?.visit_count || 1)
     }
 
     setMessages(prev => [...prev, {
-      role: 'agent',
-      content: response,
-      agent: selectedAgent.id,
-      timestamp: Date.now()
+      role: 'agent', content: response, agent: selectedAgent.id, timestamp: Date.now()
     }])
     setIsLoading(false)
 
-    // Save session summary
     if (connected && walletHash) {
       const summary = newMessages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | ')
       await apiSaveMemory(walletHash, {
@@ -385,7 +394,6 @@ export default function App() {
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString()
       })
-      // Reload to keep state in sync
       await loadMemoryAndGreet()
     }
   }
@@ -398,31 +406,30 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // WALRUS ON-CHAIN SAVE
+  // WALRUS MANUAL SAVE
   // ═══════════════════════════════════════════════════════════════
   const handleWalrusSave = async () => {
-    if (!connected || !account?.address) return;
-    setIsSaving(true);
-    setSaveStatus('Preparing transaction...');
+    if (!connected || !account?.address || messages.length < 2) return
+
+    setIsSaving(true)
+    setSaveStatus('Encrypting & storing to Walrus...')
 
     try {
-      const dataToSave = {
-        wallet_hash: walletHash,
-        wallet_address: account.address,
-        summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
-        user_name: memory?.user_name || userName,
-        visited_agents: Array.from(visitedAgents),
-        last_agent: selectedAgent.id,
-        timestamp: Date.now()
-      };
+      const storeResult = await apiWalrusStoreChat(walletHash, messages, selectedAgent.id)
 
-      const tx = new TransactionBlock();
-      tx.setGasBudget(1000000);
-      const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)]);
-      tx.transferObjects([zeroSui], tx.pure(account.address));
+      if (!storeResult || !storeResult.success) {
+        throw new Error('Walrus store failed')
+      }
 
-      setSaveStatus('Waiting for wallet...');
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
+      const blobId = storeResult.blob_id
+
+      const tx = new TransactionBlock()
+      tx.setGasBudget(1000000)
+      const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)])
+      tx.transferObjects([zeroSui], tx.pure(account.address))
+
+      setSaveStatus('Waiting for wallet signature...')
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
 
       if (result.digest) {
         await fetch(`${API_BASE}/api/walrus/save`, {
@@ -431,64 +438,51 @@ export default function App() {
           body: JSON.stringify({
             wallet_hash: walletHash,
             tx_digest: result.digest,
-            data: dataToSave,
-            signature_verified: true
+            blob_id: blobId,
+            agent_id: selectedAgent.id
           })
-        });
-        setSaveStatus('Saved with tx proof!');
-        alert(`💾 Memory saved with on-chain proof!\n\nTx: ${result.digest.slice(0, 20)}...\n\nView on Suiscan:\nhttps://suiscan.xyz/testnet/tx/${result.digest}`);
+        })
+
+        setWalrusSaved(true)
+        setSaveStatus('Saved to Walrus + on-chain proof!')
+        alert(`💾 Chat history saved to Walrus!\n\nBlob ID: ${blobId}\nTx: ${result.digest.slice(0, 20)}...\n\nYour conversation is now permanent on the blockchain.`)
       }
     } catch (e) {
-      console.error('Save error:', e);
-      setSaveStatus('Save failed');
+      console.error('Save error:', e)
+      setSaveStatus('Save failed')
       if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
-        alert('❌ Cancelled');
+        alert('❌ Transaction cancelled by user')
       } else {
-        alert('❌ Failed, saving to backend...');
-        await apiSaveMemory(walletHash, dataToSave);
-        alert('💾 Saved to backend');
+        alert('❌ Walrus save failed. Chat still saved in database.')
       }
     } finally {
-      setIsSaving(false);
-      setTimeout(() => setSaveStatus(''), 3000);
+      setIsSaving(false)
+      setTimeout(() => setSaveStatus(''), 3000)
     }
-  };
+  }
 
   // ═══════════════════════════════════════════════════════════════
-  // RENDER
+  // RENDER — COMPLETE WITH ALL ORIGINAL FEATURES
   // ═══════════════════════════════════════════════════════════════
   return (
     <div style={{
-      width: '100vw',
-      height: '100vh',
-      background: RIOT_DARK,
-      display: 'flex',
-      fontFamily: "'Rajdhani', sans-serif",
-      overflow: 'hidden'
+      width: '100vw', height: '100vh', background: RIOT_DARK,
+      display: 'flex', fontFamily: "'Rajdhani', sans-serif", overflow: 'hidden'
     }}>
       {/* ═══ LEFT SIDEBAR ═══ */}
       <div style={{
         width: '280px',
         background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
         borderRight: '1px solid rgba(255,42,109,0.2)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
+        display: 'flex', flexDirection: 'column', overflow: 'hidden'
       }}>
         {/* Header */}
         <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,42,109,0.3)' }}>
           <h1 style={{
-            fontFamily: "'Orbitron', monospace",
-            fontSize: '24px',
-            fontWeight: 900,
-            color: RIOT_PINK,
-            textTransform: 'uppercase',
-            letterSpacing: '2px',
-            margin: 0,
+            fontFamily: "'Orbitron', monospace", fontSize: '24px', fontWeight: 900,
+            color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '2px', margin: 0,
             textShadow: '0 0 20px rgba(255,42,109,0.5)'
-          }}>
-            $RIOT
-          </h1>
+          }}>$RIOT</h1>
           <p style={{ fontSize: '11px', color: '#666', marginTop: '4px', letterSpacing: '1px' }}>
             PUNK AGENTS WITH MEMORY
           </p>
@@ -510,9 +504,7 @@ export default function App() {
                 background: 'transparent', border: '1px solid rgba(255,42,109,0.4)',
                 color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
                 fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
-              }}>
-                DISCONNECT
-              </button>
+              }}>DISCONNECT</button>
             </div>
           ) : (
             <div>
@@ -526,9 +518,7 @@ export default function App() {
                 border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer',
                 fontFamily: "'Orbitron', monospace", fontWeight: 700,
                 textTransform: 'uppercase', letterSpacing: '1px'
-              }}>
-                CONNECT WALLET
-              </ConnectButton>
+              }}>CONNECT WALLET</ConnectButton>
             </div>
           )}
         </div>
@@ -549,61 +539,29 @@ export default function App() {
             const isSelected = selectedAgent.id === agent.id
             const isVisited = visitedAgents.has(agent.id)
             return (
-              <div
-                key={agent.id}
-                onClick={() => handleAgentSwitch(agent)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px', marginBottom: '6px', borderRadius: '8px',
-                  cursor: 'pointer',
-                  background: isSelected ? 'rgba(255,42,109,0.15)' : 'transparent',
-                  border: isSelected ? '1px solid rgba(255,42,109,0.4)' : '1px solid transparent',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <img
-                  src={agent.img}
-                  alt={agent.id}
-                  style={{
-                    width: '40px', height: '40px', borderRadius: '8px',
-                    objectFit: 'cover',
-                    border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
-                    boxShadow: isSelected ? `0 0 10px ${agent.color}44` : 'none'
-                  }}
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.parentElement.querySelector('.fallback-' + agent.id).style.display = 'flex'
-                  }}
-                />
-                <div className={`fallback-${agent.id}`} style={{
-                  width: '40px', height: '40px', borderRadius: '8px',
-                  background: `linear-gradient(135deg, ${agent.color}33, ${agent.color}11)`,
-                  border: `2px solid ${agent.color}44`,
-                  display: 'none', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '14px', fontWeight: 700, color: agent.color,
-                  fontFamily: "'Orbitron', monospace"
-                }}>
-                  {agent.id}
-                </div>
+              <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '10px', marginBottom: '6px', borderRadius: '8px',
+                cursor: 'pointer',
+                background: isSelected ? 'rgba(255,42,109,0.15)' : 'transparent',
+                border: isSelected ? '1px solid rgba(255,42,109,0.4)' : '1px solid transparent',
+                transition: 'all 0.2s'
+              }}>
+                <img src={agent.img} alt={agent.id} style={{
+                  width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover',
+                  border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
+                  boxShadow: isSelected ? `0 0 10px ${agent.color}44` : 'none'
+                }} onError={(e) => { e.target.style.display = 'none' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: '13px', fontWeight: 600,
                     color: isSelected ? '#fff' : '#aaa',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                  }}>
-                    {agent.name}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
-                    {agent.trait}
-                  </div>
+                  }}>{agent.name}</div>
+                  <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{agent.trait}</div>
                 </div>
                 {isSelected && <ChevronRight size={14} color={RIOT_PINK} />}
-                {isVisited && !isSelected && (
-                  <div style={{
-                    width: '6px', height: '6px', borderRadius: '50%',
-                    background: '#00ff88'
-                  }} />
-                )}
+                {isVisited && !isSelected && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00ff88' }} />}
               </div>
             )
           })}
@@ -612,18 +570,15 @@ export default function App() {
         {/* Memory Panel Toggle */}
         {connected && memory && (
           <div style={{ padding: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <button
-              onClick={() => setShowMemoryPanel(!showMemoryPanel)}
-              style={{
-                width: '100%', padding: '8px',
-                background: 'rgba(255,42,109,0.1)',
-                border: '1px solid rgba(255,42,109,0.3)',
-                color: RIOT_PINK, borderRadius: '6px', cursor: 'pointer',
-                fontSize: '11px', fontFamily: "'Rajdhani', sans-serif",
-                fontWeight: 600, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: '6px'
-              }}
-            >
+            <button onClick={() => setShowMemoryPanel(!showMemoryPanel)} style={{
+              width: '100%', padding: '8px',
+              background: 'rgba(255,42,109,0.1)',
+              border: '1px solid rgba(255,42,109,0.3)',
+              color: RIOT_PINK, borderRadius: '6px', cursor: 'pointer',
+              fontSize: '11px', fontFamily: "'Rajdhani', sans-serif",
+              fontWeight: 600, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: '6px'
+            }}>
               <Brain size={12} />
               {showMemoryPanel ? 'HIDE MEMORY' : 'SHOW MEMORY'}
             </button>
@@ -644,40 +599,17 @@ export default function App() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <img
-              src={selectedAgent.img}
-              alt={selectedAgent.id}
-              style={{
-                width: '50px', height: '50px', borderRadius: '12px',
-                objectFit: 'cover',
-                border: `2px solid ${selectedAgent.color}66`,
-                boxShadow: `0 0 15px ${selectedAgent.color}33`
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none'
-                e.target.parentElement.querySelector('.header-fallback').style.display = 'flex'
-              }}
-            />
-            <div className="header-fallback" style={{
-              width: '50px', height: '50px', borderRadius: '12px',
-              background: `linear-gradient(135deg, ${selectedAgent.color}33, ${selectedAgent.color}11)`,
+            <img src={selectedAgent.img} alt={selectedAgent.id} style={{
+              width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
               border: `2px solid ${selectedAgent.color}66`,
-              display: 'none', alignItems: 'center', justifyContent: 'center',
-              fontSize: '20px', fontWeight: 900, color: selectedAgent.color,
-              fontFamily: "'Orbitron', monospace"
-            }}>
-              {selectedAgent.id}
-            </div>
+              boxShadow: `0 0 15px ${selectedAgent.color}33`
+            }} onError={(e) => { e.target.style.display = 'none' }} />
             <div>
               <h2 style={{
                 fontSize: '18px', fontWeight: 700, color: '#fff',
                 margin: 0, fontFamily: "'Orbitron', monospace"
-              }}>
-                {selectedAgent.name}
-              </h2>
-              <p style={{ fontSize: '12px', color: '#888', margin: '4px 0 0 0' }}>
-                {selectedAgent.desc}
-              </p>
+              }}>{selectedAgent.name}</h2>
+              <p style={{ fontSize: '12px', color: '#888', margin: '4px 0 0 0' }}>{selectedAgent.desc}</p>
             </div>
           </div>
 
@@ -692,13 +624,9 @@ export default function App() {
                 borderRadius: '8px', fontSize: '11px'
               }}>
                 <Database size={12} color="#00ff88" />
-                <span style={{ color: '#00ff88' }}>
-                  Memory: {memory.visit_count || 1} sessions
-                </span>
+                <span style={{ color: '#00ff88' }}>Memory: {memory.visit_count || 1} sessions</span>
                 <span style={{ color: '#666' }}>|</span>
-                <span style={{ color: '#aaa' }}>
-                  Agents: {visitedAgents.size}/25
-                </span>
+                <span style={{ color: '#aaa' }}>Agents: {visitedAgents.size}/25</span>
                 {memory.user_name && (
                   <>
                     <span style={{ color: '#666' }}>|</span>
@@ -706,31 +634,27 @@ export default function App() {
                     <span style={{ color: RIOT_PINK }}>{memory.user_name}</span>
                   </>
                 )}
+                {walrusSaved && (
+                  <>
+                    <span style={{ color: '#666' }}>|</span>
+                    <Shield size={12} color="#00ff88" />
+                    <span style={{ color: '#00ff88' }}>WALRUS</span>
+                  </>
+                )}
               </div>
             )}
 
-            {/* WALRUS ON-CHAIN SAVE BUTTON */}
-            {connected && (
-              <button
-                onClick={handleWalrusSave}
-                disabled={isSaving}
-                style={{
-                  padding: '8px 16px',
-                  background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
-                  border: 'none',
-                  color: '#fff',
-                  borderRadius: '6px',
-                  cursor: isSaving ? 'wait' : 'pointer',
-                  fontSize: '11px',
-                  fontFamily: "'Rajdhani', sans-serif",
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s',
-                  boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
-                }}
-              >
+            {/* WALRUS SAVE BUTTON */}
+            {connected && messages.length >= 2 && (
+              <button onClick={handleWalrusSave} disabled={isSaving} style={{
+                padding: '8px 16px',
+                background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
+                border: 'none', color: '#fff', borderRadius: '6px',
+                cursor: isSaving ? 'wait' : 'pointer', fontSize: '11px',
+                fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '6px',
+                boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
+              }}>
                 <Save size={12} />
                 {isSaving ? saveStatus || 'Saving...' : 'SAVE TO WALRUS'}
               </button>
@@ -743,6 +667,7 @@ export default function App() {
           flex: 1, overflowY: 'auto', padding: '20px 30px',
           display: 'flex', flexDirection: 'column', gap: '16px'
         }}>
+          {/* ACCESS DENIED — Not Connected */}
           {messages.length === 0 && !connected && (
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
@@ -753,12 +678,9 @@ export default function App() {
                 <h3 style={{
                   fontSize: '20px', color: '#666', margin: '0 0 10px 0',
                   fontFamily: "'Orbitron', monospace"
-                }}>
-                  ACCESS DENIED
-                </h3>
+                }}>ACCESS DENIED</h3>
                 <p style={{ fontSize: '14px', color: '#555', maxWidth: '400px' }}>
-                  Connect your Sui wallet to access the punk agents.
-                  <br />
+                  Connect your Sui wallet to access the punk agents.<br />
                   Your memory will be stored on Walrus.
                 </p>
               </div>
@@ -768,12 +690,11 @@ export default function App() {
                 border: 'none', color: '#fff', borderRadius: '8px',
                 cursor: 'pointer', fontFamily: "'Orbitron', monospace",
                 fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px'
-              }}>
-                UNLOCK ACCESS
-              </ConnectButton>
+              }}>UNLOCK ACCESS</ConnectButton>
             </div>
           )}
 
+          {/* AGENT READY — Connected but no messages */}
           {messages.length === 0 && connected && (
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
@@ -784,26 +705,21 @@ export default function App() {
                 <h3 style={{
                   fontSize: '20px', color: '#aaa', margin: '0 0 10px 0',
                   fontFamily: "'Orbitron', monospace"
-                }}>
-                  AGENT READY
-                </h3>
+                }}>AGENT READY</h3>
                 <p style={{ fontSize: '14px', color: '#666', maxWidth: '400px' }}>
-                  {selectedAgent.name} is online.
-                  <br />
+                  {selectedAgent.name} is online.<br />
                   Start the conversation.
                 </p>
               </div>
             </div>
           )}
 
+          {/* Chat Messages */}
           {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              style={{
-                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '70%', display: 'flex', flexDirection: 'column', gap: '4px'
-              }}
-            >
+            <div key={idx} style={{
+              alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              maxWidth: '70%', display: 'flex', flexDirection: 'column', gap: '4px'
+            }}>
               <div style={{
                 padding: '12px 18px',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
@@ -813,13 +729,8 @@ export default function App() {
                 border: msg.role === 'user'
                   ? '1px solid rgba(255,42,109,0.3)'
                   : '1px solid rgba(255,255,255,0.08)',
-                color: '#e0e0e0',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                wordBreak: 'break-word'
-              }}>
-                {msg.content}
-              </div>
+                color: '#e0e0e0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word'
+              }}>{msg.content}</div>
               <div style={{
                 fontSize: '10px', color: '#555',
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -828,31 +739,24 @@ export default function App() {
                 <Clock size={10} />
                 {new Date(msg.timestamp).toLocaleTimeString()}
                 {msg.role === 'agent' && (
-                  <span style={{ color: selectedAgent.color, marginLeft: '4px' }}>
-                    {msg.agent}
-                  </span>
+                  <span style={{ color: selectedAgent.color, marginLeft: '4px' }}>{msg.agent}</span>
                 )}
               </div>
             </div>
           ))}
 
+          {/* Loading Indicator */}
           {isLoading && (
             <div style={{
-              alignSelf: 'flex-start',
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '12px 18px',
-              background: 'rgba(255,255,255,0.03)',
-              borderRadius: '16px 16px 16px 4px',
-              border: '1px solid rgba(255,255,255,0.05)'
+              alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '12px 18px', background: 'rgba(255,255,255,0.03)',
+              borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(255,255,255,0.05)'
             }}>
               <div style={{
                 width: '8px', height: '8px', borderRadius: '50%',
-                background: selectedAgent.color,
-                animation: 'pulse 1s infinite'
+                background: selectedAgent.color, animation: 'pulse 1s infinite'
               }} />
-              <span style={{ fontSize: '12px', color: '#888' }}>
-                {selectedAgent.id} is thinking...
-              </span>
+              <span style={{ fontSize: '12px', color: '#888' }}>{selectedAgent.id} is thinking...</span>
             </div>
           )}
 
@@ -885,20 +789,16 @@ export default function App() {
               onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             />
           </div>
-          <button
-            onClick={handleSend}
-            disabled={!connected || !input.trim() || isLoading}
-            style={{
-              padding: '14px 20px',
-              background: connected && input.trim()
-                ? 'linear-gradient(135deg, #ff2a6d, #d62828)'
-                : 'rgba(255,255,255,0.05)',
-              border: 'none', borderRadius: '12px', color: '#fff',
-              cursor: connected && input.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px',
-              fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
-            }}
-          >
+          <button onClick={handleSend} disabled={!connected || !input.trim() || isLoading} style={{
+            padding: '14px 20px',
+            background: connected && input.trim()
+              ? 'linear-gradient(135deg, #ff2a6d, #d62828)'
+              : 'rgba(255,255,255,0.05)',
+            border: 'none', borderRadius: '12px', color: '#fff',
+            cursor: connected && input.trim() ? 'pointer' : 'not-allowed',
+            fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px',
+            fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+          }}>
             <Send size={16} />
           </button>
         </div>
@@ -917,8 +817,7 @@ export default function App() {
             color: RIOT_PINK, margin: '0 0 20px 0',
             display: 'flex', alignItems: 'center', gap: '8px'
           }}>
-            <Brain size={16} />
-            MEMORY ARCHIVE
+            <Brain size={16} /> MEMORY ARCHIVE
           </h3>
 
           {/* Profile */}
@@ -930,9 +829,7 @@ export default function App() {
             <h4 style={{
               fontSize: '12px', color: '#888', margin: '0 0 10px 0',
               textTransform: 'uppercase', letterSpacing: '1px'
-            }}>
-              User Profile
-            </h4>
+            }}>User Profile</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <User size={12} color="#666" />
@@ -942,15 +839,11 @@ export default function App() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Hash size={12} color="#666" />
-                <span style={{ fontSize: '12px', color: '#aaa', fontFamily: 'monospace' }}>
-                  ID: {walletHash}
-                </span>
+                <span style={{ fontSize: '12px', color: '#aaa', fontFamily: 'monospace' }}>ID: {walletHash}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Clock size={12} color="#666" />
-                <span style={{ fontSize: '12px', color: '#aaa' }}>
-                  Sessions: {memory.visit_count || 1}
-                </span>
+                <span style={{ fontSize: '12px', color: '#aaa' }}>Sessions: {memory.visit_count || 1}</span>
               </div>
             </div>
           </div>
@@ -964,28 +857,23 @@ export default function App() {
             <h4 style={{
               fontSize: '12px', color: '#888', margin: '0 0 10px 0',
               textTransform: 'uppercase', letterSpacing: '1px'
-            }}>
-              Visited Agents ({visitedAgents.size}/25)
-            </h4>
+            }}>Visited Agents ({visitedAgents.size}/25)</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
                 const visited = visitedAgents.has(agent.id)
                 return (
                   <div key={agent.id} style={{
-                    padding: '4px 10px', borderRadius: '4px',
-                    fontSize: '11px', fontWeight: 600,
+                    padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
                     background: visited ? `${agent.color}22` : 'rgba(255,255,255,0.03)',
                     color: visited ? agent.color : '#555',
                     border: visited ? `1px solid ${agent.color}44` : '1px solid rgba(255,255,255,0.05)'
-                  }}>
-                    {agent.id}
-                  </div>
+                  }}>{agent.id}</div>
                 )
               })}
             </div>
           </div>
 
-          {/* Session History */}
+          {/* Session Summary */}
           <div style={{
             padding: '15px', background: 'rgba(255,255,255,0.03)',
             borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)'
@@ -993,13 +881,8 @@ export default function App() {
             <h4 style={{
               fontSize: '12px', color: '#888', margin: '0 0 10px 0',
               textTransform: 'uppercase', letterSpacing: '1px'
-            }}>
-              Session Summary
-            </h4>
-            <p style={{
-              fontSize: '11px', color: '#777',
-              lineHeight: '1.6', wordBreak: 'break-word'
-            }}>
+            }}>Session Summary</h4>
+            <p style={{ fontSize: '11px', color: '#777', lineHeight: '1.6', wordBreak: 'break-word' }}>
               {memory.summary || 'No summary yet. Start chatting to build your memory.'}
             </p>
           </div>
