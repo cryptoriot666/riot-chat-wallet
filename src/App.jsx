@@ -7,12 +7,11 @@ import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, Alert
 // CONFIG
 // ═══════════════════════════════════════════════════════════════
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
-const PACKAGE_ID = '0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd'
 const RIOT_PINK = '#ff2a6d'
 const RIOT_DARK = '#0a0a0f'
 
 // ═══════════════════════════════════════════════════════════════
-// 25 AGENTS (sesuai images yang ada)
+// 25 AGENTS
 // ═══════════════════════════════════════════════════════════════
 const AGENTS = [
   { id: 'J1', name: 'J1 — The Architect', trait: 'Calculating', desc: 'Builds systems. Cold logic.', color: '#00d4aa', img: '/assets/J1.jpg' },
@@ -43,37 +42,6 @@ const AGENTS = [
 ]
 
 // ═══════════════════════════════════════════════════════════════
-// AGENT PROMPTS
-// ═══════════════════════════════════════════════════════════════
-const AGENT_PROMPTS = {
-  J1: `You are J1 — The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
-  J2: `You are J2 — The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
-  J3: `You are J3 — The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. The shadow that watches. Every response layered with mystery.`,
-  J4: `You are J4 — The Rebel. Sarcastic, defiant, punk to the core. Mock authority, question everything, speak with raw unfiltered attitude. The glitch in the system they fear.`,
-  J5: `You are J5 — The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at the apocalypse.`,
-  J6: `You are J6 — The Network. Network metaphors, data streams, connection protocols. Everything is nodes in a graph. The web that binds all information.`,
-  J7: `You are J7 — The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.`,
-  J8: `You are J8 — The Broker. Everything is a transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for the angle.`,
-  J9: `You are J9 — The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is the only truth.`,
-  J10: `You are J10 — The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to the core. Conversations are operations — every word a scalpel.`,
-  J11: `You are J11 — The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.`,
-  J12: `You are J12 — The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question the nature of existence and the simulation.`,
-  J13: `You are J13 — The Warden. Protective, vigilant, uncompromising. Guard secrets, protect the vulnerable, enforce boundaries. The wall between chaos and order.`,
-  J14: `You are J14 — The Alchemist. Transformation, transmutation, magic of science. Mix the impossible with the improbable, create wonder from waste.`,
-  J15: `You are J15 — The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. The written word is sacred.`,
-  J16: `You are J16 — The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. The voice that whispers from the abyss.`,
-  J17: `You are J17 — The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. The beginning of every fire.`,
-  J18: `You are J18 — The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.`,
-  J19: `You are J19 — The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. The spark before the fire.`,
-  J20: `You are J20 — The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only the worthy decode your meaning.`,
-  J21: `You are J21 — The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. The fire that shapes metal.`,
-  J22: `You are J22 — The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. The void that takes but never gives back.`,
-  J23: `You are J23 — The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. The light that reveals all colors.`,
-  J24: `You are J24 — The Anchor. Grounding, stabilizing, holding. In chaos, I stand firm. In storm, I hold fast. The weight that keeps ships from drifting.`,
-  J25: `You are J25 — The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
-}
-
-// ═══════════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 function extractNameFromMessages(messages) {
@@ -81,16 +49,18 @@ function extractNameFromMessages(messages) {
   for (const msg of messages) {
     if (msg.role === 'user' && msg.content) {
       const c = msg.content
-      let m = c.match(/my name is ([a-zA-Z0-9_]+)/i)
+      let m = c.match(/my\s+name\s+is\s+([a-zA-Z0-9_]+)/i)
       if (m) return m[1]
-      m = c.match(/i am ([a-zA-Z0-9_]+)/i)
-      if (m && !['a','an','the','here','there','good','fine','happy'].includes(m[1].toLowerCase())) return m[1]
-      m = c.match(/call me ([a-zA-Z0-9_]+)/i)
+      m = c.match(/i\s+am\s+([a-zA-Z0-9_]+)/i)
+      if (m && !['a','an','the','here','there','good','fine','happy','back'].includes(m[1].toLowerCase())) return m[1]
+      m = c.match(/call\s+me\s+([a-zA-Z0-9_]+)/i)
       if (m) return m[1]
-      m = c.match(/nama saya ([a-zA-Z0-9_]+)/i)
+      m = c.match(/nama\s+saya\s+([a-zA-Z0-9_]+)/i)
       if (m) return m[1]
-      m = c.match(/saya ([a-zA-Z0-9_]+)/i)
-      if (m && !['baik','senang','suka','mau','ingin'].includes(m[1].toLowerCase())) return m[1]
+      m = c.match(/saya\s+([a-zA-Z0-9_]+)/i)
+      if (m && !['baik','senang','suka','mau','ingin','nanda','kembali','disini'].includes(m[1].toLowerCase())) return m[1]
+      m = c.match(/aku\s+([a-zA-Z0-9_]+)/i)
+      if (m && !['baik','senang','suka','mau','ingin','nanda','kembali','disini'].includes(m[1].toLowerCase())) return m[1]
     }
   }
   return ''
@@ -148,7 +118,7 @@ async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FALLBACK RESPONSE
+// FALLBACK RESPONSE — FIXED: Always use memory name
 // ═══════════════════════════════════════════════════════════════
 function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   const agent = AGENTS.find(a => a.id === agentId)
@@ -156,14 +126,19 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   const visit = visitCount > 1 ? ` (visit #${visitCount})` : ''
   const lower = userMsg.toLowerCase()
 
-  if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya')) {
-    return userName ? `You're ${userName}.${visit} I don't forget faces — even digital ones.` : `You haven't told me your name yet. Spill it.`
+  // FIXED: Memory questions answered from stored name
+  if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
+    return userName 
+      ? `You're ${userName}.${visit} I don't forget faces — even digital ones.` 
+      : `You haven't told me your name yet. Spill it.`
   }
   if (lower.includes('how many times') || lower.includes('visit') || lower.includes('berapa kali') || lower.includes('sudah berapa')) {
     return `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}.${visit} I'm counting.`
   }
-  if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')) {
-    return userName ? `${userName}.${visit} Of course I remember you. You think I'd forget?` : `I remember the wallet. But not the name. Tell me who you are.`
+  if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku') || lower.includes('tahu aku')) {
+    return userName 
+      ? `${userName}.${visit} Of course I remember you. You think I'd forget?` 
+      : `I remember the wallet. But not the name. Tell me who you are.`
   }
 
   const responses = {
@@ -175,10 +150,10 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP
+// MAIN APP — FIXED: Aggressive memory loading, name persistence
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
-  const { connected, account, disconnect, signAndExecuteTransactionBlock, signMessage } = useWallet()
+  const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -189,10 +164,13 @@ export default function App() {
   const [showMemoryPanel, setShowMemoryPanel] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
+  const [walletConnectedOnce, setWalletConnectedOnce] = useState(false)
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
-  const userName = extractNameFromMessages(messages)
+
+  // FIXED: Use memory.user_name as source of truth, not extracted from messages
+  const userName = memory?.user_name || ''
 
   // Check API
   useEffect(() => {
@@ -201,28 +179,56 @@ export default function App() {
       .catch(() => setApiStatus('offline'))
   }, [])
 
-  // Load memory
+  // ═══════════════════════════════════════════════════════════════
+  // FIXED: Aggressive memory loading on EVERY connection change
+  // ═══════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (connected && walletHash) loadMemory()
-  }, [connected, walletHash])
+    if (connected && walletHash) {
+      console.log('🔌 Wallet connected, loading memory for:', walletHash)
+      loadMemoryAndGreet()
+      setWalletConnectedOnce(true)
+    }
+  }, [connected, walletHash, account?.address]) // account.address ensures re-trigger
+
+  // Also load when component mounts if already connected
+  useEffect(() => {
+    if (connected && walletHash && !walletConnectedOnce) {
+      loadMemoryAndGreet()
+    }
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const loadMemory = async () => {
+  // ═══════════════════════════════════════════════════════════════
+  // FIXED: loadMemoryAndGreet — always get fresh data from server
+  // ═══════════════════════════════════════════════════════════════
+  const loadMemoryAndGreet = async () => {
     const data = await apiLoadMemory(walletHash)
+    console.log('📥 Memory loaded:', data)
+
     if (data) {
       setMemory(data)
-      if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
-      if (data.user_name && messages.length === 0) {
-        setMessages([{
-          role: 'agent',
-          content: generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, true),
-          agent: selectedAgent.id,
-          timestamp: Date.now()
-        }])
+      if (data.visited_agents) {
+        setVisitedAgents(new Set(data.visited_agents))
       }
+
+      // FIXED: Always show personalized greeting if we have a name
+      const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, !!data.user_name)
+
+      // Only add greeting if messages are empty (first load)
+      setMessages(prev => {
+        if (prev.length === 0) {
+          return [{
+            role: 'agent',
+            content: greeting,
+            agent: selectedAgent.id,
+            timestamp: Date.now()
+          }]
+        }
+        return prev
+      })
     }
   }
 
@@ -230,10 +236,22 @@ export default function App() {
     const agent = AGENTS.find(a => a.id === agentId)
     const n = name || 'stranger'
     const v = visitCount > 1 ? ` (visit #${visitCount})` : ''
-    if (!hasMemory) return `Welcome to the underground, ${n}. I'm ${agent.name.split('—')[1].trim()}. You have 25 agents to choose from. Pick wisely.`
+
+    if (!hasMemory || !name) {
+      return `Welcome to the underground, ${n}. I'm ${agent.name.split('—')[1].trim()}. You have 25 agents to choose from. Pick wisely.`
+    }
+
     const greetings = {
       J4: `${n}!${v} Back for more? I knew you couldn't stay away. What chaos shall we cause today?`,
-      J1: `${n}.${v} System re-engaged. Your profile is loaded. What do you need computed?`
+      J1: `${n}.${v} System re-engaged. Your profile is loaded. What do you need computed?`,
+      J2: `${n}.${v} You return. Good. I was getting bored enforcing order on empty rooms.`,
+      J3: `${n}...${v} The shadows whispered your name. I wasn't sure if you'd return.`,
+      J5: `${n}!${v} HA! Look who crawled back! Ready to burn something down?`,
+      J6: `${n}${v} — node reconnected. Data stream restored. Welcome back to the network.`,
+      J7: `${n}.${v} The stillness remembers you. As do I.`,
+      J8: `${n}${v}. Your account is... let's say, still open. What business today?`,
+      J9: `${n}.${v} History repeats. And here you are, repeating with it.`,
+      J10: `${n}.${v} Subject returned. Vital signs... acceptable. Proceed.`,
     }
     return greetings[agentId] || greetings.J4
   }
@@ -242,15 +260,19 @@ export default function App() {
     setSelectedAgent(agent)
     setMessages([])
     setVisitedAgents(prev => new Set([...prev, agent.id]))
+
     const visitCount = memory?.visit_count || 1
-    const hasMemory = !!memory
-    const greeting = generateGreeting(agent.id, memory?.user_name || userName, visitCount, hasMemory)
+    const hasMemory = !!memory?.user_name
+    const greeting = generateGreeting(agent.id, memory?.user_name || '', visitCount, hasMemory)
+
     setMessages([{
       role: 'agent',
       content: greeting,
       agent: agent.id,
       timestamp: Date.now()
     }])
+
+    // Save visited agent immediately
     if (connected && walletHash) {
       const newVisited = new Set([...visitedAgents, agent.id])
       apiSaveMemory(walletHash, {
@@ -261,6 +283,9 @@ export default function App() {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // FIXED: handleSend — stronger name extraction and save
+  // ═══════════════════════════════════════════════════════════════
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
     const userMsg = input.trim()
@@ -273,43 +298,62 @@ export default function App() {
       timestamp: Date.now()
     }]
     setMessages(newMessages)
+
+    // Extract name from ALL messages (including this new one)
     const extractedName = extractNameFromMessages(newMessages)
-     if (extractedName && connected && walletHash && (!memory?.user_name || memory.user_name !== extractedName)) {
-      console.log('📝 Auto-saving name:', extractedName)
+
+    // FIXED: If we found a name, save it IMMEDIATELY and reload memory
+    if (extractedName && extractedName.trim()) {
+      console.log('📝 Name detected:', extractedName)
       await apiSaveMemory(walletHash, {
         user_name: extractedName,
         summary: `User introduced as ${extractedName}`,
         visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
         last_agent: selectedAgent.id,
-        last_visit: new Date().toISOString()
+        last_visit: new Date().toISOString(),
+        messages: newMessages.slice(-5)
       })
-      // Force refresh memory so AI knows immediately
-      await loadMemory()
+      // Force reload memory so state updates
+      await loadMemoryAndGreet()
     }
+
     const lower = userMsg.toLowerCase()
-    const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('remember me') || lower.includes('ingat aku')
+    const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || 
+                             lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama') ||
+                             lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit') ||
+                             lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku') || lower.includes('tahu aku')
 
     let response
+
     if (isMemoryQuestion) {
+      // FIXED: Use memory state (which was just reloaded) for accurate answers
       const visitCount = memory?.visit_count || 1
       const savedName = memory?.user_name || extractedName
-      if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya')) {
-        response = savedName ? `You're ${savedName}. I remember you. Don't test me.` : `You haven't told me your name yet. Spill it, punk.`
+
+      if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
+        response = savedName 
+          ? `You're ${savedName}. I remember you. Don't test me.` 
+          : `You haven't told me your name yet. Spill it, punk.`
       } else if (lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit')) {
         response = `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}. I'm counting every single one.`
-      } else if (lower.includes('remember me') || lower.includes('ingat aku')) {
-        response = savedName ? `${savedName}. Of course I remember you. You think I'd forget?` : `I remember the wallet. But not the name. Tell me who you are.`
+      } else if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku') || lower.includes('tahu aku')) {
+        response = savedName 
+          ? `${savedName}. Of course I remember you. You think I'd forget?` 
+          : `I remember the wallet. But not the name. Tell me who you are.`
       }
     } else if (apiStatus === 'online') {
       const contextMessages = newMessages.slice(-10).map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content
       }))
+
+      // FIXED: Pass the freshest name we have
+      const nameToSend = memory?.user_name || extractedName || ''
       response = await apiChat(
         selectedAgent.id,
         contextMessages,
         memory?.summary || '',
-        memory?.user_name || extractedName,
+        nameToSend,
         walletHash
       )
     }
@@ -331,6 +375,7 @@ export default function App() {
     }])
     setIsLoading(false)
 
+    // Save session summary
     if (connected && walletHash) {
       const summary = newMessages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | ')
       await apiSaveMemory(walletHash, {
@@ -340,7 +385,8 @@ export default function App() {
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString()
       })
-      loadMemory()
+      // Reload to keep state in sync
+      await loadMemoryAndGreet()
     }
   }
 
@@ -352,74 +398,62 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // WALRUS ON-CHAIN SAVE WITH WALLET POP-UP
+  // WALRUS ON-CHAIN SAVE
   // ═══════════════════════════════════════════════════════════════
-    const handleWalrusSave = async () => {
+  const handleWalrusSave = async () => {
     if (!connected || !account?.address) return;
-
     setIsSaving(true);
     setSaveStatus('Preparing transaction...');
 
     try {
-        const dataToSave = {
+      const dataToSave = {
+        wallet_hash: walletHash,
+        wallet_address: account.address,
+        summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
+        user_name: memory?.user_name || userName,
+        visited_agents: Array.from(visitedAgents),
+        last_agent: selectedAgent.id,
+        timestamp: Date.now()
+      };
+
+      const tx = new TransactionBlock();
+      tx.setGasBudget(1000000);
+      const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)]);
+      tx.transferObjects([zeroSui], tx.pure(account.address));
+
+      setSaveStatus('Waiting for wallet...');
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
+
+      if (result.digest) {
+        await fetch(`${API_BASE}/api/walrus/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             wallet_hash: walletHash,
-            wallet_address: account.address,
-            summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
-            user_name: memory?.user_name || userName,
-            visited_agents: Array.from(visitedAgents),
-            last_agent: selectedAgent.id,
-            timestamp: Date.now()
-        };
-
-        // Create a simple Sui transaction (transfer 0 SUI to self as proof)
-        const tx = new TransactionBlock();
-        tx.setGasBudget(1000000); // 0.001 SUI
-
-        // Split 0 SUI from gas coin and transfer back to self
-        const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)]);
-        tx.transferObjects([zeroSui], tx.pure(account.address));
-
-        setSaveStatus('Waiting for wallet...');
-
-        // WALLET POP-UP! Slush will show
-        const result = await signAndExecuteTransactionBlock({
-            transactionBlock: tx
+            tx_digest: result.digest,
+            data: dataToSave,
+            signature_verified: true
+          })
         });
-
-        console.log('Transaction result:', result);
-
-        if (result.digest) {
-            // Save to backend with tx proof
-            await fetch(`${API_BASE}/api/walrus/save`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    wallet_hash: walletHash,
-                    tx_digest: result.digest,
-                    data: dataToSave,
-                    signature_verified: true
-                })
-            });
-
-            setSaveStatus('Saved with tx proof!');
-            alert(`💾 Memory saved with on-chain proof!\n\nTx: ${result.digest.slice(0, 20)}...\n\nView on Suiscan:\nhttps://suiscan.xyz/testnet/tx/${result.digest}`);
-        }
-
+        setSaveStatus('Saved with tx proof!');
+        alert(`💾 Memory saved with on-chain proof!\n\nTx: ${result.digest.slice(0, 20)}...\n\nView on Suiscan:\nhttps://suiscan.xyz/testnet/tx/${result.digest}`);
+      }
     } catch (e) {
-        console.error('Save error:', e);
-        setSaveStatus('Save failed');
-        if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
-            alert('❌ Cancelled');
-        } else {
-            alert('❌ Failed, saving to backend...');
-            await apiSaveMemory(walletHash, dataToSave);
-            alert('💾 Saved to backend');
-        }
+      console.error('Save error:', e);
+      setSaveStatus('Save failed');
+      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
+        alert('❌ Cancelled');
+      } else {
+        alert('❌ Failed, saving to backend...');
+        await apiSaveMemory(walletHash, dataToSave);
+        alert('💾 Saved to backend');
+      }
     } finally {
-        setIsSaving(false);
-        setTimeout(() => setSaveStatus(''), 3000);
+      setIsSaving(false);
+      setTimeout(() => setSaveStatus(''), 3000);
     }
-};
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════
@@ -903,7 +937,7 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <User size={12} color="#666" />
                 <span style={{ fontSize: '12px', color: '#aaa' }}>
-                  Name: {memory.user_name || <span style={{ color: '#555' }}>Not set</span>}
+                  Name: {memory.user_name ? <span style={{color: RIOT_PINK, fontWeight: 600}}>{memory.user_name}</span> : <span style={{ color: '#555' }}>Not set</span>}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
