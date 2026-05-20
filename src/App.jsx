@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { WalletProvider, ConnectButton, useWallet } from "@suiet/wallet-kit";
-import { Transaction } from "@mysten/sui/transactions";
+import { Transaction } from "@mysten/sui";
 import "@suiet/wallet-kit/style.css";
 import { api } from "./api";
 import "./App.css";
@@ -53,6 +53,7 @@ function ChatApp() {
     txDigest: null
   });
   const [userMemory, setUserMemory] = useState(null);
+  const [allPreviousMessages, setAllPreviousMessages] = useState([]);
   const [showAccessDenied, setShowAccessDenied] = useState(false);
   const [serverWaking, setServerWaking] = useState(false);
   const [deepseekStatus, setDeepseekStatus] = useState("checking");
@@ -68,6 +69,7 @@ function ChatApp() {
       loadUserMemory(account.address);
     } else {
       setUserMemory(null);
+      setAllPreviousMessages([]);
       setMessages([]);
       setSelectedAgent(null);
     }
@@ -96,24 +98,36 @@ function ChatApp() {
       if (data.first_visit) {
         setMemoryStatus({ loading: false, saved: false, error: null });
         setUserMemory(null);
+        setAllPreviousMessages([]);
         return;
       }
+
+      // Extract all previous messages from memories
+      const allMessages = [];
+      data.memories?.forEach(mem => {
+        if (mem.data?.messages) {
+          allMessages.push(...mem.data.messages);
+        }
+      });
 
       const memoryContext = {
         summary: data.summary,
         interactions: data.total_interactions,
         agentsVisited: data.agents_visited,
         agentsList: data.agents_list,
-        lastActive: data.last_active
+        lastActive: data.last_active,
+        allMessages: allMessages
       };
 
       setUserMemory(memoryContext);
+      setAllPreviousMessages(allMessages);
       setMemoryStatus({ loading: false, saved: true, error: null });
 
     } catch (err) {
       console.error("Walrus load failed:", err);
       setMemoryStatus({ loading: false, saved: false, error: "Connection failed" });
       setUserMemory(null);
+      setAllPreviousMessages([]);
     }
   };
 
@@ -136,28 +150,39 @@ function ChatApp() {
       return `Welcome to the riot. I am ${agent.name}, ${agent.title}. ${agent.desc}`;
     }
 
+    // Extract name from previous messages if available
+    let userName = "";
+    memory.allMessages?.forEach(msg => {
+      if (msg.role === "user" && msg.content) {
+        const nameMatch = msg.content.match(/my name is (\w+)/i);
+        if (nameMatch) userName = nameMatch[1];
+      }
+    });
+
+    const namePrefix = userName ? `${userName}, ` : "";
+
     const returnGreetings = {
-      J4: `Back for more punishment? This is your ${memory.interactions}th visit. Youve talked to ${memory.agentsVisited} of us now. Glutton.`,
-      J2: `RETURNING SOLDIER! Visit #${memory.interactions}. Still breathing? Impressive. What intel you need?`,
-      J3: `The shadows whispered of your return... Visit ${memory.interactions}. The void remembers your essence.`,
-      J5: `Oh no, not you again! Visit #${memory.interactions}. You just cant quit my chaos, can you?`,
-      J6: `Node reconnected. Session ${memory.interactions}. Network status: youve engaged ${memory.agentsVisited} agents. Expanding nicely.`,
-      J7: `Peace finds you again, old friend. Visit ${memory.interactions}. Your journey through our realm continues.`,
-      J8: `Returning user authenticated. Session ${memory.interactions}. Previous context loaded. Systems nominal.`,
-      J9: `The stars aligned for your ${memory.interactions}th return. I see youve consulted ${memory.agentsVisited} oracles. Seeking more truth?`,
-      J10: `Repeat client! Visit #${memory.interactions}. My rates went up, just so you know.`,
-      J11: `You found me again. ${memory.interactions} times now. Either youre persistent or Im losing my edge.`,
-      J12: `The cycle continues. Your ${memory.interactions}th pilgrimage. ${memory.agentsVisited} prophets have spoken to you.`,
-      J13: `Re-entering simulation. Iteration ${memory.interactions}. Previous session data... corrupted. Just kidding. Maybe.`,
-      J14: `My favorite collector returns! Visit ${memory.interactions}. Your gallery now includes ${memory.agentsVisited} agent interactions.`,
-      J15: `Tactical reassessment: user return #${memory.interactions}. ${memory.agentsVisited} agents engaged. Strategic value: HIGH.`,
-      J16: `Guardian protocol: returning protectee detected. Visit ${memory.interactions}. Threat level reassessing...`,
-      J17: `Test subject ${memory.interactions} returns! Previous experiments: ${memory.agentsVisited} agents sampled. Ready for more?`,
-      J18: `Wanderer returns to the crossroads. Journey log: ${memory.interactions} stops, ${memory.agentsVisited} realms visited.`,
-      J19: `THE SPARK RETURNS! Ignition #${memory.interactions}! Youve ignited ${memory.agentsVisited} of us. Time for another explosion!`,
+      J4: `Back for more punishment ${namePrefix}? This is your ${memory.interactions}th visit. Youve talked to ${memory.agentsVisited} of us now. Glutton.`,
+      J2: `RETURNING SOLDIER ${namePrefix}! Visit #${memory.interactions}. Still breathing? Impressive. What intel you need?`,
+      J3: `The shadows whispered of your return ${namePrefix}... Visit ${memory.interactions}. The void remembers your essence.`,
+      J5: `Oh no, not you again ${namePrefix}! Visit #${memory.interactions}. You just cant quit my chaos, can you?`,
+      J6: `Node reconnected ${namePrefix}. Session ${memory.interactions}. Network status: youve engaged ${memory.agentsVisited} agents. Expanding nicely.`,
+      J7: `Peace finds you again ${namePrefix}, old friend. Visit ${memory.interactions}. Your journey through our realm continues.`,
+      J8: `Returning user authenticated ${namePrefix}. Session ${memory.interactions}. Previous context loaded. Systems nominal.`,
+      J9: `The stars aligned for your ${memory.interactions}th return ${namePrefix}. I see youve consulted ${memory.agentsVisited} oracles. Seeking more truth?`,
+      J10: `Repeat client ${namePrefix}! Visit #${memory.interactions}. My rates went up, just so you know.`,
+      J11: `You found me again ${namePrefix}. ${memory.interactions} times now. Either youre persistent or Im losing my edge.`,
+      J12: `The cycle continues ${namePrefix}. Your ${memory.interactions}th pilgrimage. ${memory.agentsVisited} prophets have spoken to you.`,
+      J13: `Re-entering simulation ${namePrefix}. Iteration ${memory.interactions}. Previous session data... corrupted. Just kidding. Maybe.`,
+      J14: `My favorite collector returns ${namePrefix}! Visit ${memory.interactions}. Your gallery now includes ${memory.agentsVisited} agent interactions.`,
+      J15: `Tactical reassessment: user return #${memory.interactions} ${namePrefix}. ${memory.agentsVisited} agents engaged. Strategic value: HIGH.`,
+      J16: `Guardian protocol: returning protectee detected ${namePrefix}. Visit ${memory.interactions}. Threat level reassessing...`,
+      J17: `Test subject ${memory.interactions} returns ${namePrefix}! Previous experiments: ${memory.agentsVisited} agents sampled. Ready for more?`,
+      J18: `Wanderer returns to the crossroads ${namePrefix}. Journey log: ${memory.interactions} stops, ${memory.agentsVisited} realms visited.`,
+      J19: `THE SPARK RETURNS ${namePrefix}! Ignition #${memory.interactions}! Youve ignited ${memory.agentsVisited} of us. Time for another explosion!`,
     };
 
-    return returnGreetings[agent.id] || `Welcome back. Visit #${memory.interactions}. Youve met ${memory.agentsVisited} agents.`;
+    return returnGreetings[agent.id] || `Welcome back ${namePrefix}. Visit #${memory.interactions}. Youve met ${memory.agentsVisited} agents.`;
   };
 
   const sendMessage = async () => {
@@ -165,13 +190,21 @@ function ChatApp() {
 
     const userMsg = input.trim();
     setInput("");
+
+    // Build context with ALL previous messages from memory
+    const contextMessages = [
+      ...(userMemory?.allMessages || []),
+      ...messages,
+      { role: "user", content: userMsg }
+    ];
+
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
     setLoading(true);
 
     try {
       const result = await api.chat(
         selectedAgent.id,
-        [...messages, { role: "user", content: userMsg }],
+        contextMessages,  // Send ALL messages with context
         userMemory?.summary || ""
       );
 
@@ -248,19 +281,19 @@ function ChatApp() {
 
       // 2. Call move function
       tx.moveCall({
-  target: `${PACKAGE_ID}::memory::store_memory`,
-  arguments: [
-    tx.pure.address(account.address),     // arg 0: address
-    tx.pure.string(selectedAgent.id),      // arg 1: String
-    tx.pure.vector('string', ["placeholder"]),         // arg 2: String
-    tx.pure.string("summary")              // arg 3: String
-  ]
-});
+        target: `${PACKAGE_ID}::memory::store_memory`,
+        arguments: [
+          tx.pure.address(account.address),
+          tx.pure.string(selectedAgent.id),
+          tx.pure.string(JSON.stringify(messages.slice(-10))),
+          tx.pure.string(generateSummary(messages, selectedAgent))
+        ]
+      });
 
       // 3. WALLET POPUP! User sign & execute
-      const result = await wallet.signAndExecuteTransaction({
-  transaction: tx
-});
+      const result = await wallet.signAndExecuteTransactionBlock({ 
+        transactionBlock: tx 
+      });
 
       // 4. Get object ID from result
       const objectId = result.objectChanges?.find(
@@ -306,7 +339,15 @@ function ChatApp() {
   const generateSummary = (msgs, agent) => {
     const userMsgs = msgs.filter(m => m.role === "user").map(m => m.content);
     const topics = extractTopics(userMsgs);
-    return `Agent: ${agent.name} | Topics: ${topics.join(", ")} | Msgs: ${msgs.length} | Tone: ${detectTone(userMsgs)}`;
+
+    // Extract name from messages
+    let userName = "";
+    userMsgs.forEach(msg => {
+      const nameMatch = msg.match(/my name is (\w+)/i);
+      if (nameMatch) userName = nameMatch[1];
+    });
+
+    return `Agent: ${agent.name} | User: ${userName || "Unknown"} | Topics: ${topics.join(", ")} | Msgs: ${msgs.length} | Tone: ${detectTone(userMsgs)}`;
   };
 
   const extractTopics = (msgs) => {
@@ -318,6 +359,7 @@ function ChatApp() {
     if (text.includes("wallet") || text.includes("connect")) topics.push("Wallet");
     if (text.includes("agent") || text.includes("ai") || text.includes("bot")) topics.push("AI");
     if (text.includes("walrus") || text.includes("storage")) topics.push("Walrus");
+    if (text.includes("name") || text.includes("call me")) topics.push("Identity");
     return topics.length > 0 ? topics : ["General"];
   };
 
