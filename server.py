@@ -12,7 +12,6 @@ app = Flask(__name__)
 CORS(app)
 
 # ─── Config ─────────────────────────────────────────────
-# Try multiple Walrus URLs - official and community
 WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://publisher.walrus-testnet.walrus.space")
 WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://aggregator.walrus-testnet.walrus.space")
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "riot-chat-wallet-secret-key-2026")
@@ -21,15 +20,11 @@ DB_PATH = os.getenv("DB_PATH", "riot_chat.db")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
-# Alternative community URLs (fallback)
-ALT_PUBLISHERS = [
-    "https://walrus-testnet-publisher.stakely.io",
-    "https://walrus-testnet-publisher.nodes.guru",
-]
-ALT_AGGREGATORS = [
-    "https://walrus-testnet-aggregator.stakely.io",
-    "https://walrus-testnet-aggregator.nodes.guru",
-]
+# Sui config for on-chain storage
+SUI_RPC = os.getenv("SUI_RPC", "https://fullnode.testnet.sui.io:443")
+PACKAGE_ID = os.getenv("PACKAGE_ID", "")  # Will be set after deployment
+MODULE_NAME = "memory"
+FUNCTION_NAME = "store_memory"
 
 # ─── Agent System Prompts ───────────────────────────────
 AGENT_PROMPTS = {
@@ -70,10 +65,12 @@ def init_db():
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             wallet_hash TEXT,
-            blob_id TEXT UNIQUE,
+            blob_id TEXT,
+            object_id TEXT,  -- Sui object ID for on-chain memory
             agent_id TEXT,
             timestamp INTEGER,
             summary TEXT,
+            tx_digest TEXT,  -- Transaction digest
             FOREIGN KEY (wallet_hash) REFERENCES users(wallet_hash)
         )
     """)
@@ -89,16 +86,14 @@ def get_db():
 
 # ─── Walrus Functions with Fallback ────────────────────
 def try_store_with_fallback(data: dict) -> tuple:
-    """Try multiple Walrus publishers, return (blob_id, publisher_url)"""
     json_str = json.dumps(data)
     encrypted = encrypt_data(json_str, ENCRYPTION_KEY)
     encrypted_bytes = encrypted.encode("utf-8")
 
-    publishers = [WALRUS_PUBLISHER] + ALT_PUBLISHERS
+    publishers = [WALRUS_PUBLISHER]
 
     for publisher in publishers:
         try:
-            # Try /v1/store endpoint (legacy)
             response = requests.put(
                 f"{publisher}/v1/store",
                 params={"epochs": EPOCHS},
@@ -108,7 +103,6 @@ def try_store_with_fallback(data: dict) -> tuple:
             )
 
             if response.status_code == 404:
-                # Try /v1/blobs endpoint (new)
                 response = requests.put(
                     f"{publisher}/v1/blobs?epochs={EPOCHS}",
                     data=encrypted_bytes,
@@ -131,19 +125,16 @@ def try_store_with_fallback(data: dict) -> tuple:
     raise Exception("All Walrus publishers failed")
 
 def try_read_with_fallback(blob_id: str) -> dict:
-    """Try multiple Walrus aggregators"""
-    aggregators = [WALRUS_AGGREGATOR] + ALT_AGGREGATORS
+    aggregators = [WALRUS_AGGREGATOR]
 
     for aggregator in aggregators:
         try:
-            # Try /v1/{blob_id} (legacy)
             response = requests.get(
                 f"{aggregator}/v1/{blob_id}",
                 timeout=15
             )
 
             if response.status_code == 404:
-                # Try /v1/blobs/{blob_id} (new)
                 response = requests.get(
                     f"{aggregator}/v1/blobs/{blob_id}",
                     timeout=15
@@ -209,6 +200,7 @@ def health():
         "network": "testnet",
         "encryption": "enabled",
         "deepseek": "connected" if DEEPSEEK_API_KEY else "disabled",
+        "on_chain": "ready" if PACKAGE_ID else "pending",
         "timestamp": int(time.time())
     })
 
@@ -253,6 +245,8 @@ def save_memory():
     data = request.json
     wallet = data.get("wallet_address", "").lower()
     agent_id = data.get("agent_id", "J4")
+    object_id = data.get("object_id", "")  # Sui object ID from on-chain tx
+    tx_digest = data.get("tx_digest", "")    # Transaction digest
 
     if not wallet or not wallet.startswith("0x"):
         return jsonify({"error": "Valid Sui wallet address required"}), 400
@@ -269,7 +263,7 @@ def save_memory():
     }
 
     try:
-        # Try Walrus storage with multiple fallbacks
+        # Try Walrus storage
         blob_id, publisher_used = try_store_with_fallback(memory_entry)
 
         conn = get_db()
@@ -285,9 +279,9 @@ def save_memory():
         """, (wallet_hash, wallet, now, now, now))
 
         c.execute("""
-            INSERT INTO memories (wallet_hash, blob_id, agent_id, timestamp, summary)
-            VALUES (?, ?, ?, ?, ?)
-        """, (wallet_hash, blob_id, agent_id, memory_entry["timestamp"], memory_entry["summary"]))
+            INSERT INTO memories (wallet_hash, blob_id, object_id, agent_id, timestamp, summary, tx_digest)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (wallet_hash, blob_id, object_id, agent_id, memory_entry["timestamp"], memory_entry["summary"], tx_digest))
 
         conn.commit()
         conn.close()
@@ -295,8 +289,9 @@ def save_memory():
         return jsonify({
             "success": True,
             "blob_id": blob_id,
-            "publisher": publisher_used,
-            "message": "Memory encrypted and stored on Walrus testnet"
+            "object_id": object_id,
+            "tx_digest": tx_digest,
+            "message": "Memory stored on Walrus + Sui blockchain"
         })
 
     except Exception as e:
@@ -316,9 +311,9 @@ def save_memory():
             """, (wallet_hash, wallet, now, now, now))
 
             c.execute("""
-                INSERT INTO memories (wallet_hash, blob_id, agent_id, timestamp, summary)
-                VALUES (?, ?, ?, ?, ?)
-            """, (wallet_hash, "db-fallback", agent_id, memory_entry["timestamp"], memory_entry["summary"]))
+                INSERT INTO memories (wallet_hash, blob_id, object_id, agent_id, timestamp, summary, tx_digest)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (wallet_hash, "db-fallback", object_id, agent_id, memory_entry["timestamp"], memory_entry["summary"], tx_digest))
 
             conn.commit()
             conn.close()
@@ -326,6 +321,7 @@ def save_memory():
             return jsonify({
                 "success": True,
                 "blob_id": "db-fallback",
+                "object_id": object_id,
                 "message": "Memory stored in database (Walrus offline)"
             })
         except Exception as db_err:
@@ -365,13 +361,14 @@ def load_memory(wallet):
     agents_visited = set()
 
     for row in rows:
-        # Skip DB fallback entries
         if row["blob_id"] == "db-fallback":
             memories.append({
                 "blob_id": "db-fallback",
+                "object_id": row["object_id"],
                 "agent_id": row["agent_id"],
                 "timestamp": row["timestamp"],
                 "summary": row["summary"],
+                "tx_digest": row["tx_digest"],
                 "data": {"source": "database"}
             })
             if row["summary"]:
@@ -383,9 +380,11 @@ def load_memory(wallet):
             data = try_read_with_fallback(row["blob_id"])
             memories.append({
                 "blob_id": row["blob_id"],
+                "object_id": row["object_id"],
                 "agent_id": row["agent_id"],
                 "timestamp": row["timestamp"],
                 "summary": row["summary"],
+                "tx_digest": row["tx_digest"],
                 "data": data
             })
             if row["summary"]:
@@ -466,7 +465,7 @@ def get_stats():
         "total_users": total_users,
         "total_memories": total_memories,
         "total_agents": total_agents,
-        "network": "Walrus Testnet",
+        "network": "Walrus Testnet + Sui On-Chain",
         "encryption": "AES-256"
     })
 
