@@ -21,7 +21,7 @@ WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
 WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-DB_PATH = "/tmp/riot_chat.db"
+DB_PATH = "riot_chat.db"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
 
 # ═══════════════════════════════════════════════════════════════
