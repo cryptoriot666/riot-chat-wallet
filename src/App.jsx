@@ -342,85 +342,75 @@ export default function App() {
   // ═══════════════════════════════════════════════════════════════
   // WALRUS ON-CHAIN SAVE WITH WALLET POP-UP
   // ═══════════════════════════════════════════════════════════════
-  const handleWalrusSave = async () => {
+    const handleWalrusSave = async () => {
     if (!connected || !account?.address) {
-        alert('Connect wallet first!')
-        return
+      alert('Connect wallet first!')
+      return
+    }
+    if (!signMessage) {
+      alert('Wallet does not support message signing')
+      return
     }
 
     setIsSaving(true)
-    setSaveStatus('Preparing transaction...')
+    setSaveStatus('Preparing data...')
 
     try {
-        const dataToSave = {
-            wallet_hash: walletHash,
-            wallet_address: account.address,
-            summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
-            user_name: memory?.user_name || userName,
-            visited_agents: Array.from(visitedAgents),
-            last_agent: selectedAgent.id,
-            timestamp: Date.now()
-        }
+      const dataToSave = {
+        wallet_hash: walletHash,
+        wallet_address: account.address,
+        summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
+        user_name: memory?.user_name || userName,
+        visited_agents: Array.from(visitedAgents),
+        last_agent: selectedAgent.id,
+        timestamp: Date.now()
+      }
 
-        // Create a simple Sui transaction
-        const tx = new TransactionBlock()
-        tx.setGasBudget(1000000) // 0.001 SUI
-        
-        // Call the Move contract (yang sudah fix module name)
-        tx.moveCall({
-            target: `${PACKAGE_ID}::riot::store_memory`,
-            arguments: [
-                tx.pure(account.address),
-                tx.pure(selectedAgent.id),
-                tx.pure([btoa(JSON.stringify(dataToSave))]),
-                tx.pure(`RIOT save ${new Date().toISOString()}`)
-            ]
+      const messageText = `RIOT_SAVE_${walletHash}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const messageBytes = new TextEncoder().encode(messageText)
+
+      setSaveStatus('Waiting for wallet signature...')
+      const signResult = await signMessage({ message: messageBytes })
+
+      console.log('Signature:', signResult.signature)
+
+      setSaveStatus('Verifying...')
+      await fetch(`${API_BASE}/api/walrus/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_hash: walletHash,
+          signature: signResult.signature,
+          public_key: signResult.publicKey,
+          message: messageText,
+          data: dataToSave
         })
+      })
 
-        setSaveStatus('Waiting for wallet approval...')
-
-        // WALLET POP-UP! Slush akan muncul
-        const result = await signAndExecuteTransactionBlock({
-            transactionBlock: tx
-        })
-
-        console.log('Transaction result:', result)
-
-        if (result.digest) {
-            // Save to backend with tx proof
-            await fetch(`${API_BASE}/api/walrus/save`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    wallet_hash: walletHash,
-                    tx_digest: result.digest,
-                    object_id: result.effects?.created?.[0]?.reference?.objectId || '',
-                    data: dataToSave,
-                    signature_verified: true
-                })
-            })
-
-            setSaveStatus('Saved to Walrus on-chain!')
-            setTimeout(() => setSaveStatus(''), 3000)
-            alert(`💾 Memory saved to Walrus on-chain!\n\nTx: ${result.digest.slice(0, 20)}...\nView: https://suiscan.xyz/testnet/tx/${result.digest}`)
-        }
+      setSaveStatus('Saved!')
+      alert('💾 Memory saved with wallet proof!')
 
     } catch (e) {
-        console.error('Save error:', e)
-        setSaveStatus('Save failed')
-        setTimeout(() => setSaveStatus(''), 3000)
-        
-        if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
-            alert('❌ Transaction cancelled by user')
-        } else {
-            alert('❌ Save failed. Falling back to backend...')
-            await apiSaveMemory(walletHash, dataToSave)
-            alert('💾 Saved to backend (off-chain fallback)')
-        }
+      console.error('Save error:', e)
+      setSaveStatus('Save failed')
+      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
+        alert('❌ Cancelled')
+      } else {
+        alert('❌ Failed, saving to backend...')
+        await apiSaveMemory(walletHash, {
+          summary: messages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | '),
+          user_name: memory?.user_name || userName,
+          visited_agents: Array.from(visitedAgents),
+          last_agent: selectedAgent.id,
+          last_visit: new Date().toISOString()
+        })
+        alert('💾 Saved to backend')
+      }
     } finally {
-        setIsSaving(false)
+      setIsSaving(false)
+      setTimeout(() => setSaveStatus(''), 3000)
     }
-}
+  }
   // ═══════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════
