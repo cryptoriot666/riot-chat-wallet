@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { WalletProvider, ConnectButton, useWallet } from "@suiet/wallet-kit";
-import { Transaction } from "@mysten/sui";
+import { Transaction } from "@mysten/sui/transactions";
 import "@suiet/wallet-kit/style.css";
 import { api } from "./api";
 import "./App.css";
@@ -248,18 +248,18 @@ function ChatApp() {
 
       // 2. Call move function
       tx.moveCall({
-        target: `${PACKAGE_ID}::memory::store_memory`,
-        arguments: [
-          tx.pure.address(account.address),
-          tx.pure.string(currentAgent.id),
-          tx.pure.string(JSON.stringify(messages.slice(-10))),
-          tx.pure.string(generateSummary(messages, currentAgent))
-        ]
-      });
+  target: `${PACKAGE_ID}::memory::store_memory`,
+  arguments: [
+    tx.pure.address(account.address),
+    tx.pure.string(currentAgent.id),
+    tx.pure.string(JSON.stringify(messages.slice(-10))),
+    tx.pure.string(generateSummary(messages, currentAgent))
+  ]
+});
 
       // 3. WALLET POPUP! User sign & execute
-      const result = await wallet.signAndExecuteTransactionBlock({ 
-  transactionBlock: tx 
+      const result = await wallet.signAndExecuteTransaction({
+  transaction: tx
 });
 
       // 4. Get object ID from result
