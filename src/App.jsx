@@ -274,6 +274,18 @@ export default function App() {
     }]
     setMessages(newMessages)
     const extractedName = extractNameFromMessages(newMessages)
+     if (extractedName && connected && walletHash && (!memory?.user_name || memory.user_name !== extractedName)) {
+      console.log('📝 Auto-saving name:', extractedName)
+      await apiSaveMemory(walletHash, {
+        user_name: extractedName,
+        summary: `User introduced as ${extractedName}`,
+        visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
+        last_agent: selectedAgent.id,
+        last_visit: new Date().toISOString()
+      })
+      // Force refresh memory so AI knows immediately
+      await loadMemory()
+    }
     const lower = userMsg.toLowerCase()
     const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('remember me') || lower.includes('ingat aku')
 
@@ -390,7 +402,7 @@ export default function App() {
             });
 
             setSaveStatus('Saved with tx proof!');
-            alert(`💾 Memory saved with on-chain proof!\n\nTx: ${result.digest.slice(0, 20)}...`);
+            alert(`💾 Memory saved with on-chain proof!\n\nTx: ${result.digest.slice(0, 20)}...\n\nView on Suiscan:\nhttps://suiscan.xyz/testnet/tx/${result.digest}`);
         }
 
     } catch (e) {
