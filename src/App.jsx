@@ -39,7 +39,8 @@ const AGENTS = [
 
 // ─── Main App Component ─────────────────────────────────
 function ChatApp() {
-  const { connected, account, signAndExecuteTransactionBlock } = useWallet();
+  const wallet = useWallet();
+  const { connected, account } = wallet;
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -257,9 +258,9 @@ function ChatApp() {
       });
 
       // 3. WALLET POPUP! User sign & execute
-      const result = await signAndExecuteTransactionBlock({ 
-        transactionBlock: tx 
-      });
+      const result = await wallet.signAndExecuteTransactionBlock({ 
+  transactionBlock: tx 
+});
 
       // 4. Get object ID from result
       const objectId = result.objectChanges?.find(
