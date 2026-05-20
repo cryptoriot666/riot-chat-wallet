@@ -12,14 +12,24 @@ app = Flask(__name__)
 CORS(app)
 
 # ─── Config ─────────────────────────────────────────────
-# Working Walrus Testnet URLs (from community aggregators)
-WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://walrus-testnet-publisher.stakely.io")
-WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://walrus-testnet-aggregator.stakely.io")
+# Try multiple Walrus URLs - official and community
+WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://publisher.walrus-testnet.walrus.space")
+WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://aggregator.walrus-testnet.walrus.space")
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "riot-chat-wallet-secret-key-2026")
 EPOCHS = int(os.getenv("WALRUS_EPOCHS", "1"))
 DB_PATH = os.getenv("DB_PATH", "riot_chat.db")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+
+# Alternative community URLs (fallback)
+ALT_PUBLISHERS = [
+    "https://walrus-testnet-publisher.stakely.io",
+    "https://walrus-testnet-publisher.nodes.guru",
+]
+ALT_AGGREGATORS = [
+    "https://walrus-testnet-aggregator.stakely.io",
+    "https://walrus-testnet-aggregator.nodes.guru",
+]
 
 # ─── Agent System Prompts ───────────────────────────────
 AGENT_PROMPTS = {
@@ -77,43 +87,81 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-# ─── Walrus Functions ───────────────────────────────────
-def store_on_walrus(data: dict) -> str:
-    """Store encrypted JSON on Walrus testnet, return blob ID"""
+# ─── Walrus Functions with Fallback ────────────────────
+def try_store_with_fallback(data: dict) -> tuple:
+    """Try multiple Walrus publishers, return (blob_id, publisher_url)"""
     json_str = json.dumps(data)
     encrypted = encrypt_data(json_str, ENCRYPTION_KEY)
     encrypted_bytes = encrypted.encode("utf-8")
 
-    response = requests.put(
-        f"{WALRUS_PUBLISHER}/v1/blobs?epochs={EPOCHS}",
-        data=encrypted_bytes,
-        headers={"Content-Type": "application/octet-stream"},
-        timeout=30
-    )
-    response.raise_for_status()
-    result = response.json()
+    publishers = [WALRUS_PUBLISHER] + ALT_PUBLISHERS
 
-    if "newlyCreated" in result:
-        return result["newlyCreated"]["blobObject"]["blobId"]
-    elif "alreadyCertified" in result:
-        return result["alreadyCertified"]["blobId"]
-    else:
-        raise Exception(f"Unexpected Walrus response: {result}")
+    for publisher in publishers:
+        try:
+            # Try /v1/store endpoint (legacy)
+            response = requests.put(
+                f"{publisher}/v1/store",
+                params={"epochs": EPOCHS},
+                data=encrypted_bytes,
+                headers={"Content-Type": "application/octet-stream"},
+                timeout=15
+            )
 
-def read_from_walrus(blob_id: str) -> dict:
-    """Read and decrypt blob from Walrus"""
-    response = requests.get(
-        f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}",
-        timeout=30
-    )
-    response.raise_for_status()
-    encrypted_data = response.text
-    decrypted = decrypt_data(encrypted_data, ENCRYPTION_KEY)
-    return json.loads(decrypted)
+            if response.status_code == 404:
+                # Try /v1/blobs endpoint (new)
+                response = requests.put(
+                    f"{publisher}/v1/blobs?epochs={EPOCHS}",
+                    data=encrypted_bytes,
+                    headers={"Content-Type": "application/octet-stream"},
+                    timeout=15
+                )
+
+            response.raise_for_status()
+            result = response.json()
+
+            if "newlyCreated" in result:
+                return result["newlyCreated"]["blobObject"]["blobId"], publisher
+            elif "alreadyCertified" in result:
+                return result["alreadyCertified"]["blobId"], publisher
+
+        except Exception as e:
+            print(f"Failed with {publisher}: {e}")
+            continue
+
+    raise Exception("All Walrus publishers failed")
+
+def try_read_with_fallback(blob_id: str) -> dict:
+    """Try multiple Walrus aggregators"""
+    aggregators = [WALRUS_AGGREGATOR] + ALT_AGGREGATORS
+
+    for aggregator in aggregators:
+        try:
+            # Try /v1/{blob_id} (legacy)
+            response = requests.get(
+                f"{aggregator}/v1/{blob_id}",
+                timeout=15
+            )
+
+            if response.status_code == 404:
+                # Try /v1/blobs/{blob_id} (new)
+                response = requests.get(
+                    f"{aggregator}/v1/blobs/{blob_id}",
+                    timeout=15
+                )
+
+            response.raise_for_status()
+            encrypted_data = response.text
+            decrypted = decrypt_data(encrypted_data, ENCRYPTION_KEY)
+            return json.loads(decrypted)
+
+        except Exception as e:
+            print(f"Failed with {aggregator}: {e}")
+            continue
+
+    raise Exception("All Walrus aggregators failed")
 
 # ─── DeepSeek API ─────────────────────────────────────
 def chat_with_deepseek(agent_id: str, messages: list, memory_summary: str = "") -> str:
-    """Send conversation to DeepSeek API with agent personality"""
     if not DEEPSEEK_API_KEY:
         return None
 
@@ -147,7 +195,6 @@ def chat_with_deepseek(agent_id: str, messages: list, memory_summary: str = "") 
         )
         response.raise_for_status()
         result = response.json()
-
         return result["choices"][0]["message"]["content"]
 
     except Exception as e:
@@ -167,7 +214,6 @@ def health():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    """Chat with agent via DeepSeek API"""
     data = request.json
     agent_id = data.get("agent_id", "J4")
     messages = data.get("messages", [])
@@ -192,7 +238,6 @@ def chat():
     })
 
 def generate_fallback_response(agent_id: str, messages: list) -> str:
-    """Fallback responses when DeepSeek is unavailable"""
     user_msg = messages[-1].get("content", "").lower() if messages else ""
 
     fallbacks = {
@@ -224,7 +269,8 @@ def save_memory():
     }
 
     try:
-        blob_id = store_on_walrus(memory_entry)
+        # Try Walrus storage with multiple fallbacks
+        blob_id, publisher_used = try_store_with_fallback(memory_entry)
 
         conn = get_db()
         c = conn.cursor()
@@ -249,11 +295,41 @@ def save_memory():
         return jsonify({
             "success": True,
             "blob_id": blob_id,
+            "publisher": publisher_used,
             "message": "Memory encrypted and stored on Walrus testnet"
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Walrus store error: {e}")
+        # Fallback: save to DB only
+        try:
+            conn = get_db()
+            c = conn.cursor()
+            now = datetime.now().isoformat()
+
+            c.execute("""
+                INSERT INTO users (wallet_hash, wallet_address, first_visit, total_interactions, last_active)
+                VALUES (?, ?, ?, 1, ?)
+                ON CONFLICT(wallet_hash) DO UPDATE SET
+                    total_interactions = total_interactions + 1,
+                    last_active = ?
+            """, (wallet_hash, wallet, now, now, now))
+
+            c.execute("""
+                INSERT INTO memories (wallet_hash, blob_id, agent_id, timestamp, summary)
+                VALUES (?, ?, ?, ?, ?)
+            """, (wallet_hash, "db-fallback", agent_id, memory_entry["timestamp"], memory_entry["summary"]))
+
+            conn.commit()
+            conn.close()
+
+            return jsonify({
+                "success": True,
+                "blob_id": "db-fallback",
+                "message": "Memory stored in database (Walrus offline)"
+            })
+        except Exception as db_err:
+            return jsonify({"error": str(db_err)}), 500
 
 @app.route("/api/memory/load/<wallet>", methods=["GET"])
 def load_memory(wallet):
@@ -289,8 +365,22 @@ def load_memory(wallet):
     agents_visited = set()
 
     for row in rows:
+        # Skip DB fallback entries
+        if row["blob_id"] == "db-fallback":
+            memories.append({
+                "blob_id": "db-fallback",
+                "agent_id": row["agent_id"],
+                "timestamp": row["timestamp"],
+                "summary": row["summary"],
+                "data": {"source": "database"}
+            })
+            if row["summary"]:
+                combined_summary.append(row["summary"])
+            agents_visited.add(row["agent_id"])
+            continue
+
         try:
-            data = read_from_walrus(row["blob_id"])
+            data = try_read_with_fallback(row["blob_id"])
             memories.append({
                 "blob_id": row["blob_id"],
                 "agent_id": row["agent_id"],
