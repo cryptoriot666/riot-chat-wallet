@@ -252,7 +252,7 @@ function ChatApp() {
   arguments: [
     tx.pure.address(account.address),
     tx.pure.string(selectedAgent.id),
-    tx.pure.string(JSON.stringify(messages.slice(-10))),
+    tx.pure.string("messages_placeholder"),  
     tx.pure.string(generateSummary(messages, selectedAgent))
   ]
 });
