@@ -250,10 +250,10 @@ function ChatApp() {
       tx.moveCall({
   target: `${PACKAGE_ID}::memory::store_memory`,
   arguments: [
-    tx.pure.address(account.address),
-    tx.pure.string(selectedAgent.id),
-    tx.pure.string("messages_placeholder"),  
-    tx.pure.string(generateSummary(messages, selectedAgent))
+    tx.pure.address(account.address),     // arg 0: address
+    tx.pure.string(selectedAgent.id),      // arg 1: String
+    tx.pure.string("placeholder"),          // arg 2: String
+    tx.pure.string("summary")              // arg 3: String
   ]
 });
 
