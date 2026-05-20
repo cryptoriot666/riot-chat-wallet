@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { WalletProvider, ConnectButton, useWallet } from "@suiet/wallet-kit";
+import { Transaction } from "@mysten/sui";
 import "@suiet/wallet-kit/style.css";
 import { api } from "./api";
 import "./App.css";
+
+// ─── Package ID dari contract deploy ────────────────────
+const PACKAGE_ID = "0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd";
 
 // ─── 25 Agent Personalities with Punk Images ────────────
 const AGENTS = [
@@ -35,12 +39,18 @@ const AGENTS = [
 
 // ─── Main App Component ─────────────────────────────────
 function ChatApp() {
-  const { connected, account } = useWallet();
+  const { connected, account, signAndExecuteTransactionBlock } = useWallet();
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [memoryStatus, setMemoryStatus] = useState({ loading: false, saved: false, error: null });
+  const [memoryStatus, setMemoryStatus] = useState({ 
+    loading: false, 
+    saved: false, 
+    error: null,
+    objectId: null,
+    txDigest: null
+  });
   const [userMemory, setUserMemory] = useState(null);
   const [showAccessDenied, setShowAccessDenied] = useState(false);
   const [serverWaking, setServerWaking] = useState(false);
@@ -219,28 +229,76 @@ function ChatApp() {
     }
   };
 
+  // ─── ON-CHAIN SAVE MEMORY ──────────────────────────────
   const saveToWalrus = async () => {
     if (!connected || !account?.address || messages.length === 0) return;
 
     try {
-      setMemoryStatus({ loading: true, saved: false, error: null });
+      setMemoryStatus({ 
+        loading: true, 
+        saved: false, 
+        error: null,
+        objectId: null,
+        txDigest: null
+      });
 
-      const summary = generateSummary(messages, selectedAgent);
-      const result = await api.saveMemory(
+      // 1. Create Sui transaction for on-chain storage
+      const tx = new Transaction();
+
+      // 2. Call move function
+      tx.moveCall({
+        target: `${PACKAGE_ID}::memory::store_memory`,
+        arguments: [
+          tx.pure.address(account.address),
+          tx.pure.string(currentAgent.id),
+          tx.pure.string(JSON.stringify(messages.slice(-10))),
+          tx.pure.string(generateSummary(messages, currentAgent))
+        ]
+      });
+
+      // 3. WALLET POPUP! User sign & execute
+      const result = await signAndExecuteTransactionBlock({ 
+        transactionBlock: tx 
+      });
+
+      // 4. Get object ID from result
+      const objectId = result.objectChanges?.find(
+        c => c.type === 'created'
+      )?.objectId;
+
+      const txDigest = result.digest;
+
+      // 5. Save to backend with on-chain info
+      const saveResult = await api.saveMemory(
         account.address,
-        selectedAgent.id,
+        currentAgent.id,
         messages,
-        summary
+        generateSummary(messages, currentAgent),
+        objectId,
+        txDigest
       );
 
-      if (result.success) {
-        setMemoryStatus({ loading: false, saved: true, error: null });
+      if (saveResult.success) {
+        setMemoryStatus({ 
+          loading: false, 
+          saved: true, 
+          error: null,
+          objectId: objectId,
+          txDigest: txDigest
+        });
+        // Reload memory to update context
         await loadUserMemory(account.address);
       }
 
     } catch (err) {
-      console.error("Save failed:", err);
-      setMemoryStatus({ loading: false, saved: false, error: "Walrus storage failed" });
+      console.error("Transaction failed:", err);
+      setMemoryStatus({ 
+        loading: false, 
+        saved: false, 
+        error: err.message || "Transaction failed",
+        objectId: null,
+        txDigest: null
+      });
     }
   };
 
@@ -393,8 +451,8 @@ function ChatApp() {
               </div>
 
               <div className="memory-controls">
-                {memoryStatus.loading && <span className="memory-loading">Saving...</span>}
-                {memoryStatus.saved && <span className="memory-saved">✓ Saved</span>}
+                {memoryStatus.loading && <span className="memory-loading">Confirm in wallet...</span>}
+                {memoryStatus.saved && !memoryStatus.objectId && <span className="memory-saved">✓ Saved</span>}
                 {memoryStatus.error && <span className="memory-error">✗ {memoryStatus.error}</span>}
                 <button 
                   className="save-memory-btn"
@@ -405,6 +463,23 @@ function ChatApp() {
                 </button>
               </div>
             </div>
+
+            {/* On-Chain Success Message */}
+            {memoryStatus.saved && memoryStatus.objectId && (
+              <div className="onchain-banner">
+                <span>✓ Stored on-chain</span>
+                <a 
+                  href={`https://suiscan.xyz/testnet/tx/${memoryStatus.txDigest}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Tx ↗
+                </a>
+                <span className="object-id">
+                  Object: {memoryStatus.objectId.slice(0, 12)}...
+                </span>
+              </div>
+            )}
 
             <div className="messages-container">
               {messages.map((msg, i) => (
@@ -470,7 +545,7 @@ function ChatApp() {
       </main>
 
       <footer className="riot-footer">
-        <span>Memory stored on Walrus Mainnet</span>
+        <span>Memory stored on Walrus + Sui Blockchain</span>
         <span className="divider">|</span>
         <span>Encrypted with AES-256</span>
         <span className="divider">|</span>
