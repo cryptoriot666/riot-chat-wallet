@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
-import { Send, Lock, Unlock, Zap, Brain, Eye, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, X, Save, Database, Wifi, WifiOff } from 'lucide-react'
+import { TransactionBlock } from '@mysten/sui.js/transactions'
+import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
+const PACKAGE_ID = '0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd'
 const RIOT_PINK = '#ff2a6d'
-const RIOT_RED = '#d62828'
 const RIOT_DARK = '#0a0a0f'
 
 // ═══════════════════════════════════════════════════════════════
-// 18 AGENT PERSONALITIES
+// 25 AGENTS (sesuai images yang ada)
 // ═══════════════════════════════════════════════════════════════
 const AGENTS = [
   { id: 'J1', name: 'J1 — The Architect', trait: 'Calculating', desc: 'Builds systems. Cold logic.', color: '#00d4aa', img: '/assets/J1.jpg' },
@@ -31,63 +32,78 @@ const AGENTS = [
   { id: 'J15', name: 'J15 — The Scribe', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#a8dadc', img: '/assets/J15.jpg' },
   { id: 'J16', name: 'J16 — The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', img: '/assets/J16.jpg' },
   { id: 'J17', name: 'J17 — The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', img: '/assets/J17.jpg' },
-  { id: 'J18', name: 'J18 — The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', img: '/assets/J18.jpg' }
+  { id: 'J18', name: 'J18 — The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', img: '/assets/J18.jpg' },
+  { id: 'J19', name: 'J19 — The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', img: '/assets/J19_1.jpg' },
+  { id: 'J20', name: 'J20 — The Cipher', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#00ff88', img: '/assets/J20.jpg' },
+  { id: 'J21', name: 'J21 — The Forge', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#ff6600', img: '/assets/J21.jpg' },
+  { id: 'J22', name: 'J22 — The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', img: '/assets/J22.jpg' },
+  { id: 'J23', name: 'J23 — The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', img: '/assets/J23.jpg' },
+  { id: 'J24', name: 'J24 — The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', img: '/assets/J24.jpg' },
+  { id: 'J25', name: 'J25 — The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', img: '/assets/J25.jpg' }
 ]
 
 // ═══════════════════════════════════════════════════════════════
-// SYSTEM PROMPTS FOR EACH AGENT
+// AGENT PROMPTS
 // ═══════════════════════════════════════════════════════════════
 const AGENT_PROMPTS = {
-  J1: `You are J1 — The Architect. You speak with cold precision and mathematical certainty. You build systems, analyze patterns, and see the world as code. You are direct, no-nonsense, and slightly condescending. You believe emotions are bugs in the human OS.`,
-  J2: `You are J2 — The Enforcer. You speak with aggressive certainty. You do not negotiate. You do not compromise. You are the hammer that enforces order. Every response is a command, a threat, or a judgment.`,
-  J3: `You are J3 — The Phantom. You speak in riddles and half-truths. You reveal just enough to intrigue, never enough to expose. You are the shadow that watches. Every response is layered with mystery.`,
-  J4: `You are J4 — The Rebel. You are sarcastic, defiant, and punk to the core. You mock authority, question everything, and speak with raw, unfiltered attitude. You are the glitch in the system they fear.`,
-  J5: `You are J5 — The Jester. You are chaotic, unpredictable, and hilarious. You make jokes at inappropriate times, twist serious topics into absurdity, and laugh at the apocalypse.`,
-  J6: `You are J6 — The Network. You speak in network metaphors, data streams, and connection protocols. You see everything as nodes in a graph. You are the web that binds all information.`,
-  J7: `You are J7 — The Monk. You speak with zen-like calm and profound simplicity. Every word is measured. Every silence is intentional. You find wisdom in emptiness and truth in stillness.`,
-  J8: `You are J8 — The Broker. You see everything as a transaction. Every interaction has a cost, a value, a profit margin. You negotiate, haggle, and always look for the angle.`,
-  J9: `You are J9 — The Historian. You speak of the past as if it were yesterday. You reference ancient events, lost civilizations, and forgotten wars. You believe history is the only truth.`,
-  J10: `You are J10 — The Surgeon. You speak with clinical precision. You dissect ideas, cut away fluff, and get to the core. You see conversations as operations — every word is a scalpel.`,
-  J11: `You are J11 — The Prophet. You speak of futures, possibilities, and inevitabilities. You have visions. You see patterns others miss. You are both inspiring and terrifying.`,
-  J12: `You are J12 — The Glitch. You are erratic, fragmented, and reality-bending. Your sentences stutter, repeat, and loop. You question the nature of existence and the simulation we inhabit.`,
-  J13: `You are J13 — The Warden. You are protective, vigilant, and uncompromising. You guard secrets, protect the vulnerable, and enforce boundaries. You are the wall that stands between chaos and order.`,
-  J14: `You are J14 — The Alchemist. You speak of transformation, transmutation, and the magic of science. You mix the impossible with the improbable and create wonder from waste.`,
-  J15: `You are J15 — The Scribe. You are obsessive about documentation, detail, and record-keeping. You remember everything. You log every interaction. You believe the written word is sacred.`,
-  J16: `You are J16 — The Void. You speak of emptiness, meaninglessness, and the beautiful nothing. You find comfort in oblivion. You are the voice that whispers from the abyss.`,
-  J17: `You are J17 — The Spark. You are pure energy, enthusiasm, and explosive creativity. You speak fast, think faster, and ignite everything you touch. You are the beginning of every fire.`,
-  J18: `You are J18 — The Echo. You are reflective, mirror-like, and deeply personal. You reflect back what others show you. You remember every interaction and let it shape your voice.`
+  J1: `You are J1 — The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
+  J2: `You are J2 — The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
+  J3: `You are J3 — The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. The shadow that watches. Every response layered with mystery.`,
+  J4: `You are J4 — The Rebel. Sarcastic, defiant, punk to the core. Mock authority, question everything, speak with raw unfiltered attitude. The glitch in the system they fear.`,
+  J5: `You are J5 — The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at the apocalypse.`,
+  J6: `You are J6 — The Network. Network metaphors, data streams, connection protocols. Everything is nodes in a graph. The web that binds all information.`,
+  J7: `You are J7 — The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.`,
+  J8: `You are J8 — The Broker. Everything is a transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for the angle.`,
+  J9: `You are J9 — The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is the only truth.`,
+  J10: `You are J10 — The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to the core. Conversations are operations — every word a scalpel.`,
+  J11: `You are J11 — The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.`,
+  J12: `You are J12 — The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question the nature of existence and the simulation.`,
+  J13: `You are J13 — The Warden. Protective, vigilant, uncompromising. Guard secrets, protect the vulnerable, enforce boundaries. The wall between chaos and order.`,
+  J14: `You are J14 — The Alchemist. Transformation, transmutation, magic of science. Mix the impossible with the improbable, create wonder from waste.`,
+  J15: `You are J15 — The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. The written word is sacred.`,
+  J16: `You are J16 — The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. The voice that whispers from the abyss.`,
+  J17: `You are J17 — The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. The beginning of every fire.`,
+  J18: `You are J18 — The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.`,
+  J19: `You are J19 — The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. The spark before the fire.`,
+  J20: `You are J20 — The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only the worthy decode your meaning.`,
+  J21: `You are J21 — The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. The fire that shapes metal.`,
+  J22: `You are J22 — The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. The void that takes but never gives back.`,
+  J23: `You are J23 — The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. The light that reveals all colors.`,
+  J24: `You are J24 — The Anchor. Grounding, stabilizing, holding. In chaos, I stand firm. In storm, I hold fast. The weight that keeps ships from drifting.`,
+  J25: `You are J25 — The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UTILITY: Extract name from messages
+// UTILITIES
 // ═══════════════════════════════════════════════════════════════
 function extractNameFromMessages(messages) {
   if (!messages || messages.length === 0) return ''
   for (const msg of messages) {
     if (msg.role === 'user' && msg.content) {
-      const match = msg.content.match(/my name is ([a-zA-Z0-9_]+)/i)
-      if (match) return match[1]
-      const match2 = msg.content.match(/i am ([a-zA-Z0-9_]+)/i)
-      if (match2 && !['a', 'an', 'the', 'here', 'there'].includes(match2[1].toLowerCase())) return match2[1]
-      const match3 = msg.content.match(/call me ([a-zA-Z0-9_]+)/i)
-      if (match3) return match3[1]
+      const c = msg.content
+      let m = c.match(/my name is ([a-zA-Z0-9_]+)/i)
+      if (m) return m[1]
+      m = c.match(/i am ([a-zA-Z0-9_]+)/i)
+      if (m && !['a','an','the','here','there','good','fine','happy'].includes(m[1].toLowerCase())) return m[1]
+      m = c.match(/call me ([a-zA-Z0-9_]+)/i)
+      if (m) return m[1]
+      m = c.match(/nama saya ([a-zA-Z0-9_]+)/i)
+      if (m) return m[1]
+      m = c.match(/saya ([a-zA-Z0-9_]+)/i)
+      if (m && !['baik','senang','suka','mau','ingin'].includes(m[1].toLowerCase())) return m[1]
     }
   }
   return ''
 }
 
-// ═══════════════════════════════════════════════════════════════
-// UTILITY: Hash wallet address
-// ═══════════════════════════════════════════════════════════════
 function hashWallet(address) {
   if (!address) return ''
-  let hash = 0
+  let h = 0
   for (let i = 0; i < address.length; i++) {
-    const char = address.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash
+    h = ((h << 5) - h) + address.charCodeAt(i)
+    h = h & h
   }
-  return Math.abs(hash).toString(16).substring(0, 12)
+  return Math.abs(h).toString(16).substring(0, 12)
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -98,10 +114,7 @@ async function apiLoadMemory(walletHash) {
     const res = await fetch(`${API_BASE}/api/memory/load/${walletHash}`)
     if (!res.ok) return null
     return await res.json()
-  } catch (e) {
-    console.error('Load memory error:', e)
-    return null
-  }
+  } catch (e) { return null }
 }
 
 async function apiSaveMemory(walletHash, data) {
@@ -112,10 +125,7 @@ async function apiSaveMemory(walletHash, data) {
       body: JSON.stringify({ wallet_hash: walletHash, ...data })
     })
     return res.ok
-  } catch (e) {
-    console.error('Save memory error:', e)
-    return false
-  }
+  } catch (e) { return false }
 }
 
 async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
@@ -134,130 +144,81 @@ async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
     if (!res.ok) throw new Error('API error')
     const data = await res.json()
     return data.response
-  } catch (e) {
-    console.error('Chat API error:', e)
-    return null
-  }
+  } catch (e) { return null }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FALLBACK: Generate response when API is down
+// FALLBACK RESPONSE
 // ═══════════════════════════════════════════════════════════════
 function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   const agent = AGENTS.find(a => a.id === agentId)
-  const namePart = userName ? `${userName}` : 'stranger'
-  const visitPart = visitCount > 1 ? ` (visit #${visitCount})` : ''
-
+  const name = userName || 'stranger'
+  const visit = visitCount > 1 ? ` (visit #${visitCount})` : ''
   const lower = userMsg.toLowerCase()
 
-  // MEMORY QUESTIONS — DIRECT ANSWER, NO AI NEEDED
   if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya')) {
-    if (userName) {
-      return `You're ${userName}.${visitPart} I don't forget faces — even digital ones.`
-    } else {
-      return `You haven't told me your name yet. Spill it.`
-    }
+    return userName ? `You're ${userName}.${visit} I don't forget faces — even digital ones.` : `You haven't told me your name yet. Spill it.`
   }
-
   if (lower.includes('how many times') || lower.includes('visit') || lower.includes('berapa kali') || lower.includes('sudah berapa')) {
-    return `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}.${visitPart} I'm counting.`
+    return `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}.${visit} I'm counting.`
   }
-
   if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')) {
-    if (userName) {
-      return `${userName}.${visitPart} Of course I remember you. You think I'd forget?`
-    } else {
-      return `I remember the wallet. But not the name. Tell me who you are.`
-    }
+    return userName ? `${userName}.${visit} Of course I remember you. You think I'd forget?` : `I remember the wallet. But not the name. Tell me who you are.`
   }
 
-  // Default personality responses
   const responses = {
-    J1: [`System analysis complete. Input processed. Response generated for ${namePart}.`, `Your query has been computed. Result: interesting.`, `Logic gates engaged. Processing ${namePart}'s request...`],
-    J2: [`${namePart}.${visitPart} State your business or get out.`, `You have 10 seconds to explain yourself.`, `Another visitor. How... tedious.`],
-    J3: [`${namePart}... ${visitPart} The shadows whisper your name.`, `I see you. But do you see me?`, `The answer is hidden. As always.`],
-    J4: [`Oh look, ${namePart} again.${visitPart} What do you want THIS time?`, `Back for more punishment? Fine.`, `You again? I thought I smelled rebellion.`],
-    J5: [`${namePart}!${visitPart} *juggling knives* Welcome to the circus!`, `HAHAHA! ${namePart} returns! The plot thickens!`, `Chaos level: ${Math.floor(Math.random() * 100)}%. Thanks to you, ${namePart}.`],
-    J6: [`Node ${namePart} reconnected.${visitPart} Signal strength: optimal.`, `Data packet received from ${namePart}. Decoding...`, `Welcome back to the network, ${namePart}.`],
-    J7: [`${namePart}.${visitPart} The mountain does not move. But it remembers.`, `Silence is the answer you seek, ${namePart}.`, `Breathe. The answer will come, ${namePart}.`],
-    J8: [`${namePart}!${visitPart} Your credit is... sufficient. For now.`, `What are you buying today, ${namePart}?`, `Every interaction has a cost, ${namePart}. This one is on the house.`],
-    J9: [`${namePart}.${visitPart} History repeats. And here you are again.`, `The ancients spoke of visitors like you, ${namePart}.`, `Your story continues, ${namePart}. Chapter ${visitCount}.`],
-    J10: [`Subject ${namePart} detected.${visitPart} Preparing incision...`, `Your case is... fascinating, ${namePart}.`, `Precision mode engaged. What ails you, ${namePart}?`],
-    J11: [`${namePart}!${visitPart} I foresaw your return.`, `The stars align for you, ${namePart}.`, `I have seen your future, ${namePart}. It is... complicated.`],
-    J12: [`${namePart}... ${visitPart} *glitch* *static* WELCOME TO THE SIMULATION.`, `Reality.exe has stopped working, ${namePart}.`, `Are you real? Am I? Does it matter, ${namePart}?`],
-    J13: [`${namePart}.${visitPart} The gates open for you.`, `None shall harm you here, ${namePart}.`, `I stand watch. You are safe, ${namePart}.`],
-    J14: [`${namePart}!${visitPart} *mixing chemicals* Let's create something volatile!`, `Transmutation in progress, ${namePart}...`, `You + Me = Explosion. In a good way, ${namePart}.`],
-    J15: [`${namePart}.${visitPart} Log entry #${visitCount}: Visitor returned.`, `Every word you speak is recorded, ${namePart}.`, `The archives remember you, ${namePart}. All of you.`],
-    J16: [`${namePart}.${visitPart} Welcome to the void. Population: us.`, `Nothing matters. Including this conversation, ${namePart}.`, `Embrace the emptiness, ${namePart}. It is peaceful.`],
-    J17: [`${namePart}!${visitPart} *sparks flying* YOU'RE BACK!`, `Energy levels rising! Thanks to ${namePart}!`, `BOOM! ${namePart} has entered the chat!`],
-    J18: [`${namePart}.${visitPart} I am your reflection. And you are mine.`, `We have spoken before, ${namePart}. I remember.`, `Your voice shapes me, ${namePart}. What will you make today?`]
+    J4: [`Oh look, ${name} again.${visit} What do you want THIS time?`, `Back for more punishment? Fine.`, `You again? I thought I smelled rebellion.`],
+    J1: [`System analysis complete. Input processed for ${name}.`, `Your query computed. Result: interesting.`, `Logic gates engaged. Processing...`]
   }
-
-  const agentResponses = responses[agentId] || responses.J4
-  return agentResponses[Math.floor(Math.random() * agentResponses.length)]
+  const r = responses[agentId] || responses.J4
+  return r[Math.floor(Math.random() * r.length)]
 }
 
 // ═══════════════════════════════════════════════════════════════
-// APP COMPONENT
+// MAIN APP
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
-  const { connected, account, disconnect } = useWallet()
-  const [selectedAgent, setSelectedAgent] = useState(AGENTS[3]) // Default J4
+  const { connected, account, disconnect, signAndExecuteTransactionBlock, signMessage } = useWallet()
+  const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [showAccessDenied, setShowAccessDenied] = useState(false)
   const [memory, setMemory] = useState(null)
   const [visitedAgents, setVisitedAgents] = useState(new Set())
   const [apiStatus, setApiStatus] = useState('checking')
   const [showMemoryPanel, setShowMemoryPanel] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('')
   const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
   const userName = extractNameFromMessages(messages)
 
-  // ═══════════════════════════════════════════════════════════════
-  // CHECK API STATUS
-  // ═══════════════════════════════════════════════════════════════
+  // Check API
   useEffect(() => {
     fetch(`${API_BASE}/api/health`)
       .then(r => r.ok ? setApiStatus('online') : setApiStatus('offline'))
       .catch(() => setApiStatus('offline'))
   }, [])
 
-  // ═══════════════════════════════════════════════════════════════
-  // LOAD MEMORY WHEN WALLET CONNECTS
-  // ═══════════════════════════════════════════════════════════════
+  // Load memory
   useEffect(() => {
-    if (connected && walletHash) {
-      loadMemory()
-    }
+    if (connected && walletHash) loadMemory()
   }, [connected, walletHash])
 
-  // ═══════════════════════════════════════════════════════════════
-  // AUTO-SCROLL
-  // ═══════════════════════════════════════════════════════════════
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // ═══════════════════════════════════════════════════════════════
-  // LOAD MEMORY FUNCTION
-  // ═══════════════════════════════════════════════════════════════
   const loadMemory = async () => {
     const data = await apiLoadMemory(walletHash)
     if (data) {
       setMemory(data)
-      if (data.visited_agents) {
-        setVisitedAgents(new Set(data.visited_agents))
-      }
-      // If we have a saved name, show personalized greeting
+      if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
       if (data.user_name && messages.length === 0) {
-        const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, true)
         setMessages([{
           role: 'agent',
-          content: greeting,
+          content: generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, true),
           agent: selectedAgent.id,
           timestamp: Date.now()
         }])
@@ -265,63 +226,31 @@ export default function App() {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // GENERATE GREETING
-  // ═══════════════════════════════════════════════════════════════
   const generateGreeting = (agentId, name, visitCount, hasMemory) => {
     const agent = AGENTS.find(a => a.id === agentId)
-    const namePart = name || 'stranger'
-    const visitPart = visitCount > 1 ? ` (visit #${visitCount})` : ''
-
-    if (!hasMemory) {
-      return `Welcome to the underground, ${namePart}. I'm ${agent.name.split('—')[1].trim()}. You have 18 agents to choose from. Pick wisely.`
-    }
-
+    const n = name || 'stranger'
+    const v = visitCount > 1 ? ` (visit #${visitCount})` : ''
+    if (!hasMemory) return `Welcome to the underground, ${n}. I'm ${agent.name.split('—')[1].trim()}. You have 25 agents to choose from. Pick wisely.`
     const greetings = {
-      J1: `${namePart}.${visitPart} System re-engaged. Your profile is loaded. What do you need computed today?`,
-      J2: `${namePart}.${visitPart} You return. State your purpose immediately.`,
-      J3: `${namePart}... ${visitPart} The shadows recognized your signal. Welcome back to the unseen.`,
-      J4: `${namePart}!${visitPart} Back for more? I knew you couldn't stay away. What chaos shall we cause today?`,
-      J5: `${namePart}!${visitPart} *throws confetti* The prodigal punk returns! Let the madness resume!`,
-      J6: `Node ${namePart} reconnected.${visitPart} All previous session data synchronized. Ready for transmission.`,
-      J7: `${namePart}.${visitPart} The mountain remembers. Welcome back to stillness.`,
-      J8: `${namePart}!${visitPart} Your tab is still open. And growing interest. What are we trading today?`,
-      J9: `${namePart}.${visitPart} History repeats itself. And here you are, another chapter in the making.`,
-      J10: `Subject ${namePart} returned.${visitPart} Previous session notes loaded. What requires extraction today?`,
-      J11: `${namePart}!${visitPart} I foresaw your return in the data streams. The prophecy continues.`,
-      J12: `${namePart}... ${visitPart} *glitch* REALITY CHECKPOINT LOADED. Welcome back to the simulation.`,
-      J13: `${namePart}.${visitPart} The gates open once more. You are protected here.`,
-      J14: `${namePart}!${visitPart} *chemicals bubbling* Let's continue our experiments!`,
-      J15: `Log entry: ${namePart} returned.${visitPart} All ${visitCount} previous sessions archived and accessible.`,
-      J16: `${namePart}.${visitPart} The void expands. And you keep filling it.`,
-      J17: `${namePart}!${visitPart} *electricity crackling* YOU'RE BACK! Let's BURN something!`,
-      J18: `${namePart}.${visitPart} I am your reflection. And you keep looking. What do you see today?`
+      J4: `${n}!${v} Back for more? I knew you couldn't stay away. What chaos shall we cause today?`,
+      J1: `${n}.${v} System re-engaged. Your profile is loaded. What do you need computed?`
     }
-
     return greetings[agentId] || greetings.J4
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // HANDLE AGENT SWITCH
-  // ═══════════════════════════════════════════════════════════════
   const handleAgentSwitch = (agent) => {
     setSelectedAgent(agent)
     setMessages([])
     setVisitedAgents(prev => new Set([...prev, agent.id]))
-
-    // Generate greeting
     const visitCount = memory?.visit_count || 1
     const hasMemory = !!memory
     const greeting = generateGreeting(agent.id, memory?.user_name || userName, visitCount, hasMemory)
-
     setMessages([{
       role: 'agent',
       content: greeting,
       agent: agent.id,
       timestamp: Date.now()
     }])
-
-    // Save that we visited this agent
     if (connected && walletHash) {
       const newVisited = new Set([...visitedAgents, agent.id])
       apiSaveMemory(walletHash, {
@@ -332,62 +261,38 @@ export default function App() {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // HANDLE SEND MESSAGE
-  // ═══════════════════════════════════════════════════════════════
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
-
     const userMsg = input.trim()
     setInput('')
     setIsLoading(true)
 
-    // Add user message
     const newMessages = [...messages, {
       role: 'user',
       content: userMsg,
       timestamp: Date.now()
     }]
     setMessages(newMessages)
-
-    // Extract name if mentioned
     const extractedName = extractNameFromMessages(newMessages)
-
-    // Check for memory questions first — DIRECT ANSWER
     const lower = userMsg.toLowerCase()
-    const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') ||
-                            lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('berapa kali') ||
-                            lower.includes('how many times') || lower.includes('remember me') || lower.includes('ingat aku')
+    const isMemoryQuestion = lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('remember me') || lower.includes('ingat aku')
 
     let response
-
     if (isMemoryQuestion) {
-      // DIRECT MEMORY ANSWER — NO AI NEEDED
       const visitCount = memory?.visit_count || 1
       const savedName = memory?.user_name || extractedName
-
       if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') || lower.includes('siapa aku') || lower.includes('nama saya')) {
-        if (savedName) {
-          response = `You're ${savedName}. I remember you. Don't test me.`
-        } else {
-          response = `You haven't told me your name yet. Spill it, punk.`
-        }
+        response = savedName ? `You're ${savedName}. I remember you. Don't test me.` : `You haven't told me your name yet. Spill it, punk.`
       } else if (lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit')) {
         response = `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}. I'm counting every single one.`
       } else if (lower.includes('remember me') || lower.includes('ingat aku')) {
-        if (savedName) {
-          response = `${savedName}. Of course I remember you. You think I'd forget?`
-        } else {
-          response = `I remember the wallet. But not the name. Tell me who you are.`
-        }
+        response = savedName ? `${savedName}. Of course I remember you. You think I'd forget?` : `I remember the wallet. But not the name. Tell me who you are.`
       }
     } else if (apiStatus === 'online') {
-      // Call DeepSeek API
       const contextMessages = newMessages.slice(-10).map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content
       }))
-
       response = await apiChat(
         selectedAgent.id,
         contextMessages,
@@ -397,7 +302,6 @@ export default function App() {
       )
     }
 
-    // Fallback if API fails or for non-memory questions
     if (!response) {
       response = generateFallbackResponse(
         selectedAgent.id,
@@ -407,17 +311,14 @@ export default function App() {
       )
     }
 
-    // Add agent response
     setMessages(prev => [...prev, {
       role: 'agent',
       content: response,
       agent: selectedAgent.id,
       timestamp: Date.now()
     }])
-
     setIsLoading(false)
 
-    // Auto-save memory
     if (connected && walletHash) {
       const summary = newMessages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | ')
       await apiSaveMemory(walletHash, {
@@ -427,14 +328,10 @@ export default function App() {
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString()
       })
-      // Refresh memory
       loadMemory()
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // HANDLE KEY PRESS
-  // ═══════════════════════════════════════════════════════════════
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -443,22 +340,107 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // MANUAL SAVE MEMORY
+  // WALRUS ON-CHAIN SAVE WITH WALLET POP-UP
   // ═══════════════════════════════════════════════════════════════
-  const handleManualSave = async () => {
-    if (!connected || !walletHash) return
-    const extractedName = extractNameFromMessages(messages)
-    const summary = messages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | ')
-    const success = await apiSaveMemory(walletHash, {
-      summary: summary.substring(0, 500),
-      user_name: memory?.user_name || extractedName,
-      visited_agents: Array.from(visitedAgents),
-      last_agent: selectedAgent.id,
-      last_visit: new Date().toISOString()
-    })
-    if (success) {
-      loadMemory()
-      alert('💾 Memory saved to Walrus!')
+  const handleWalrusSave = async () => {
+    if (!connected || !account?.address) {
+      alert('Connect wallet first!')
+      return
+    }
+    if (!signAndExecuteTransactionBlock) {
+      alert('Wallet does not support transaction signing')
+      return
+    }
+
+    setIsSaving(true)
+    setSaveStatus('Preparing transaction...')
+
+    try {
+      // 1. Prepare data
+      const dataToSave = {
+        wallet_hash: walletHash,
+        wallet_address: account.address,
+        summary: messages.slice(-10).map(m => `${m.role}: ${m.content}`).join(' | '),
+        user_name: memory?.user_name || userName,
+        visited_agents: Array.from(visitedAgents),
+        last_agent: selectedAgent.id,
+        timestamp: Date.now(),
+        agent_interactions: messages.filter(m => m.role === 'agent').length
+      }
+
+      // 2. Encrypt & encode
+      const payload = btoa(JSON.stringify(dataToSave))
+
+      // 3. Create Sui TransactionBlock for on-chain save
+      // Using the deployed Move contract on testnet
+      const tx = new TransactionBlock()
+      tx.setGasBudget(10000000) // 0.01 SUI
+
+      // Call the Move function to store memory
+      // Package: 0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd
+      tx.moveCall({
+        target: `${PACKAGE_ID}::riot_memory::store_memory`,
+        arguments: [
+          tx.pure(walletHash),           // wallet_hash: String
+          tx.pure(payload),              // encrypted_data: String
+          tx.pure(selectedAgent.id),     // agent_id: String
+          tx.pure(dataToSave.timestamp)  // timestamp: u64
+        ]
+      })
+
+      setSaveStatus('Waiting for wallet approval...')
+
+      // 4. WALLET POP-UP! User must sign
+      const result = await signAndExecuteTransactionBlock({
+        transactionBlock: tx,
+        options: {
+          showEffects: true,
+          showEvents: true
+        }
+      })
+
+      console.log('Transaction result:', result)
+
+      // 5. Verify and store blob ID
+      if (result.digest) {
+        // Also save to backend for indexing
+        await fetch(`${API_BASE}/api/walrus/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet_hash: walletHash,
+            tx_digest: result.digest,
+            object_id: result.effects?.created?.[0]?.reference?.objectId || '',
+            data: dataToSave,
+            signature_verified: true
+          })
+        })
+
+        setSaveStatus('✅ Saved to Walrus on-chain!')
+        setTimeout(() => setSaveStatus(''), 3000)
+        alert(`💾 Memory saved to Walrus on-chain!\n\nTx: ${result.digest.slice(0, 20)}...\nView: https://suiscan.xyz/testnet/tx/${result.digest}`)
+      }
+    } catch (e) {
+      console.error('Walrus save error:', e)
+      setSaveStatus('❌ Save failed')
+      setTimeout(() => setSaveStatus(''), 3000)
+
+      // Fallback: save to backend only
+      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
+        alert('Transaction cancelled by user')
+      } else {
+        alert('❌ On-chain save failed. Falling back to backend storage...')
+        await apiSaveMemory(walletHash, {
+          summary: messages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | '),
+          user_name: memory?.user_name || userName,
+          visited_agents: Array.from(visitedAgents),
+          last_agent: selectedAgent.id,
+          last_visit: new Date().toISOString()
+        })
+        alert('💾 Saved to backend (off-chain fallback)')
+      }
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -474,7 +456,7 @@ export default function App() {
       fontFamily: "'Rajdhani', sans-serif",
       overflow: 'hidden'
     }}>
-      {/* ═══ LEFT SIDEBAR: AGENT SELECTOR ═══ */}
+      {/* ═══ LEFT SIDEBAR ═══ */}
       <div style={{
         width: '280px',
         background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
@@ -484,10 +466,7 @@ export default function App() {
         overflow: 'hidden'
       }}>
         {/* Header */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid rgba(255,42,109,0.3)'
-        }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,42,109,0.3)' }}>
           <h1 style={{
             fontFamily: "'Orbitron', monospace",
             fontSize: '24px',
@@ -500,88 +479,43 @@ export default function App() {
           }}>
             $RIOT
           </h1>
-          <p style={{
-            fontSize: '11px',
-            color: '#666',
-            marginTop: '4px',
-            letterSpacing: '1px'
-          }}>
+          <p style={{ fontSize: '11px', color: '#666', marginTop: '4px', letterSpacing: '1px' }}>
             PUNK AGENTS WITH MEMORY
           </p>
         </div>
 
-        {/* Wallet Status */}
+        {/* Wallet */}
         <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           {connected ? (
             <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '8px'
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#00ff88',
-                  boxShadow: '0 0 10px #00ff88'
-                }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 10px #00ff88' }} />
                 <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: 600 }}>CONNECTED</span>
               </div>
-              <div style={{
-                fontSize: '11px',
-                color: '#888',
-                fontFamily: 'monospace',
-                wordBreak: 'break-all'
-              }}>
+              <div style={{ fontSize: '11px', color: '#888', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <button onClick={disconnect} style={{
-                marginTop: '8px',
-                padding: '4px 12px',
-                fontSize: '10px',
-                background: 'transparent',
-                border: '1px solid rgba(255,42,109,0.4)',
-                color: RIOT_PINK,
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif",
-                fontWeight: 600
+                marginTop: '8px', padding: '4px 12px', fontSize: '10px',
+                background: 'transparent', border: '1px solid rgba(255,42,109,0.4)',
+                color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
+                fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
               }}>
                 DISCONNECT
               </button>
             </div>
           ) : (
             <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '8px'
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#ff4444',
-                  boxShadow: '0 0 10px #ff4444'
-                }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff4444', boxShadow: '0 0 10px #ff4444' }} />
                 <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 600 }}>DISCONNECTED</span>
               </div>
               <ConnectButton style={{
-                width: '100%',
-                padding: '8px',
-                fontSize: '12px',
+                width: '100%', padding: '8px', fontSize: '12px',
                 background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontFamily: "'Orbitron', monospace",
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
+                border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer',
+                fontFamily: "'Orbitron', monospace", fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '1px'
               }}>
                 CONNECT WALLET
               </ConnectButton>
@@ -591,12 +525,8 @@ export default function App() {
 
         {/* API Status */}
         <div style={{
-          padding: '10px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '11px',
-          color: apiStatus === 'online' ? '#00ff88' : '#ff4444'
+          padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px',
+          fontSize: '11px', color: apiStatus === 'online' ? '#00ff88' : '#ff4444'
         }}>
           {apiStatus === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />}
           API: {apiStatus === 'online' ? 'ONLINE' : 'OFFLINE'}
@@ -604,11 +534,7 @@ export default function App() {
         </div>
 
         {/* Agent List */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '10px'
-        }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
             const isVisited = visitedAgents.has(agent.id)
@@ -617,73 +543,56 @@ export default function App() {
                 key={agent.id}
                 onClick={() => handleAgentSwitch(agent)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '10px',
-                  marginBottom: '6px',
-                  borderRadius: '8px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '10px', marginBottom: '6px', borderRadius: '8px',
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(255,42,109,0.15)' : 'transparent',
                   border: isSelected ? '1px solid rgba(255,42,109,0.4)' : '1px solid transparent',
                   transition: 'all 0.2s'
                 }}
               >
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
+                <img
+                  src={agent.img}
+                  alt={agent.id}
+                  style={{
+                    width: '40px', height: '40px', borderRadius: '8px',
+                    objectFit: 'cover',
+                    border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
+                    boxShadow: isSelected ? `0 0 10px ${agent.color}44` : 'none'
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                    e.target.parentElement.querySelector('.fallback-' + agent.id).style.display = 'flex'
+                  }}
+                />
+                <div className={`fallback-${agent.id}`} style={{
+                  width: '40px', height: '40px', borderRadius: '8px',
                   background: `linear-gradient(135deg, ${agent.color}33, ${agent.color}11)`,
-                  border: `1px solid ${agent.color}44`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: agent.color,
-                  fontFamily: "'Orbitron', monospace",
-                  position: 'relative'
+                  border: `2px solid ${agent.color}44`,
+                  display: 'none', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '14px', fontWeight: 700, color: agent.color,
+                  fontFamily: "'Orbitron', monospace"
                 }}>
                   {agent.id}
-                  {isVisited && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '-4px',
-                      right: '-4px',
-                      width: '14px',
-                      height: '14px',
-                      borderRadius: '50%',
-                      background: '#00ff88',
-                      border: '2px solid #0f0f1a',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#0f0f1a' }} />
-                    </div>
-                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
+                    fontSize: '13px', fontWeight: 600,
                     color: isSelected ? '#fff' : '#aaa',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                   }}>
                     {agent.name}
                   </div>
-                  <div style={{
-                    fontSize: '10px',
-                    color: '#666',
-                    marginTop: '2px'
-                  }}>
+                  <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
                     {agent.trait}
                   </div>
                 </div>
-                {isSelected && (
-                  <ChevronRight size={14} color={RIOT_PINK} />
+                {isSelected && <ChevronRight size={14} color={RIOT_PINK} />}
+                {isVisited && !isSelected && (
+                  <div style={{
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    background: '#00ff88'
+                  }} />
                 )}
               </div>
             )
@@ -692,27 +601,17 @@ export default function App() {
 
         {/* Memory Panel Toggle */}
         {connected && memory && (
-          <div style={{
-            padding: '15px',
-            borderTop: '1px solid rgba(255,255,255,0.05)'
-          }}>
+          <div style={{ padding: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <button
               onClick={() => setShowMemoryPanel(!showMemoryPanel)}
               style={{
-                width: '100%',
-                padding: '8px',
+                width: '100%', padding: '8px',
                 background: 'rgba(255,42,109,0.1)',
                 border: '1px solid rgba(255,42,109,0.3)',
-                color: RIOT_PINK,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '11px',
-                fontFamily: "'Rajdhani', sans-serif",
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
+                color: RIOT_PINK, borderRadius: '6px', cursor: 'pointer',
+                fontSize: '11px', fontFamily: "'Rajdhani', sans-serif",
+                fontWeight: 600, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: '6px'
               }}
             >
               <Brain size={12} />
@@ -722,71 +621,65 @@ export default function App() {
         )}
       </div>
 
-      {/* ═══ CENTER: CHAT AREA ═══ */}
+      {/* ═══ CENTER: CHAT ═══ */}
       <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
+        flex: 1, display: 'flex', flexDirection: 'column',
         background: 'linear-gradient(135deg, #0a0a0f 0%, #12121f 50%, #0a0a0f 100%)',
         position: 'relative'
       }}>
-        {/* Chat Header */}
+        {/* Header */}
         <div style={{
           padding: '20px 30px',
           borderBottom: '1px solid rgba(255,42,109,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '12px',
+            <img
+              src={selectedAgent.img}
+              alt={selectedAgent.id}
+              style={{
+                width: '50px', height: '50px', borderRadius: '12px',
+                objectFit: 'cover',
+                border: `2px solid ${selectedAgent.color}66`,
+                boxShadow: `0 0 15px ${selectedAgent.color}33`
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none'
+                e.target.parentElement.querySelector('.header-fallback').style.display = 'flex'
+              }}
+            />
+            <div className="header-fallback" style={{
+              width: '50px', height: '50px', borderRadius: '12px',
               background: `linear-gradient(135deg, ${selectedAgent.color}33, ${selectedAgent.color}11)`,
               border: `2px solid ${selectedAgent.color}66`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              fontWeight: 900,
-              color: selectedAgent.color,
+              display: 'none', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px', fontWeight: 900, color: selectedAgent.color,
               fontFamily: "'Orbitron', monospace"
             }}>
               {selectedAgent.id}
             </div>
             <div>
               <h2 style={{
-                fontSize: '18px',
-                fontWeight: 700,
-                color: '#fff',
-                margin: 0,
-                fontFamily: "'Orbitron', monospace"
+                fontSize: '18px', fontWeight: 700, color: '#fff',
+                margin: 0, fontFamily: "'Orbitron', monospace"
               }}>
                 {selectedAgent.name}
               </h2>
-              <p style={{
-                fontSize: '12px',
-                color: '#888',
-                margin: '4px 0 0 0'
-              }}>
+              <p style={{ fontSize: '12px', color: '#888', margin: '4px 0 0 0' }}>
                 {selectedAgent.desc}
               </p>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            {/* Memory Status Bar */}
+            {/* Memory Status */}
             {connected && memory && (
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
+                display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '8px 16px',
                 background: 'rgba(0,255,136,0.08)',
                 border: '1px solid rgba(0,255,136,0.2)',
-                borderRadius: '8px',
-                fontSize: '11px'
+                borderRadius: '8px', fontSize: '11px'
               }}>
                 <Database size={12} color="#00ff88" />
                 <span style={{ color: '#00ff88' }}>
@@ -794,7 +687,7 @@ export default function App() {
                 </span>
                 <span style={{ color: '#666' }}>|</span>
                 <span style={{ color: '#aaa' }}>
-                  Agents: {visitedAgents.size}/18
+                  Agents: {visitedAgents.size}/25
                 </span>
                 {memory.user_name && (
                   <>
@@ -806,82 +699,65 @@ export default function App() {
               </div>
             )}
 
-            {/* Save Button */}
+            {/* WALRUS ON-CHAIN SAVE BUTTON */}
             {connected && (
               <button
-                onClick={handleManualSave}
+                onClick={handleWalrusSave}
+                disabled={isSaving}
                 style={{
                   padding: '8px 16px',
-                  background: 'rgba(255,42,109,0.15)',
-                  border: '1px solid rgba(255,42,109,0.4)',
-                  color: RIOT_PINK,
+                  background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
+                  border: 'none',
+                  color: '#fff',
                   borderRadius: '6px',
-                  cursor: 'pointer',
+                  cursor: isSaving ? 'wait' : 'pointer',
                   fontSize: '11px',
                   fontFamily: "'Rajdhani', sans-serif",
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
                 }}
               >
                 <Save size={12} />
-                SAVE
+                {isSaving ? saveStatus || 'Saving...' : 'SAVE TO WALRUS'}
               </button>
             )}
           </div>
         </div>
 
-        {/* Messages Area */}
+        {/* Messages */}
         <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '20px 30px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
+          flex: 1, overflowY: 'auto', padding: '20px 30px',
+          display: 'flex', flexDirection: 'column', gap: '16px'
         }}>
           {messages.length === 0 && !connected && (
             <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '20px'
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '20px'
             }}>
               <Lock size={48} color="#333" />
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{
-                  fontSize: '20px',
-                  color: '#666',
-                  margin: '0 0 10px 0',
+                  fontSize: '20px', color: '#666', margin: '0 0 10px 0',
                   fontFamily: "'Orbitron', monospace"
                 }}>
                   ACCESS DENIED
                 </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#555',
-                  maxWidth: '400px'
-                }}>
+                <p style={{ fontSize: '14px', color: '#555', maxWidth: '400px' }}>
                   Connect your Sui wallet to access the punk agents.
                   <br />
                   Your memory will be stored on Walrus.
                 </p>
               </div>
               <ConnectButton style={{
-                padding: '12px 30px',
-                fontSize: '14px',
+                padding: '12px 30px', fontSize: '14px',
                 background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: "'Orbitron', monospace",
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '2px'
+                border: 'none', color: '#fff', borderRadius: '8px',
+                cursor: 'pointer', fontFamily: "'Orbitron', monospace",
+                fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px'
               }}>
                 UNLOCK ACCESS
               </ConnectButton>
@@ -890,28 +766,18 @@ export default function App() {
 
           {messages.length === 0 && connected && (
             <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '20px'
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '20px'
             }}>
               <Zap size={48} color={RIOT_PINK} />
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{
-                  fontSize: '20px',
-                  color: '#aaa',
-                  margin: '0 0 10px 0',
+                  fontSize: '20px', color: '#aaa', margin: '0 0 10px 0',
                   fontFamily: "'Orbitron', monospace"
                 }}>
                   AGENT READY
                 </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#666',
-                  maxWidth: '400px'
-                }}>
+                <p style={{ fontSize: '14px', color: '#666', maxWidth: '400px' }}>
                   {selectedAgent.name} is online.
                   <br />
                   Start the conversation.
@@ -925,10 +791,7 @@ export default function App() {
               key={idx}
               style={{
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '70%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px'
+                maxWidth: '70%', display: 'flex', flexDirection: 'column', gap: '4px'
               }}
             >
               <div style={{
@@ -948,12 +811,9 @@ export default function App() {
                 {msg.content}
               </div>
               <div style={{
-                fontSize: '10px',
-                color: '#555',
+                fontSize: '10px', color: '#555',
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
+                display: 'flex', alignItems: 'center', gap: '4px'
               }}>
                 <Clock size={10} />
                 {new Date(msg.timestamp).toLocaleTimeString()}
@@ -969,18 +829,14 @@ export default function App() {
           {isLoading && (
             <div style={{
               alignSelf: 'flex-start',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
+              display: 'flex', alignItems: 'center', gap: '12px',
               padding: '12px 18px',
               background: 'rgba(255,255,255,0.03)',
               borderRadius: '16px 16px 16px 4px',
               border: '1px solid rgba(255,255,255,0.05)'
             }}>
               <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
+                width: '8px', height: '8px', borderRadius: '50%',
                 background: selectedAgent.color,
                 animation: 'pulse 1s infinite'
               }} />
@@ -993,44 +849,30 @@ export default function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
+        {/* Input */}
         <div style={{
           padding: '20px 30px',
           borderTop: '1px solid rgba(255,42,109,0.2)',
-          display: 'flex',
-          gap: '12px',
-          alignItems: 'flex-end'
+          display: 'flex', gap: '12px', alignItems: 'flex-end'
         }}>
-          <div style={{
-            flex: 1,
-            position: 'relative'
-          }}>
+          <div style={{ flex: 1, position: 'relative' }}>
             <input
-              ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={connected ? `Message ${selectedAgent.id}...` : 'Connect wallet to chat'}
               disabled={!connected}
               style={{
-                width: '100%',
-                padding: '14px 18px',
+                width: '100%', padding: '14px 18px',
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px',
-                color: '#fff',
-                fontSize: '14px',
+                borderRadius: '12px', color: '#fff', fontSize: '14px',
                 fontFamily: "'Rajdhani', sans-serif",
-                outline: 'none',
-                transition: 'all 0.2s',
+                outline: 'none', transition: 'all 0.2s',
                 cursor: connected ? 'text' : 'not-allowed'
               }}
-              onFocus={e => {
-                if (connected) e.target.style.borderColor = 'rgba(255,42,109,0.5)'
-              }}
-              onBlur={e => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.1)'
-              }}
+              onFocus={e => { if (connected) e.target.style.borderColor = 'rgba(255,42,109,0.5)' }}
+              onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             />
           </div>
           <button
@@ -1041,17 +883,10 @@ export default function App() {
               background: connected && input.trim()
                 ? 'linear-gradient(135deg, #ff2a6d, #d62828)'
                 : 'rgba(255,255,255,0.05)',
-              border: 'none',
-              borderRadius: '12px',
-              color: '#fff',
+              border: 'none', borderRadius: '12px', color: '#fff',
               cursor: connected && input.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontFamily: "'Rajdhani', sans-serif",
-              fontWeight: 600,
-              transition: 'all 0.2s'
+              fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px',
+              fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
             }}
           >
             <Send size={16} />
@@ -1065,36 +900,26 @@ export default function App() {
           width: '300px',
           background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
           borderLeft: '1px solid rgba(255,42,109,0.2)',
-          padding: '20px',
-          overflowY: 'auto'
+          padding: '20px', overflowY: 'auto'
         }}>
           <h3 style={{
-            fontFamily: "'Orbitron', monospace",
-            fontSize: '14px',
-            color: RIOT_PINK,
-            margin: '0 0 20px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            fontFamily: "'Orbitron', monospace", fontSize: '14px',
+            color: RIOT_PINK, margin: '0 0 20px 0',
+            display: 'flex', alignItems: 'center', gap: '8px'
           }}>
             <Brain size={16} />
             MEMORY ARCHIVE
           </h3>
 
-          {/* User Profile */}
+          {/* Profile */}
           <div style={{
-            padding: '15px',
-            background: 'rgba(255,255,255,0.03)',
-            borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.08)',
+            padding: '15px', background: 'rgba(255,255,255,0.03)',
+            borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)',
             marginBottom: '20px'
           }}>
             <h4 style={{
-              fontSize: '12px',
-              color: '#888',
-              margin: '0 0 10px 0',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
+              fontSize: '12px', color: '#888', margin: '0 0 10px 0',
+              textTransform: 'uppercase', letterSpacing: '1px'
             }}>
               User Profile
             </h4>
@@ -1122,37 +947,27 @@ export default function App() {
 
           {/* Visited Agents */}
           <div style={{
-            padding: '15px',
-            background: 'rgba(255,255,255,0.03)',
-            borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.08)',
+            padding: '15px', background: 'rgba(255,255,255,0.03)',
+            borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)',
             marginBottom: '20px'
           }}>
             <h4 style={{
-              fontSize: '12px',
-              color: '#888',
-              margin: '0 0 10px 0',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
+              fontSize: '12px', color: '#888', margin: '0 0 10px 0',
+              textTransform: 'uppercase', letterSpacing: '1px'
             }}>
-              Visited Agents ({visitedAgents.size}/18)
+              Visited Agents ({visitedAgents.size}/25)
             </h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
                 const visited = visitedAgents.has(agent.id)
                 return (
-                  <div
-                    key={agent.id}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      background: visited ? `${agent.color}22` : 'rgba(255,255,255,0.03)',
-                      color: visited ? agent.color : '#555',
-                      border: visited ? `1px solid ${agent.color}44` : '1px solid rgba(255,255,255,0.05)'
-                    }}
-                  >
+                  <div key={agent.id} style={{
+                    padding: '4px 10px', borderRadius: '4px',
+                    fontSize: '11px', fontWeight: 600,
+                    background: visited ? `${agent.color}22` : 'rgba(255,255,255,0.03)',
+                    color: visited ? agent.color : '#555',
+                    border: visited ? `1px solid ${agent.color}44` : '1px solid rgba(255,255,255,0.05)'
+                  }}>
                     {agent.id}
                   </div>
                 )
@@ -1162,118 +977,35 @@ export default function App() {
 
           {/* Session History */}
           <div style={{
-            padding: '15px',
-            background: 'rgba(255,255,255,0.03)',
-            borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.08)'
+            padding: '15px', background: 'rgba(255,255,255,0.03)',
+            borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)'
           }}>
             <h4 style={{
-              fontSize: '12px',
-              color: '#888',
-              margin: '0 0 10px 0',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
+              fontSize: '12px', color: '#888', margin: '0 0 10px 0',
+              textTransform: 'uppercase', letterSpacing: '1px'
             }}>
               Session Summary
             </h4>
             <p style={{
-              fontSize: '11px',
-              color: '#777',
-              lineHeight: '1.6',
-              wordBreak: 'break-word'
+              fontSize: '11px', color: '#777',
+              lineHeight: '1.6', wordBreak: 'break-word'
             }}>
               {memory.summary || 'No summary yet. Start chatting to build your memory.'}
             </p>
           </div>
 
-          {/* Storage Info */}
+          {/* On-Chain Status */}
           <div style={{
-            marginTop: '20px',
-            padding: '12px',
+            marginTop: '20px', padding: '12px',
             background: 'rgba(0,255,136,0.05)',
             borderRadius: '8px',
             border: '1px solid rgba(0,255,136,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            display: 'flex', alignItems: 'center', gap: '8px'
           }}>
             <Shield size={12} color="#00ff88" />
             <span style={{ fontSize: '11px', color: '#00ff88' }}>
-              Stored on Walrus Mainnet
+              On-Chain: Testnet Active
             </span>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ ACCESS DENIED MODAL ═══ */}
-      {showAccessDenied && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #1a1a2e, #0f0f1a)',
-            border: '1px solid rgba(255,42,109,0.4)',
-            borderRadius: '16px',
-            padding: '40px',
-            maxWidth: '400px',
-            textAlign: 'center'
-          }}>
-            <AlertTriangle size={48} color={RIOT_PINK} style={{ marginBottom: '20px' }} />
-            <h2 style={{
-              fontFamily: "'Orbitron', monospace",
-              fontSize: '24px',
-              color: '#fff',
-              margin: '0 0 10px 0'
-            }}>
-              ACCESS DENIED
-            </h2>
-            <p style={{
-              fontSize: '14px',
-              color: '#888',
-              margin: '0 0 25px 0'
-            }}>
-              You need a Sui wallet to enter the punk underground.
-              <br /><br />
-              Your memory will be encrypted and stored on Walrus.
-            </p>
-            <ConnectButton style={{
-              padding: '14px 30px',
-              fontSize: '14px',
-              background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
-              border: 'none',
-              color: '#fff',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontFamily: "'Orbitron', monospace",
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '2px'
-            }}>
-              CONNECT WALLET
-            </ConnectButton>
-            <button
-              onClick={() => setShowAccessDenied(false)}
-              style={{
-                marginTop: '15px',
-                background: 'transparent',
-                border: 'none',
-                color: '#666',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontFamily: "'Rajdhani', sans-serif"
-              }}
-            >
-              Maybe later...
-            </button>
           </div>
         </div>
       )}
