@@ -85,8 +85,7 @@ def store_on_walrus(data: dict) -> str:
     encrypted_bytes = encrypted.encode("utf-8")
 
     response = requests.put(
-        f"{WALRUS_PUBLISHER}/v1/store",
-        params={"epochs": EPOCHS},
+        f"{WALRUS_PUBLISHER}/v1/blobs?epochs={EPOCHS}",
         data=encrypted_bytes,
         headers={"Content-Type": "application/octet-stream"},
         timeout=30
@@ -104,7 +103,7 @@ def store_on_walrus(data: dict) -> str:
 def read_from_walrus(blob_id: str) -> dict:
     """Read and decrypt blob from Walrus"""
     response = requests.get(
-        f"{WALRUS_AGGREGATOR}/v1/{blob_id}",
+        f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}",
         timeout=30
     )
     response.raise_for_status()
