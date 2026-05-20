@@ -16,7 +16,6 @@ import requests
 
 # PostgreSQL support
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 CORS(app, origins=["*"])
@@ -71,7 +70,6 @@ def init_db():
     c = conn.cursor()
 
     if USE_SQLITE:
-        # SQLite schema
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_profiles (
                 wallet_hash TEXT PRIMARY KEY,
@@ -108,7 +106,6 @@ def init_db():
             )
         """)
     else:
-        # PostgreSQL schema
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_profiles (
                 wallet_hash VARCHAR(32) PRIMARY KEY,
@@ -147,7 +144,7 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("✅ Database initialized (" + ("SQLite" if USE_SQLITE else "PostgreSQL") + ")")
+    print("Database initialized (" + ("SQLite" if USE_SQLITE else "PostgreSQL") + ")")
 
 # ═══════════════════════════════════════════════════════════════
 # PROFILE MANAGEMENT
@@ -205,7 +202,6 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
         conn.close()
         return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": now, "updated_at": now}
     else:
-        # PostgreSQL
         c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row:
@@ -425,38 +421,21 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     final_name = db_name or user_name or ""
 
     memory_blocks = []
+
     if final_name:
-        memory_blocks.append(f"""🧠 PERMANENT MEMORY — USER IDENTITY:
-The user's name is: {final_name}
-You have spoken with this user before. They are a returning visitor.
-ALWAYS address them by name: {final_name}
-If they ask "who am I", "what is my name", "siapa aku", "nama saya" — answer EXACTLY: "You are {final_name}."
-NEVER say you don't know their name. NEVER ask who they are.""")
+        memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user's name is: " + final_name + ". You have spoken with this user before. ALWAYS address them by name: " + final_name + ". If they ask who am I, what is my name, siapa aku, nama saya — answer EXACTLY: You are " + final_name + ". NEVER say you don't know their name.")
 
     if memory_summary and memory_summary.strip():
-        memory_blocks.append(f"""📜 CONVERSATION HISTORY:
-{memory_summary[:300]}
-Refer to past topics when relevant.""")
+        memory_blocks.append("CONVERSATION HISTORY: " + memory_summary[:300])
 
     if not final_name:
-        memory_blocks.append("""🧠 PERMANENT MEMORY — USER IDENTITY:
-The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.""")
+        memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
 
     personality = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["J4"])
-    enforcement = """
+    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it — answer immediately with the name. 5. Personality is secondary to memory accuracy."
 
-⚠️ ABSOLUTE RULES (VIOLATION = SYSTEM FAILURE):
-1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it.
-2. NEVER claim you don't remember something that is in memory.
-3. NEVER ask for information that is already in memory.
-4. If user asks their name and you know it → answer immediately with the name.
-5. Personality is secondary to memory accuracy."""
-
-    full_system = "
-
-".join(memory_blocks) + "
-
-" + personality + enforcement
+    separator = chr(10) + chr(10)
+    full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement
 
     payload = {
         "model": "deepseek-chat",
@@ -561,7 +540,6 @@ def chat():
 
 @app.route("/api/walrus/store-chat", methods=["POST"])
 def walrus_store_chat():
-    """Store full chat history to Walrus blob"""
     data = request.json
     wallet_hash = data.get("wallet_hash")
     chat_history = data.get("chat_history", [])
@@ -570,7 +548,6 @@ def walrus_store_chat():
     if not wallet_hash or not chat_history:
         return jsonify({"error": "wallet_hash and chat_history required"}), 400
 
-    # Prepare data
     payload = {
         "wallet_hash": wallet_hash,
         "chat_history": chat_history,
@@ -579,11 +556,9 @@ def walrus_store_chat():
         "version": "1.0"
     }
 
-    # Store to Walrus
     blob_id = walrus_store(payload)
 
     if blob_id:
-        # Save blob_id to DB for retrieval
         conn = get_db_conn()
         c = conn.cursor()
         if USE_SQLITE:
@@ -610,7 +585,6 @@ def walrus_store_chat():
 
 @app.route("/api/walrus/load-chat/<wallet_hash>", methods=["GET"])
 def walrus_load_chat(wallet_hash):
-    """Load chat history from Walrus blob"""
     conn = get_db_conn()
     c = conn.cursor()
 
@@ -648,7 +622,6 @@ def walrus_load_chat(wallet_hash):
 
 @app.route("/api/walrus/history/<wallet_hash>", methods=["GET"])
 def walrus_history(wallet_hash):
-    """Get all Walrus save history for a wallet"""
     conn = get_db_conn()
     c = conn.cursor()
 
@@ -691,7 +664,6 @@ def walrus_history(wallet_hash):
 # ═══════════════════════════════════════════════════════════════
 @app.route("/api/walrus/save", methods=["POST"])
 def walrus_save():
-    """Index on-chain save transaction"""
     data = request.json
     wallet_hash = data.get("wallet_hash")
     tx_digest = data.get("tx_digest")
