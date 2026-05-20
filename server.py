@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RIOT Chat Wallet — Backend API FINAL
+RIOT Chat Wallet — Backend API FINAL (pg8000 version)
 Features: PostgreSQL (persistent), Walrus Testnet, DeepSeek AI, 
           User Profile Memory, On-Chain Indexing, Chat History Backup
 """
@@ -14,8 +14,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 
-# PostgreSQL support
-import psycopg2
+# PostgreSQL support via pg8000 (pure Python, compatible with Python 3.14)
+import pg8000
 
 app = Flask(__name__)
 CORS(app, origins=["*"])
@@ -54,14 +54,15 @@ def decrypt(data):
         return data
 
 # ═══════════════════════════════════════════════════════════════
-# DATABASE — PostgreSQL primary, SQLite fallback
+# DATABASE — PostgreSQL primary (pg8000), SQLite fallback
 # ═══════════════════════════════════════════════════════════════
 def get_db_conn():
     if USE_SQLITE:
         import sqlite3
         return sqlite3.connect("riot_chat.db")
     else:
-        conn = psycopg2.connect(DATABASE_URL)
+        # pg8000 connection
+        conn = pg8000.connect(DATABASE_URL)
         conn.autocommit = False
         return conn
 
@@ -106,6 +107,7 @@ def init_db():
             )
         """)
     else:
+        # PostgreSQL schema with pg8000
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_profiles (
                 wallet_hash VARCHAR(32) PRIMARY KEY,
@@ -202,6 +204,7 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
         conn.close()
         return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": now, "updated_at": now}
     else:
+        # pg8000 PostgreSQL
         c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row:
@@ -251,6 +254,7 @@ def update_profile_name(wallet_hash, name):
                 VALUES (?, ?, ?, ?, ?)
             """, (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
     else:
+        # pg8000 PostgreSQL
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row and row[0] and row[0].strip().lower() == name.lower():
@@ -326,6 +330,7 @@ def save_memory(wallet_hash, data):
         """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
               data.get("last_agent", ""), data.get("last_visit", now), now, now))
     else:
+        # pg8000 PostgreSQL
         c.execute("""
             INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
