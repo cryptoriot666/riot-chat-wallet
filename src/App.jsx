@@ -379,7 +379,7 @@ export default function App() {
       // Call the Move function to store memory
       // Package: 0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd
       tx.moveCall({
-        target: `${PACKAGE_ID}::riot_memory::store_memory`,
+        target: `${PACKAGE_ID}::riot::store_memory`,
         arguments: [
           tx.pure(walletHash),           // wallet_hash: String
           tx.pure(payload),              // encrypted_data: String
