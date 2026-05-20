@@ -251,9 +251,9 @@ function ChatApp() {
   target: `${PACKAGE_ID}::memory::store_memory`,
   arguments: [
     tx.pure.address(account.address),
-    tx.pure.string(currentAgent.id),
+    tx.pure.string(selectedAgent.id),
     tx.pure.string(JSON.stringify(messages.slice(-10))),
-    tx.pure.string(generateSummary(messages, currentAgent))
+    tx.pure.string(generateSummary(messages, selectedAgent))
   ]
 });
 
@@ -272,9 +272,9 @@ function ChatApp() {
       // 5. Save to backend with on-chain info
       const saveResult = await api.saveMemory(
         account.address,
-        currentAgent.id,
+        selectedAgent.id,
         messages,
-        generateSummary(messages, currentAgent),
+        generateSummary(messages, selectedAgent),
         objectId,
         txDigest
       );
