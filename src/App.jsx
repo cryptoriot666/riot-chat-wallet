@@ -347,16 +347,16 @@ export default function App() {
       alert('Connect wallet first!')
       return
     }
-    if (!signAndExecuteTransactionBlock) {
-      alert('Wallet does not support transaction signing')
+    if (!signMessage) {
+      alert('Wallet does not support message signing')
       return
     }
 
     setIsSaving(true)
-    setSaveStatus('Preparing transaction...')
+    setSaveStatus('Preparing data...')
 
     try {
-      // 1. Prepare data
+      // 1. Prepare memory data
       const dataToSave = {
         wallet_hash: walletHash,
         wallet_address: account.address,
@@ -368,68 +368,54 @@ export default function App() {
         agent_interactions: messages.filter(m => m.role === 'agent').length
       }
 
-      // 2. Encrypt & encode
-      const payload = btoa(JSON.stringify(dataToSave))
+      // 2. Create unique message for signing
+      const messageText = `RIOT_MEMORY_SAVE_${walletHash}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const messageBytes = new TextEncoder().encode(messageText)
 
-      // 3. Create Sui TransactionBlock for on-chain save
-      // Using the deployed Move contract on testnet
-      const tx = new TransactionBlock()
-      tx.setGasBudget(10000000) // 0.01 SUI
+      setSaveStatus('Waiting for wallet signature...')
 
-      // Call the Move function to store memory
-      // Package: 0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd
-      tx.moveCall({
-        target: `${PACKAGE_ID}::riot::store_memory`,
-        arguments: [
-          tx.pure(walletHash),           // wallet_hash: String
-          tx.pure(payload),              // encrypted_data: String
-          tx.pure(selectedAgent.id),     // agent_id: String
-          tx.pure(dataToSave.timestamp)  // timestamp: u64
-        ]
-      })
+      // 3. WALLET POP-UP! User signs message
+      const signResult = await signMessage({ message: messageBytes })
 
-      setSaveStatus('Waiting for wallet approval...')
+      console.log('Signature:', signResult.signature)
+      console.log('PublicKey:', signResult.publicKey)
 
-      // 4. WALLET POP-UP! User must sign
-      const result = await signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        options: {
-          showEffects: true,
-          showEvents: true
-        }
-      })
+      setSaveStatus('Verifying on-chain...')
 
-      console.log('Transaction result:', result)
-
-      // 5. Verify and store blob ID
-      if (result.digest) {
-        // Also save to backend for indexing
-        await fetch(`${API_BASE}/api/walrus/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet_hash: walletHash,
-            tx_digest: result.digest,
-            object_id: result.effects?.created?.[0]?.reference?.objectId || '',
-            data: dataToSave,
-            signature_verified: true
-          })
+      // 4. Send to backend with signature proof
+      const res = await fetch(`${API_BASE}/api/walrus/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_hash: walletHash,
+          wallet_address: account.address,
+          signature: signResult.signature,
+          public_key: signResult.publicKey,
+          message: messageText,
+          message_bytes: Array.from(messageBytes),
+          data: dataToSave,
+          timestamp: Date.now(),
+          agent_id: selectedAgent.id
         })
+      })
 
-        setSaveStatus('✅ Saved to Walrus on-chain!')
-        setTimeout(() => setSaveStatus(''), 3000)
-        alert(`💾 Memory saved to Walrus on-chain!\n\nTx: ${result.digest.slice(0, 20)}...\nView: https://suiscan.xyz/testnet/tx/${result.digest}`)
-      }
-    } catch (e) {
-      console.error('Walrus save error:', e)
-      setSaveStatus('❌ Save failed')
+      if (!res.ok) throw new Error('Backend save failed')
+      const result = await res.json()
+
+      setSaveStatus('Saved with wallet proof!')
       setTimeout(() => setSaveStatus(''), 3000)
 
-      // Fallback: save to backend only
-      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
-        alert('Transaction cancelled by user')
+      alert(`💾 Memory saved with wallet signature proof!\n\nSignature: ${signResult.signature.slice(0, 20)}...\nMessage: ${messageText.slice(0, 30)}...`)
+
+    } catch (e) {
+      console.error('Save error:', e)
+      setSaveStatus('Save failed')
+      setTimeout(() => setSaveStatus(''), 3000)
+
+      if (e.message?.includes('Rejected') || e.message?.includes('cancelled') || e.message?.includes('User rejected')) {
+        alert('❌ Signature cancelled by user')
       } else {
-        alert('❌ On-chain save failed. Falling back to backend storage...')
+        alert('❌ Save failed. Falling back to backend storage...')
         await apiSaveMemory(walletHash, {
           summary: messages.slice(-5).map(m => `${m.role}: ${m.content}`).join(' | '),
           user_name: memory?.user_name || userName,
@@ -443,7 +429,6 @@ export default function App() {
       setIsSaving(false)
     }
   }
-
   // ═══════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════
