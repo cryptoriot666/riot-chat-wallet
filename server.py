@@ -22,7 +22,7 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 # Sui config for on-chain storage
 SUI_RPC = os.getenv("SUI_RPC", "https://fullnode.testnet.sui.io:443")
-PACKAGE_ID = os.getenv("PACKAGE_ID", "")  # Will be set after deployment
+PACKAGE_ID = os.getenv("PACKAGE_ID", "0x10ed017fd1d495a9dfb29590f43df7dfd467f91acc8bba1eb0ad4244a8ec7afd")  # Will be set after deployment
 MODULE_NAME = "memory"
 FUNCTION_NAME = "store_memory"
 
