@@ -344,7 +344,8 @@ export default function App() {
         summary: `User introduced as ${extractedName}`,
         visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
         last_agent: selectedAgent.id,
-        last_visit: new Date().toISOString()
+        last_visit: new Date().toISOString(),
+        messages: newMessages.slice(-3)
       })
       await loadMemoryAndGreet()
     }
@@ -392,7 +393,8 @@ export default function App() {
         user_name: memory?.user_name || extractedName,
         visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
         last_agent: selectedAgent.id,
-        last_visit: new Date().toISOString()
+        last_visit: new Date().toISOString(),
+        messages: newMessages.slice(-5)
       })
       await loadMemoryAndGreet()
     }
