@@ -732,7 +732,7 @@ export default function App() {
       const blobId = storeResult.blob_id
 
       const tx = new TransactionBlock()
-      tx.setGasBudget(1000000)
+      tx.setGasBudget(5000000)
       const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)])
       tx.transferObjects([zeroSui], tx.pure(account.address))
 
