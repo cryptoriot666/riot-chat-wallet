@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
-import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud } from 'lucide-react'
+import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search } from 'lucide-react'
+import { MemWal } from "@mysten-incubation/memwal";
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
@@ -10,6 +11,97 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onren
 const RIOT_PINK = '#ff2a6d'
 const RIOT_DARK = '#0a0a0f'
 const AUTO_SAVE_INTERVAL = 5
+
+// ═══════════════════════════════════════════════════════════════
+// MEMWAL CONFIG
+// ═══════════════════════════════════════════════════════════════
+const MEMWAL_RELAYER = "https://relayer.memwal.ai";
+const MEMWAL_NAMESPACE = "riot-chat-wallet";
+
+let memwalInstance = null;
+let memwalInitPromise = null;
+
+async function getMemWal() {
+  if (memwalInstance) return memwalInstance;
+  if (memwalInitPromise) return memwalInitPromise;
+
+  const key = import.meta.env.VITE_MEMWAL_DELEGATE_KEY;
+  const accountId = import.meta.env.VITE_MEMWAL_ACCOUNT_ID;
+
+  if (!key || !accountId) {
+    console.warn("[MemWal] Credentials not configured");
+    return null;
+  }
+
+  memwalInitPromise = (async () => {
+    try {
+      const mw = MemWal.create({
+        key,
+        accountId,
+        serverUrl: MEMWAL_RELAYER,
+        namespace: MEMWAL_NAMESPACE,
+        suiNetwork: "mainnet"
+      });
+      await mw.health();
+      console.log("[MemWal] Connected to mainnet");
+      memwalInstance = mw;
+      return mw;
+    } catch (err) {
+      console.error("[MemWal] Init failed:", err.message);
+      return null;
+    }
+  })();
+
+  return memwalInitPromise;
+}
+
+async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {}) {
+  const mw = await getMemWal();
+  if (!mw) return null;
+
+  try {
+    const payload = JSON.stringify({
+      wallet_address: walletAddress,
+      agent_id: agentId,
+      messages: messages.slice(-10),
+      timestamp: Date.now(),
+      message_count: messages.length,
+      ...metadata
+    });
+    const result = await mw.rememberAndWait(payload);
+    console.log("[MemWal] Saved:", result.blob_id?.slice(0, 16));
+    return result;
+  } catch (err) {
+    console.error("[MemWal] Save failed:", err.message);
+    return null;
+  }
+}
+
+async function memwalSearch(query, limit = 5) {
+  const mw = await getMemWal();
+  if (!mw) return [];
+
+  try {
+    const result = await mw.recall(query, limit);
+    return result.results || [];
+  } catch (err) {
+    console.error("[MemWal] Search failed:", err.message);
+    return [];
+  }
+}
+
+async function memwalAnalyze(text) {
+  const mw = await getMemWal();
+  if (!mw) return null;
+
+  try {
+    const result = await mw.analyzeAndWait(text);
+    return result;
+  } catch (err) {
+    console.error("[MemWal] Analyze failed:", err.message);
+    return null;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // 25 AGENTS
@@ -170,7 +262,7 @@ async function apiWalrusLoadChat(walletHash) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PROFILE API FUNCTIONS (NEW)
+// PROFILE API FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 async function apiGetProfile(walletHash) {
   try {
@@ -237,11 +329,11 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// NAME ASK MODAL (NEW)
+// NAME ASK MODAL
 // ═══════════════════════════════════════════════════════════════
 function NameAskModal({ onSubmit, agentName }) {
   const [name, setName] = useState('')
-  
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -301,7 +393,7 @@ function NameAskModal({ onSubmit, agentName }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PROFILE SETTINGS PANEL (NEW)
+// PROFILE SETTINGS PANEL
 // ═══════════════════════════════════════════════════════════════
 function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
   const [form, setForm] = useState({
@@ -475,7 +567,227 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP — COMPLETE VERSION WITH ALL FEATURES + PROFILE SETTINGS
+// MEMORY SEARCH PANEL (MemWal Semantic Search)
+// ═══════════════════════════════════════════════════════════════
+function MemorySearchPanel({ walletAddress, onClose }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [memwalReady, setMemwalReady] = useState(false)
+
+  useEffect(() => {
+    const check = async () => {
+      const mw = await getMemWal()
+      setMemwalReady(!!mw)
+    }
+    check()
+  }, [])
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    if (!query.trim()) return
+
+    setLoading(true)
+    const searchResults = await memwalSearch(query, 5)
+    setResults(searchResults)
+    setLoading(false)
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, right: 0, width: '420px', height: '100vh',
+      background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
+      borderLeft: '1px solid rgba(255,42,109,0.3)',
+      padding: '25px', overflowY: 'auto', zIndex: 100,
+      boxShadow: '-10px 0 30px rgba(0,0,0,0.5)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
+        <h2 style={{
+          fontFamily: "'Orbitron', monospace", fontSize: '16px',
+          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <Search size={18} /> MEMORY SEARCH
+        </h2>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '5px'
+        }}>
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Status */}
+      <div style={{
+        padding: '10px 12px', borderRadius: '6px', marginBottom: '20px',
+        background: memwalReady ? 'rgba(0,255,136,0.05)' : 'rgba(255,68,68,0.05)',
+        border: memwalReady ? '1px solid rgba(0,255,136,0.2)' : '1px solid rgba(255,68,68,0.2)',
+        display: 'flex', alignItems: 'center', gap: '8px'
+      }}>
+        <div style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: memwalReady ? '#00ff88' : '#ff4444',
+          boxShadow: memwalReady ? '0 0 8px #00ff88' : 'none'
+        }} />
+        <span style={{ fontSize: '12px', color: memwalReady ? '#00ff88' : '#ff4444' }}>
+          {memwalReady ? '🧠 MemWal Connected — Semantic Search Active' : '⚠️ MemWal Offline — Check credentials'}
+        </span>
+      </div>
+
+      {/* Search Form */}
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ask about your memories... (e.g., 'What about Bitcoin?')"
+          style={{
+            flex: 1, padding: '12px 14px', background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
+            borderRadius: '8px', fontSize: '13px', fontFamily: "'Rajdhani', sans-serif",
+            outline: 'none'
+          }}
+          onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.5)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+        />
+        <button
+          type="submit"
+          disabled={loading || !query.trim()}
+          style={{
+            padding: '12px 16px',
+            background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
+            border: 'none', color: '#fff', borderRadius: '8px',
+            cursor: loading ? 'wait' : 'pointer', fontSize: '12px',
+            fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+          }}
+        >
+          {loading ? '...' : 'Search'}
+        </button>
+      </form>
+
+      <div style={{ fontSize: '11px', color: '#666', marginBottom: '20px', lineHeight: '1.5' }}>
+        <Brain size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+        Powered by MemWal vector embeddings on Walrus. Search by <strong>meaning</strong>, not keywords.
+        <br />Example: "crypto" finds "Bitcoin" conversations too.
+      </div>
+
+      {/* Results */}
+      {results.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {results.map((r, i) => {
+            let data = {}
+            try { data = JSON.parse(r.text) } catch(e) {}
+            const relevance = Math.round((1 - (r.distance || 0)) * 100)
+            const agent = AGENTS.find(a => a.id === data.agent_id)
+
+            return (
+              <div key={i} style={{
+                padding: '14px', background: 'rgba(255,255,255,0.03)',
+                borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '8px', height: '8px', borderRadius: '50%',
+                      background: agent?.color || '#ff0044'
+                    }} />
+                    <span style={{ fontSize: '12px', color: agent?.color || '#ff0044', fontWeight: 700 }}>
+                      {agent?.name || data.agent_id || 'Unknown'}
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700,
+                    color: relevance > 80 ? '#00ff88' : relevance > 50 ? '#ffaa00' : '#ff4444'
+                  }}>
+                    {relevance}% match
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#bbb', lineHeight: '1.6', marginBottom: '8px' }}>
+                  {data.messages?.slice(-2).map((m, mi) => (
+                    <div key={mi} style={{ marginBottom: '6px' }}>
+                      <span style={{ color: m.role === 'user' ? '#ff2a6d' : '#888', fontWeight: 600 }}>
+                        {m.role === 'user' ? 'You' : agent?.name || 'Agent'}:
+                      </span>
+                      <span style={{ marginLeft: '6px' }}>
+                        {m.content?.slice(0, 100)}{m.content?.length > 100 ? '...' : ''}
+                      </span>
+                    </div>
+                  )) || <span style={{ color: '#666' }}>{r.text?.slice(0, 150)}...</span>}
+                </div>
+
+                <div style={{ fontSize: '10px', color: '#555', display: 'flex', gap: '12px' }}>
+                  {data.timestamp && (
+                    <span>{new Date(data.timestamp).toLocaleString()}</span>
+                  )}
+                  {data.wallet_address && (
+                    <span style={{ fontFamily: 'monospace' }}>
+                      {data.wallet_address.slice(0, 6)}...{data.wallet_address.slice(-4)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {results.length === 0 && !loading && query && (
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <Search size={32} color="#333" style={{ marginBottom: '12px' }} />
+          <p style={{ color: '#666', fontSize: '13px' }}>No memories found.</p>
+          <p style={{ color: '#555', fontSize: '11px', marginTop: '8px' }}>
+            Try a different question. MemWal understands meaning, not just keywords.
+          </p>
+        </div>
+      )}
+
+      {!query && !loading && (
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <Brain size={32} color="#333" style={{ marginBottom: '12px' }} />
+          <p style={{ color: '#666', fontSize: '13px' }}>Search your encrypted memories</p>
+          <p style={{ color: '#555', fontSize: '11px', marginTop: '8px' }}>
+            Ask natural questions like "What did I ask about Bitcoin?" or "Tell me about my crypto questions"
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MEMWAL BADGE COMPONENT
+// ═══════════════════════════════════════════════════════════════
+function MemWalBadge({ count }) {
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const check = async () => {
+      const mw = await getMemWal()
+      setReady(!!mw)
+    }
+    check()
+  }, [])
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '6px',
+      padding: '4px 10px', borderRadius: '4px',
+      background: ready ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,68,0.08)',
+      border: ready ? '1px solid rgba(0,255,136,0.2)' : '1px solid rgba(255,68,68,0.2)'
+    }}>
+      <div style={{
+        width: '6px', height: '6px', borderRadius: '50%',
+        background: ready ? '#00ff88' : '#ff4444',
+        boxShadow: ready ? '0 0 6px #00ff88' : 'none'
+      }} />
+      <span style={{ fontSize: '11px', color: ready ? '#00ff88' : '#ff4444', fontWeight: 600 }}>
+        {ready ? `🧠 MEMWAL ON${count > 0 ? ` • ${count} saved` : ''}` : '⚠️ MEMWAL OFF'}
+      </span>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN APP — COMPLETE VERSION WITH ALL FEATURES + MEMWAL INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
@@ -492,8 +804,10 @@ export default function App() {
   const [walrusSaved, setWalrusSaved] = useState(false)
   const [showNameAsk, setShowNameAsk] = useState(false)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [showMemWalSearch, setShowMemWalSearch] = useState(false)
   const [profile, setProfile] = useState(null)
   const [autoSaveCount, setAutoSaveCount] = useState(0)
+  const [memwalSaveCount, setMemwalSaveCount] = useState(0)
   const [latestBlobId, setLatestBlobId] = useState('')
   const messagesEndRef = useRef(null)
 
@@ -523,6 +837,32 @@ export default function App() {
       autoSaveToWalrus()
     }
   }, [messages.length])
+
+  // MemWal auto-save
+  useEffect(() => {
+    if (!connected || !walletHash || messages.length === 0) return
+
+    const timer = setTimeout(async () => {
+      // Try MemWal first
+      const result = await memwalSaveMemory(account?.address, messages, selectedAgent.id, {
+        agent_name: selectedAgent.name,
+        wallet_hash: walletHash
+      })
+
+      if (result) {
+        setMemwalSaveCount(c => c + 1)
+        console.log(`[MemWal] Auto-saved: ${result.blob_id?.slice(0, 16)}`)
+      } else {
+        // Fallback to API
+        const chatHistory = messages.map(m => ({
+          role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
+        }))
+        await apiWalrusStoreChat(walletHash, chatHistory, selectedAgent.id)
+      }
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [messages, walletHash, selectedAgent.id, connected, account?.address])
 
   const autoSaveToWalrus = async () => {
     if (!connected || !walletHash || messages.length < 2) return
@@ -592,10 +932,10 @@ export default function App() {
 
   const handleNameSubmit = async (name) => {
     setShowNameAsk(false)
-    
+
     // Create/update profile with name
     await apiCreateProfile(walletHash, account?.address, name)
-    
+
     // Save to memory too
     await apiSaveMemory(walletHash, {
       user_name: name,
@@ -604,7 +944,7 @@ export default function App() {
       last_agent: selectedAgent.id,
       last_visit: new Date().toISOString()
     })
-    
+
     // Reload everything
     await loadMemoryAndGreet()
   }
@@ -742,9 +1082,7 @@ export default function App() {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
   // WALRUS MANUAL SAVE
-  // ═══════════════════════════════════════════════════════════════
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
@@ -799,9 +1137,7 @@ export default function App() {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // RENDER — COMPLETE WITH ALL ORIGINAL FEATURES + PROFILE SETTINGS
-  // ═══════════════════════════════════════════════════════════════
+  // RENDER
   return (
     <div style={{
       width: '100vw', height: '100vh', background: RIOT_DARK,
@@ -820,7 +1156,15 @@ export default function App() {
         />
       )}
 
-      {/* ═══ LEFT SIDEBAR ═══ */}
+      {/* MemWal Memory Search Panel */}
+      {showMemWalSearch && connected && (
+        <MemorySearchPanel
+          walletAddress={account?.address}
+          onClose={() => setShowMemWalSearch(false)}
+        />
+      )}
+
+      {/* LEFT SIDEBAR */}
       <div style={{
         width: '280px',
         background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
@@ -861,6 +1205,16 @@ export default function App() {
                   <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                   PROFILE
                 </button>
+                <button onClick={() => setShowMemWalSearch(true)} style={{
+                  flex: 1, padding: '6px', fontSize: '10px',
+                  background: 'rgba(0,255,136,0.08)',
+                  border: '1px solid rgba(0,255,136,0.3)',
+                  color: '#00ff88', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+                }}>
+                  <Search size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  SEARCH
+                </button>
                 <button onClick={disconnect} style={{
                   padding: '6px 10px', fontSize: '10px',
                   background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
@@ -885,6 +1239,13 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* MemWal Badge */}
+        {connected && (
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <MemWalBadge count={memwalSaveCount} />
+          </div>
+        )}
 
         {/* API Status */}
         <div style={{
@@ -949,7 +1310,7 @@ export default function App() {
         )}
       </div>
 
-      {/* ═══ CENTER: CHAT ═══ */}
+      {/* CENTER: CHAT */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         background: 'linear-gradient(135deg, #0a0a0f 0%, #12121f 50%, #0a0a0f 100%)',
@@ -1173,7 +1534,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* ═══ RIGHT: MEMORY PANEL ═══ */}
+      {/* RIGHT: MEMORY PANEL */}
       {showMemoryPanel && connected && memory && (
         <div style={{
           width: '300px',
