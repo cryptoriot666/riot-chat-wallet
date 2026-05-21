@@ -594,39 +594,39 @@ def save_memory(wallet_hash, data):
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     try:
-        payload = json.dumps(data)
-        encrypted = encrypt(payload)
-
-        print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
-
+        # Convert data to bytes
+        payload = json.dumps(data).encode('utf-8')
+        
+        print(f"[WALRUS] Storing {len(payload)} bytes...")
+        
+        # Try testnet first (gratis, no auth)
         res = requests.put(
-            f"{WALRUS_PUBLISHER}/v1/store",
-            json={"data": encrypted},
+            "https://walrus-testnet-publisher.natsai.xyz/v1/blobs",
+            data=payload,  # RAW bytes, not JSON
             timeout=60
         )
-
+        
         print(f"[WALRUS] Status: {res.status_code}")
-        print(f"[WALRUS] Body: {res.text[:200]}")
-
-        if res.status_code == 200:
+        
+        if res.status_code in [200, 202]:
             result = res.json()
-            blob_id = result.get("blobId") or result.get("newlyCreated", {}).get("blobObject", {}).get("blobId")
-            print(f"[WALRUS] ✓ Blob ID: {blob_id}")
-            return blob_id
-
-        print(f"[WALRUS] ✗ Failed: HTTP {res.status_code}")
+            # Parse response
+            if "newlyCreated" in result:
+                blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                print(f"[WALRUS] ✓ New blob: {blob_id}")
+                return blob_id
+            elif "alreadyCertified" in result:
+                blob_id = result["alreadyCertified"]["blobId"]
+                print(f"[WALRUS] ✓ Existing blob: {blob_id}")
+                return blob_id
+        
+        print(f"[WALRUS] ✗ Failed: {res.text[:200]}")
         return None
-
-    except requests.exceptions.Timeout:
-        print(f"[WALRUS] ✗ Timeout")
-        return None
-    except requests.exceptions.ConnectionError as e:
-        print(f"[WALRUS] ✗ Connection error: {e}")
-        return None
+        
     except Exception as e:
         print(f"[WALRUS] ✗ Error: {e}")
         return None
-
+        
 def walrus_read(blob_id):
     try:
         print(f"[WALRUS] Reading {blob_id}...")
