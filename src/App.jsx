@@ -517,6 +517,7 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // AUTO-SAVE: every AUTO_SAVE_INTERVAL messages
   useEffect(() => {
     if (connected && walletHash && messages.length > 0 && messages.length % AUTO_SAVE_INTERVAL === 0) {
       autoSaveToWalrus()
@@ -677,7 +678,12 @@ export default function App() {
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-3)
       })
-      await loadMemoryAndGreet()
+      // Force reload memory so AI gets updated name immediately
+      const freshData = await apiLoadMemory(walletHash)
+      if (freshData) {
+        setMemory(freshData)
+        if (freshData.latest_blob_id) setLatestBlobId(freshData.latest_blob_id)
+      }
     }
 
     const lower = userMsg.toLowerCase()

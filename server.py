@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
-"""RIOT Chat Wallet — Backend API v2.1 (Robust Fix)"""
-import os, json, re, base64, zlib
+"""
+RIOT Chat Wallet — Backend API STRICT v5
+Features: PostgreSQL, Walrus MAINNET, DeepSeek AI, 
+          User Profile Memory + Profile Settings (Bio, Social, Pic),
+          On-Chain Indexing
+"""
+
+import os
+import json
+import re
+import base64
+import zlib
 from datetime import datetime
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify
@@ -11,89 +21,143 @@ import pg8000
 app = Flask(__name__)
 CORS(app, origins=["*"])
 
-WALRUS_PUBLISHER = os.environ.get("WALRUS_PUBLISHER", "https://walrus-testnet-publisher.natsai.xyz")
-WALRUS_AGGREGATOR = os.environ.get("WALRUS_AGGREGATOR", "https://walrus-testnet-aggregator.natsai.xyz")
+# ═══════════════════════════════════════════════════════════════
+# CONFIG
+# ═══════════════════════════════════════════════════════════════
+WALRUS_PUBLISHER = "https://walrus-testnet-publisher.natsai.xyz"
+WALRUS_AGGREGATOR = "https://walrus-testnet-aggregator.natsai.xyz"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
+
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 USE_SQLITE = not DATABASE_URL
 
-print(f"[INIT] DB: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
-print(f"[INIT] Walrus: {WALRUS_PUBLISHER}")
+print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
+print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
+print(f"[INIT] Walrus: TESTNET")
 
+# ═══════════════════════════════════════════════════════════════
+# DATABASE
+# ═══════════════════════════════════════════════════════════════
 def get_db_conn():
     if USE_SQLITE:
         import sqlite3
         return sqlite3.connect("riot_chat.db")
     else:
         parsed = urlparse(DATABASE_URL)
-        conn = pg8000.connect(host=parsed.hostname or "localhost", port=parsed.port or 5432,
-            user=parsed.username or "", password=parsed.password or "",
-            database=parsed.path.lstrip("/") or "riot_chat")
+        conn = pg8000.connect(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 5432,
+            user=parsed.username or "",
+            password=parsed.password or "",
+            database=parsed.path.lstrip("/") or "riot_chat"
+        )
         conn.autocommit = False
         return conn
 
 def init_db():
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            c.execute("""CREATE TABLE IF NOT EXISTS user_profiles (
-                wallet_hash TEXT PRIMARY KEY, wallet_address TEXT, name TEXT DEFAULT '',
-                bio TEXT DEFAULT '', profile_pic TEXT DEFAULT '', twitter TEXT DEFAULT '',
-                discord TEXT DEFAULT '', telegram TEXT DEFAULT '', instagram TEXT DEFAULT '',
-                website TEXT DEFAULT '', preferences TEXT DEFAULT '', visit_count INTEGER DEFAULT 1,
-                created_at TEXT, updated_at TEXT)""")
-            c.execute("""CREATE TABLE IF NOT EXISTS memories (
-                wallet_hash TEXT PRIMARY KEY, wallet_address TEXT, summary TEXT,
-                visited_agents TEXT, last_agent TEXT, last_visit TEXT,
-                latest_blob_id TEXT DEFAULT '', created_at TEXT, updated_at TEXT)""")
-            c.execute("""CREATE TABLE IF NOT EXISTS on_chain_saves (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, wallet_hash TEXT, tx_digest TEXT,
-                object_id TEXT, blob_id TEXT, timestamp TEXT, agent_id TEXT, data_size INTEGER)""")
-            # Check if latest_blob_id column exists in existing table
-            try:
-                c.execute("SELECT latest_blob_id FROM memories LIMIT 1")
-            except:
-                print("[DB] Adding latest_blob_id column to existing memories table")
-                c.execute("ALTER TABLE memories ADD COLUMN latest_blob_id TEXT DEFAULT ''")
-        else:
-            c.execute("""CREATE TABLE IF NOT EXISTS user_profiles (
-                wallet_hash VARCHAR(32) PRIMARY KEY, wallet_address VARCHAR(66),
-                name VARCHAR(100) DEFAULT '', bio VARCHAR(500) DEFAULT '',
-                profile_pic TEXT DEFAULT '', twitter VARCHAR(100) DEFAULT '',
-                discord VARCHAR(100) DEFAULT '', telegram VARCHAR(100) DEFAULT '',
-                instagram VARCHAR(100) DEFAULT '', website TEXT DEFAULT '',
-                preferences TEXT DEFAULT '', visit_count INTEGER DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-            c.execute("""CREATE TABLE IF NOT EXISTS memories (
-                wallet_hash VARCHAR(32) PRIMARY KEY, wallet_address VARCHAR(66),
-                summary TEXT, visited_agents TEXT, last_agent VARCHAR(10),
-                last_visit TIMESTAMP, latest_blob_id VARCHAR(100) DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-            c.execute("""CREATE TABLE IF NOT EXISTS on_chain_saves (
-                id SERIAL PRIMARY KEY, wallet_hash VARCHAR(32), tx_digest VARCHAR(100),
-                object_id VARCHAR(66), blob_id VARCHAR(100),
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, agent_id VARCHAR(10),
-                data_size INTEGER)""")
-            # Check if latest_blob_id column exists
-            try:
-                c.execute("SELECT latest_blob_id FROM memories LIMIT 1")
-            except:
-                print("[DB] Adding latest_blob_id column to existing memories table")
-                c.execute("ALTER TABLE memories ADD COLUMN latest_blob_id VARCHAR(100) DEFAULT ''")
-        conn.commit()
-        print("[INIT] Database initialized")
-    except Exception as e:
-        print(f"[INIT] DB Error: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
 
+    if USE_SQLITE:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                wallet_hash TEXT PRIMARY KEY,
+                wallet_address TEXT,
+                name TEXT DEFAULT '',
+                bio TEXT DEFAULT '',
+                profile_pic TEXT DEFAULT '',
+                twitter TEXT DEFAULT '',
+                discord TEXT DEFAULT '',
+                telegram TEXT DEFAULT '',
+                instagram TEXT DEFAULT '',
+                website TEXT DEFAULT '',
+                preferences TEXT DEFAULT '',
+                visit_count INTEGER DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memories (
+                wallet_hash TEXT PRIMARY KEY,
+                wallet_address TEXT,
+                summary TEXT,
+                visited_agents TEXT,
+                last_agent TEXT,
+                last_visit TEXT,
+                latest_blob_id TEXT DEFAULT '',
+                created_at TEXT,
+                updated_at TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS on_chain_saves (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallet_hash TEXT,
+                tx_digest TEXT,
+                object_id TEXT,
+                blob_id TEXT,
+                timestamp TEXT,
+                agent_id TEXT,
+                data_size INTEGER
+            )
+        """)
+    else:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                wallet_hash VARCHAR(32) PRIMARY KEY,
+                wallet_address VARCHAR(66),
+                name VARCHAR(100) DEFAULT '',
+                bio VARCHAR(500) DEFAULT '',
+                profile_pic TEXT DEFAULT '',
+                twitter VARCHAR(100) DEFAULT '',
+                discord VARCHAR(100) DEFAULT '',
+                telegram VARCHAR(100) DEFAULT '',
+                instagram VARCHAR(100) DEFAULT '',
+                website TEXT DEFAULT '',
+                preferences TEXT DEFAULT '',
+                visit_count INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memories (
+                wallet_hash VARCHAR(32) PRIMARY KEY,
+                wallet_address VARCHAR(66),
+                summary TEXT,
+                visited_agents TEXT,
+                last_agent VARCHAR(10),
+                last_visit TIMESTAMP,
+                latest_blob_id VARCHAR(100) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS on_chain_saves (
+                id SERIAL PRIMARY KEY,
+                wallet_hash VARCHAR(32),
+                tx_digest VARCHAR(100),
+                object_id VARCHAR(66),
+                blob_id VARCHAR(100),
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                agent_id VARCHAR(10),
+                data_size INTEGER
+            )
+        """)
+
+    conn.commit()
+    conn.close()
+    print("[INIT] Database initialized")
+
+# ═══════════════════════════════════════════════════════════════
+# ENCRYPTION
+# ═══════════════════════════════════════════════════════════════
 def encrypt(data: str) -> str:
+    """Encrypt string → base64 (zlib compress + XOR)"""
     try:
         compressed = zlib.compress(data.encode("utf-8"))
         encrypted = bytearray()
@@ -105,6 +169,7 @@ def encrypt(data: str) -> str:
         return ""
 
 def decrypt(data: str) -> str:
+    """Decrypt base64 → string (XOR + zlib decompress)"""
     try:
         encrypted = base64.b64decode(data)
         decrypted = bytearray()
@@ -115,35 +180,53 @@ def decrypt(data: str) -> str:
         print(f"[DECRYPT] Error: {e}")
         return ""
 
-NAME_BLACKLIST = {'a','an','the','is','am','are','was','were','be','been',
-    'have','has','had','do','does','did','will','would','could','should',
-    'may','might','must','can','shall','i','you','he','she','it','we','they',
-    'me','him','her','my','your','his','its','our','their','mine','yours',
-    'this','that','these','those','here','there','where','when','what','who',
-    'which','why','how','all','some','any','no','not','only','own','same',
-    'so','than','too','very','just','now','then','also','back','still',
-    'already','good','fine','happy','sad','bad','new','old','first','last',
-    'long','great','little','big','high','small','large','next','early',
-    'young','important','public','sure','able','ready','baik','senang',
-    'suka','mau','ingin','kembali','disini','ada','tidak','bisa','sudah',
-    'belum','akan','dari','ke','di','yang','untuk','dengan','pada','dalam',
-    'oleh','seperti','hello','hi','hey','yo','ok','yes','no','thanks',
-    'please','gonna','wanna','gotta','dunno','lemme','gimme','kinda',
-    'sorta','outta','lotta','gotcha','betta','coulda','shoulda','woulda',
-    'mighta','musta','ain\'t','y\'all','cuz','coz','cos','cause','becuz','nanda'}
+# ═══════════════════════════════════════════════════════════════
+# NAME EXTRACTION — STRICT VERSION
+# ═══════════════════════════════════════════════════════════════
+NAME_BLACKLIST = {
+    'a', 'an', 'the', 'is', 'am', 'are', 'was', 'were', 'be', 'been',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'can', 'shall',
+    'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her',
+    'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours',
+    'this', 'that', 'these', 'those', 'here', 'there', 'where', 'when',
+    'what', 'who', 'which', 'why', 'how', 'all', 'some', 'any', 'no',
+    'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very',
+    'just', 'now', 'then', 'also', 'back', 'still', 'already',
+    'good', 'fine', 'happy', 'sad', 'bad', 'new', 'old', 'first', 'last',
+    'long', 'great', 'little', 'big', 'high', 'small', 'large', 'next',
+    'early', 'young', 'important', 'public', 'sure', 'able', 'ready',
+    'baik', 'senang', 'suka', 'mau', 'ingin', 'kembali', 'disini',
+    'ada', 'tidak', 'bisa', 'sudah', 'belum', 'akan', 'dari', 'ke',
+    'di', 'yang', 'untuk', 'dengan', 'pada', 'dalam', 'oleh', 'seperti',
+    'hello', 'hi', 'hey', 'yo', 'ok', 'yes', 'no', 'thanks', 'please',
+    'gonna', 'wanna', 'gotta', 'dunno', 'lemme', 'gimme', 'kinda',
+    'sorta', 'outta', 'lotta', 'gotcha', 'betta', 'coulda', 'shoulda',
+    'woulda', 'mighta', 'musta', 'dunno', 'ain\'t', 'y\'all',
+    'cuz', 'coz', 'cos', 'cause', 'becuz',
+}
 
 def is_valid_name(name):
-    if not name or len(name) < 2 or len(name) > 20: return False
-    if name.lower() in NAME_BLACKLIST: return False
-    if not any(c.isalpha() for c in name): return False
+    if not name or len(name) < 2:
+        return False
+    if name.lower() in NAME_BLACKLIST:
+        return False
+    if not any(c.isalpha() for c in name):
+        return False
     return True
 
 def extract_name_from_messages(messages):
-    if not messages: return ""
+    if not messages:
+        return ""
+
     for msg in messages:
         if isinstance(msg, dict) and msg.get("role") == "user":
             content = msg.get("content", "").strip()
-            if not content: continue
+            if not content:
+                continue
+
+            print(f"[EXTRACT] Checking: '{content[:60]}...'")
+
             patterns = [
                 (r"my\s+name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "my name is"),
                 (r"i\s+am\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "i am"),
@@ -151,175 +234,284 @@ def extract_name_from_messages(messages):
                 (r"nama\s+saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "nama saya"),
                 (r"saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "saya"),
                 (r"aku\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "aku"),
+                (r"my\s+name\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "my name"),
+                (r"name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "name is"),
             ]
+
             for pattern, label in patterns:
                 m = re.search(pattern, content, re.IGNORECASE)
                 if m and is_valid_name(m.group(1)):
+                    print(f"[EXTRACT] ✓ '{label}': {m.group(1)}")
                     return m.group(1)
+
             words = content.split()
             if len(words) == 1:
                 w = words[0]
-                if is_valid_name(w): return w
+                if is_valid_name(w):
+                    print(f"[EXTRACT] ✓ single word: {w}")
+                    return w
+
+    print("[EXTRACT] ✗ No valid name found")
     return ""
 
+# ═══════════════════════════════════════════════════════════════
+# PROFILE MANAGEMENT — FORCE OVERWRITE
+# ═══════════════════════════════════════════════════════════════
 def get_or_create_profile(wallet_hash, wallet_address=""):
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
-            row = c.fetchone()
-            if row:
-                profile = {"wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
-                    "bio": row[3] or "", "profile_pic": row[4] or "", "twitter": row[5] or "",
-                    "discord": row[6] or "", "telegram": row[7] or "", "instagram": row[8] or "",
-                    "website": row[9] or "", "preferences": row[10] or "",
-                    "visit_count": row[11] or 1, "created_at": row[12], "updated_at": row[13]}
-                c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = ? WHERE wallet_hash = ?",
-                          (datetime.now().isoformat(), wallet_hash))
-                conn.commit()
-                profile["visit_count"] += 1
-                return profile
-            now = datetime.now().isoformat()
-            c.execute("""INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
-                twitter, discord, telegram, instagram, website, preferences, visit_count, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1, now, now))
+
+    if USE_SQLITE:
+        c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+        row = c.fetchone()
+        if row:
+            profile = {
+                "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
+                "bio": row[3] or "", "profile_pic": row[4] or "",
+                "twitter": row[5] or "", "discord": row[6] or "",
+                "telegram": row[7] or "", "instagram": row[8] or "",
+                "website": row[9] or "", "preferences": row[10] or "",
+                "visit_count": row[11] or 1,
+                "created_at": row[12], "updated_at": row[13]
+            }
+            c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = ? WHERE wallet_hash = ?",
+                      (datetime.now().isoformat(), wallet_hash))
             conn.commit()
-            return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "bio": "",
-                "profile_pic": "", "twitter": "", "discord": "", "telegram": "", "instagram": "",
-                "website": "", "preferences": "", "visit_count": 1, "created_at": now, "updated_at": now}
-        else:
+            profile["visit_count"] += 1
+            conn.close()
+            return profile
+
+        now = datetime.now().isoformat()
+        c.execute("""
+            INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic, 
+                twitter, discord, telegram, instagram, website, preferences, visit_count, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1, now, now))
+        conn.commit()
+        conn.close()
+        return {
+            "wallet_hash": wallet_hash, "wallet_address": wallet_address,
+            "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "",
+            "telegram": "", "instagram": "", "website": "", "preferences": "",
+            "visit_count": 1, "created_at": now, "updated_at": now
+        }
+    else:
+        try:
             c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
             row = c.fetchone()
             if row:
-                profile = {"wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
-                    "bio": row[3] or "", "profile_pic": row[4] or "", "twitter": row[5] or "",
-                    "discord": row[6] or "", "telegram": row[7] or "", "instagram": row[8] or "",
-                    "website": row[9] or "", "preferences": row[10] or "",
-                    "visit_count": row[11] or 1, "created_at": row[12].isoformat() if row[12] else "",
-                    "updated_at": row[13].isoformat() if row[13] else ""}
+                # DETECT schema version by row length
+                if len(row) >= 14:  # NEW schema with profile settings
+                    profile = {
+                        "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
+                        "bio": row[3] or "", "profile_pic": row[4] or "",
+                        "twitter": row[5] or "", "discord": row[6] or "",
+                        "telegram": row[7] or "", "instagram": row[8] or "",
+                        "website": row[9] or "", "preferences": row[10] or "",
+                        "visit_count": row[11] or 1,
+                        "created_at": row[12].isoformat() if row[12] else "",
+                        "updated_at": row[13].isoformat() if row[13] else ""
+                    }
+                else:  # OLD schema (7 columns)
+                    profile = {
+                        "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
+                        "bio": "", "profile_pic": "",
+                        "twitter": "", "discord": "",
+                        "telegram": "", "instagram": "",
+                        "website": "", "preferences": row[3] or "",
+                        "visit_count": row[4] or 1,
+                        "created_at": row[5].isoformat() if row[5] else "",
+                        "updated_at": row[6].isoformat() if row[6] else ""
+                    }
                 c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = CURRENT_TIMESTAMP WHERE wallet_hash = %s",
                           (wallet_hash,))
                 conn.commit()
                 profile["visit_count"] += 1
+                conn.close()
                 return profile
-            c.execute("""INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
+        except Exception as e:
+            print(f"[PROFILE] Error loading profile: {e}")
+            conn.close()
+            return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "", "telegram": "", "instagram": "", "website": "", "preferences": "", "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
+            
+        c.execute("""
+            INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
                 twitter, discord, telegram, instagram, website, preferences, visit_count)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1))
-            conn.commit()
-            return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "bio": "",
-                "profile_pic": "", "twitter": "", "discord": "", "telegram": "", "instagram": "",
-                "website": "", "preferences": "", "visit_count": 1,
-                "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
-    except Exception as e:
-        print(f"[PROFILE] Error: {e}")
-        conn.rollback()
-        return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "bio": "",
-            "profile_pic": "", "twitter": "", "discord": "", "telegram": "", "instagram": "",
-            "website": "", "preferences": "", "visit_count": 1,
-            "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
-    finally:
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1))
+        conn.commit()
         conn.close()
+        return {
+            "wallet_hash": wallet_hash, "wallet_address": wallet_address,
+            "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "",
+            "telegram": "", "instagram": "", "website": "", "preferences": "",
+            "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()
+        }
 
 def update_profile_name(wallet_hash, name):
-    if not name or not wallet_hash or not name.strip(): return False
+    if not name or not wallet_hash or not name.strip():
+        print(f"[UPDATE_NAME] ✗ Skipped: empty name")
+        return False
+
     name = name.strip()
-    if not is_valid_name(name): return False
+    if not is_valid_name(name):
+        print(f"[UPDATE_NAME] ✗ Rejected invalid name: '{name}'")
+        return False
+
+    print(f"[UPDATE_NAME] Saving '{name}' for {wallet_hash}")
+
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            c.execute("UPDATE user_profiles SET name = ?, updated_at = ? WHERE wallet_hash = ?",
-                      (name, datetime.now().isoformat(), wallet_hash))
-            if c.rowcount == 0:
-                c.execute("""INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?)""",
-                    (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
-        else:
-            c.execute("""INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
-                VALUES (%s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON CONFLICT (wallet_hash) DO UPDATE SET name = EXCLUDED.name, updated_at = CURRENT_TIMESTAMP""",
-                (wallet_hash, name, 1))
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"[UPDATE_NAME] Error: {e}")
-        conn.rollback()
-        return False
-    finally:
-        conn.close()
+
+    if USE_SQLITE:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+        row = c.fetchone()
+        if row:
+            print(f"[UPDATE_NAME] Old name: '{row[0] or ''}' → New: '{name}'")
+
+        c.execute("""
+            UPDATE user_profiles SET name = ?, updated_at = ? WHERE wallet_hash = ?
+        """, (name, datetime.now().isoformat(), wallet_hash))
+        if c.rowcount == 0:
+            c.execute("""
+                INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
+    else:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+        row = c.fetchone()
+        if row:
+            print(f"[UPDATE_NAME] Old name: '{row[0] or ''}' → New: '{name}'")
+
+        c.execute("""
+            INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (wallet_hash) DO UPDATE SET name = EXCLUDED.name, updated_at = CURRENT_TIMESTAMP
+        """, (wallet_hash, name, 1))
+
+    conn.commit()
+    conn.close()
+    print(f"[UPDATE_NAME] ✓ Success: '{name}' saved")
+    return True
+
+# ═══════════════════════════════════════════════════════════════
+# PROFILE SETTINGS API
+# ═══════════════════════════════════════════════════════════════
 
 def update_profile_settings(wallet_hash, settings):
-    if not wallet_hash or not settings: return False
+    """Update profile settings: bio, profile_pic, social links"""
+    if not wallet_hash or not settings:
+        return False
+
     allowed_fields = ["bio", "profile_pic", "twitter", "discord", "telegram", "instagram", "website"]
-    updates = {k: v for k, v in settings.items() if k in allowed_fields}
-    if not updates: return False
+    updates = {}
+    for field in allowed_fields:
+        if field in settings:
+            updates[field] = settings[field]
+
+    if not updates:
+        return False
+
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            set_clauses = []
-            values = []
-            for field, value in updates.items():
-                set_clauses.append(f"{field} = ?")
-                values.append(value)
-            values.append(datetime.now().isoformat())
-            values.append(wallet_hash)
-            c.execute(f"UPDATE user_profiles SET {', '.join(set_clauses)}, updated_at = ? WHERE wallet_hash = ?", values)
-            if c.rowcount == 0:
-                fields = ["wallet_hash", "name", "visit_count", "created_at", "updated_at"] + list(updates.keys())
-                placeholders = ["?"] * len(fields)
-                values = [wallet_hash, "", 1, datetime.now().isoformat(), datetime.now().isoformat()] + list(updates.values())
-                c.execute(f"INSERT INTO user_profiles ({', '.join(fields)}) VALUES ({', '.join(placeholders)})", values)
-        else:
-            set_clauses = []
-            values = []
-            for field, value in updates.items():
-                set_clauses.append(f"{field} = %s")
-                values.append(value)
-            values.append(wallet_hash)
-            c.execute(f"UPDATE user_profiles SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP WHERE wallet_hash = %s", values)
-            if c.rowcount == 0:
-                fields = ["wallet_hash", "name", "visit_count", "created_at", "updated_at"] + list(updates.keys())
-                placeholders = ["%s"] * len(fields)
-                values = [wallet_hash, "", 1] + list(updates.values())
-                c.execute(f"INSERT INTO user_profiles ({', '.join(fields)}) VALUES ({', '.join(placeholders)})", values)
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"[UPDATE_SETTINGS] Error: {e}")
-        conn.rollback()
-        return False
-    finally:
-        conn.close()
+
+    if USE_SQLITE:
+        set_clauses = []
+        values = []
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = ?")
+            values.append(value)
+        values.append(datetime.now().isoformat())
+        values.append(wallet_hash)
+
+        c.execute(f"""
+            UPDATE user_profiles 
+            SET {', '.join(set_clauses)}, updated_at = ?
+            WHERE wallet_hash = ?
+        """, values)
+        if c.rowcount == 0:
+            # Profile doesn't exist, create with settings
+            fields = ["wallet_hash", "name", "visit_count", "created_at", "updated_at"] + list(updates.keys())
+            placeholders = ["?", "?", "?", "?", "?"] + ["?"] * len(updates)
+            values = [wallet_hash, "", 1, datetime.now().isoformat(), datetime.now().isoformat()] + list(updates.values())
+            c.execute(f"""
+                INSERT INTO user_profiles ({', '.join(fields)})
+                VALUES ({', '.join(placeholders)})
+            """, values)
+    else:
+        set_clauses = []
+        values = []
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = %s")
+            values.append(value)
+        values.append(wallet_hash)
+
+        c.execute(f"""
+            UPDATE user_profiles 
+            SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
+            WHERE wallet_hash = %s
+        """, values)
+        if c.rowcount == 0:
+            fields = ["wallet_hash", "name", "visit_count", "created_at", "updated_at"] + list(updates.keys())
+            placeholders = ["%s"] * len(fields)
+            values = [wallet_hash, "", 1] + list(updates.values())
+            c.execute(f"""
+                INSERT INTO user_profiles ({', '.join(fields)})
+                VALUES ({', '.join(placeholders)})
+            """, values)
+
+    conn.commit()
+    conn.close()
+    print(f"[UPDATE_SETTINGS] ✓ Updated {list(updates.keys())} for {wallet_hash}")
+    return True
 
 def get_profile_settings(wallet_hash):
+    """Get full profile settings"""
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            c.execute("""SELECT wallet_hash, name, bio, profile_pic, twitter, discord,
-                telegram, instagram, website, visit_count, preferences, created_at, updated_at
-                FROM user_profiles WHERE wallet_hash = ?""", (wallet_hash,))
-        else:
-            c.execute("""SELECT wallet_hash, name, bio, profile_pic, twitter, discord,
-                telegram, instagram, website, visit_count, preferences, created_at, updated_at
-                FROM user_profiles WHERE wallet_hash = %s""", (wallet_hash,))
-        row = c.fetchone()
-        if not row: return None
-        return {"wallet_hash": row[0], "name": row[1] or "", "bio": row[2] or "",
-            "profile_pic": row[3] or "", "social": {"twitter": row[4] or "", "discord": row[5] or "",
-            "telegram": row[6] or "", "instagram": row[7] or "", "website": row[8] or ""},
-            "visit_count": row[9] or 1, "preferences": row[10] or "",
-            "created_at": str(row[11]) if row[11] else "", "updated_at": str(row[12]) if row[12] else ""}
-    except Exception as e:
-        print(f"[GET_PROFILE] Error: {e}")
-        return None
-    finally:
-        conn.close()
 
+    if USE_SQLITE:
+        c.execute("""
+            SELECT wallet_hash, name, bio, profile_pic, twitter, discord, 
+                   telegram, instagram, website, visit_count, preferences,
+                   created_at, updated_at
+            FROM user_profiles WHERE wallet_hash = ?
+        """, (wallet_hash,))
+    else:
+        c.execute("""
+            SELECT wallet_hash, name, bio, profile_pic, twitter, discord,
+                   telegram, instagram, website, visit_count, preferences,
+                   created_at, updated_at
+            FROM user_profiles WHERE wallet_hash = %s
+        """, (wallet_hash,))
+
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "wallet_hash": row[0],
+        "name": row[1] or "",
+        "bio": row[2] or "",
+        "profile_pic": row[3] or "",
+        "social": {
+            "twitter": row[4] or "",
+            "discord": row[5] or "",
+            "telegram": row[6] or "",
+            "instagram": row[7] or "",
+            "website": row[8] or ""
+        },
+        "visit_count": row[9] or 1,
+        "preferences": row[10] or "",
+        "created_at": row[11] if not USE_SQLITE and row[11] else str(row[11]) if row[11] else "",
+        "updated_at": row[12] if not USE_SQLITE and row[12] else str(row[12]) if row[12] else ""
+    }
+
+# ═══════════════════════════════════════════════════════════════
+# MEMORY MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
 def load_memory(wallet_hash):
     # Try Walrus first
     conn = get_db_conn()
@@ -364,11 +556,16 @@ def load_memory(wallet_hash):
     finally:
         conn.close()
 
-    memory = {"wallet_hash": wallet_hash, "summary": row[2] if row else "",
+    memory = {
+        "wallet_hash": wallet_hash,
+        "summary": row[2] if row else "",
         "visited_agents": json.loads(row[3]) if row and row[3] else [],
-        "last_agent": row[4] if row else "", "last_visit": row[5] if row else "",
+        "last_agent": row[4] if row else "",
+        "last_visit": row[5] if row else "",
         "latest_blob_id": row[6] if row and len(row) > 6 else "",
-        "visit_count": 1, "user_name": ""}
+        "visit_count": 1,
+        "user_name": ""
+    }
 
     if profile_row:
         memory["user_name"] = profile_row[2] or ""
@@ -376,16 +573,21 @@ def load_memory(wallet_hash):
         memory["preferences"] = profile_row[10] or ""
         memory["bio"] = profile_row[3] or ""
         memory["profile_pic"] = profile_row[4] or ""
-        memory["social"] = {"twitter": profile_row[5] or "", "discord": profile_row[6] or "",
-            "telegram": profile_row[7] or "", "instagram": profile_row[8] or "",
-            "website": profile_row[9] or ""}
+        memory["social"] = {
+            "twitter": profile_row[5] or "",
+            "discord": profile_row[6] or "",
+            "telegram": profile_row[7] or "",
+            "instagram": profile_row[8] or "",
+            "website": profile_row[9] or ""
+        }
 
-    print(f"[LOAD_MEMORY] {wallet_hash}: name='{memory['user_name']}', visits={memory['visit_count']}, source=DB_CACHE")
+    print(f"[LOAD_MEMORY] {wallet_hash}: name='{memory['user_name']}', visits={memory['visit_count']}")
     return memory
 
 def save_memory(wallet_hash, data):
     messages = data.get("messages", [])
     extracted_name = extract_name_from_messages(messages)
+
     if extracted_name and extracted_name.strip():
         update_profile_name(wallet_hash, extracted_name)
     elif data.get("user_name") and data["user_name"].strip():
@@ -393,13 +595,16 @@ def save_memory(wallet_hash, data):
 
     # Build memory payload for Walrus
     walrus_payload = {
-        "wallet_hash": wallet_hash, "wallet_address": data.get("wallet_address", ""),
-        "summary": data.get("summary", ""), "visited_agents": data.get("visited_agents", []),
+        "wallet_hash": wallet_hash,
+        "wallet_address": data.get("wallet_address", ""),
+        "summary": data.get("summary", ""),
+        "visited_agents": data.get("visited_agents", []),
         "last_agent": data.get("last_agent", ""),
         "last_visit": data.get("last_visit", datetime.now().isoformat()),
         "user_name": data.get("user_name", ""),
         "messages": messages[-20:] if messages else [],
-        "timestamp": datetime.now().isoformat(), "version": "2.0"
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0"
     }
 
     # Save to Walrus (primary)
@@ -412,21 +617,26 @@ def save_memory(wallet_hash, data):
         now = datetime.now().isoformat()
         visited = json.dumps(data.get("visited_agents", []))
         if USE_SQLITE:
-            c.execute("""INSERT OR REPLACE INTO memories
+            c.execute("""
+                INSERT OR REPLACE INTO memories
                 (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                 data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", now, now))
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
+                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", now, now))
         else:
-            c.execute("""INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
+            c.execute("""
+                INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 ON CONFLICT (wallet_hash) DO UPDATE SET
-                    wallet_address = EXCLUDED.wallet_address, summary = EXCLUDED.summary,
-                    visited_agents = EXCLUDED.visited_agents, last_agent = EXCLUDED.last_agent,
-                    last_visit = EXCLUDED.last_visit, latest_blob_id = EXCLUDED.latest_blob_id,
-                    updated_at = CURRENT_TIMESTAMP""",
-                (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                 data.get("last_agent", ""), data.get("last_visit", now), blob_id or ""))
+                    wallet_address = EXCLUDED.wallet_address,
+                    summary = EXCLUDED.summary,
+                    visited_agents = EXCLUDED.visited_agents,
+                    last_agent = EXCLUDED.last_agent,
+                    last_visit = EXCLUDED.last_visit,
+                    latest_blob_id = EXCLUDED.latest_blob_id,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
+                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or ""))
         conn.commit()
     except Exception as e:
         print(f"[SAVE_MEMORY] DB error: {e}")
@@ -437,48 +647,66 @@ def save_memory(wallet_hash, data):
     print(f"[SAVE_MEMORY] {wallet_hash}: blob_id={blob_id}, source=WALRUS_PRIMARY")
     return {"success": True, "blob_id": blob_id}
 
+# ═══════════════════════════════════════════════════════════════
+# WALRUS STORAGE — MAINNET
+# ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     try:
-        json_str = json.dumps(data)
-        encrypted = encrypt(json_str)
-        if not encrypted:
-            print("[WALRUS] Encrypt failed")
-            return None
-        payload = encrypted.encode('utf-8')
-        print(f"[WALRUS] Storing {len(payload)} bytes (encrypted)...")
-        res = requests.put(f"{WALRUS_PUBLISHER}/v1/blobs", data=payload, timeout=60)
+        # Convert data to bytes
+        payload = json.dumps(data).encode('utf-8')
+        
+        print(f"[WALRUS] Storing {len(payload)} bytes...")
+        
+        # Try testnet first (gratis, no auth)
+        res = requests.put(
+            "https://walrus-testnet-publisher.natsai.xyz/v1/blobs",
+            data=payload,  # RAW bytes, not JSON
+            timeout=60
+        )
+        
         print(f"[WALRUS] Status: {res.status_code}")
+        
         if res.status_code in [200, 202]:
             result = res.json()
+            # Parse response
             if "newlyCreated" in result:
                 blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                print(f"[WALRUS] New blob: {blob_id}")
+                print(f"[WALRUS] ✓ New blob: {blob_id}")
                 return blob_id
             elif "alreadyCertified" in result:
                 blob_id = result["alreadyCertified"]["blobId"]
-                print(f"[WALRUS] Existing blob: {blob_id}")
+                print(f"[WALRUS] ✓ Existing blob: {blob_id}")
                 return blob_id
-        print(f"[WALRUS] Failed: {res.text[:200]}")
+        
+        print(f"[WALRUS] ✗ Failed: {res.text[:200]}")
         return None
+        
     except Exception as e:
-        print(f"[WALRUS] Error: {e}")
+        print(f"[WALRUS] ✗ Error: {e}")
         return None
-
+        
 def walrus_read(blob_id):
     try:
         print(f"[WALRUS] Reading {blob_id}...")
         res = requests.get(f"{WALRUS_AGGREGATOR}/v1/{blob_id}", timeout=60)
+
         if res.status_code == 200:
+            # Response is raw encrypted bytes
             encrypted_data = res.content.decode('utf-8')
             decrypted = decrypt(encrypted_data)
             if decrypted:
                 return json.loads(decrypted)
-        print(f"[WALRUS] Read failed: {res.status_code}")
-        return None
-    except Exception as e:
-        print(f"[WALRUS] Read error: {e}")
+
+        print(f"[WALRUS] ✗ Read failed: {res.status_code}")
         return None
 
+    except Exception as e:
+        print(f"[WALRUS] ✗ Read error: {e}")
+        return None
+
+# ═══════════════════════════════════════════════════════════════
+# DEEPSEEK AI
+# ═══════════════════════════════════════════════════════════════
 AGENT_PROMPTS = {
     "J1": "You are J1 — The Architect. Cold precision. Mathematical certainty. Build systems, analyze patterns, see world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in human OS.",
     "J2": "You are J2 — The Enforcer. Aggressive certainty. No negotiation. No compromise. Hammer that enforces order. Every response is command, threat, or judgment.",
@@ -510,38 +738,42 @@ AGENT_PROMPTS = {
 def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
-        else:
-            c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
-        row = c.fetchone()
-    except Exception as e:
-        print(f"[DEEPSEEK] DB error: {e}")
-        row = None
-    finally:
-        conn.close()
+
+    if USE_SQLITE:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+    else:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+    row = c.fetchone()
+    conn.close()
 
     db_name = row[0] if row else ""
     final_name = db_name or user_name or ""
-    print(f"[DEEPSEEK] {wallet_hash}: db='{db_name}', final='{final_name}'")
+
+    print(f"[DEEPSEEK] {wallet_hash}: db='{db_name}', input='{user_name}', final='{final_name}'")
 
     memory_blocks = []
+
     if final_name:
         memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user's name is: " + final_name + ". You have spoken with this user before. ALWAYS address them by name: " + final_name + ". If they ask who am I, what is my name, siapa aku, nama saya — answer EXACTLY: You are " + final_name + ". NEVER say you don't know their name.")
+
     if memory_summary and memory_summary.strip():
         memory_blocks.append("CONVERSATION HISTORY: " + memory_summary[:300])
+
     if not final_name:
         memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
 
     personality = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["J4"])
-    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it — answer immediately with the name. 5. Personality is secondary to memory accuracy."
+    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it — answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., \"my name is X\", \"call me X\", \"I am X\"), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name. The user has full authority over their own identity."
 
     separator = chr(10) + chr(10)
     full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement
 
-    payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": full_system}, *messages],
-        "temperature": 0.3, "max_tokens": 800}
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [{"role": "system", "content": full_system}, *messages],
+        "temperature": 0.3,
+        "max_tokens": 800
+    }
 
     try:
         res = requests.post(DEEPSEEK_API_URL,
@@ -556,115 +788,158 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
         print(f"[DEEPSEEK] API error: {e}")
         return None
 
+# ═══════════════════════════════════════════════════════════════
+# API ROUTES — EXISTING
+# ═══════════════════════════════════════════════════════════════
+
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "RIOT Chat Wallet API v2.1 — WALRUS PRIMARY",
-        "network": "testnet", "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
-        "encryption": "enabled (encrypt+compress)", "memory_system": "Walrus primary, DB cache",
-        "walrus": "testnet", "on_chain": "enabled", "timestamp": datetime.now().isoformat()})
+    return jsonify({
+        "status": "RIOT Chat Wallet API v2.2 — WALRUS PRIMARY",
+        "network": "network",
+        "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
+        "encryption": "enabled (encrypt+compress)",
+        "memory_system": "Walrus primary, DB cache",
+        "walrus": "network",
+        "on_chain": "enabled",
+        "timestamp": datetime.now().isoformat()
+    })
 
 @app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
-    try:
-        print(f"[API] Load: {wallet_hash}")
-        profile = get_or_create_profile(wallet_hash)
-        memory = load_memory(wallet_hash)
-        memory["user_name"] = profile.get("name", "")
-        memory["visit_count"] = profile.get("visit_count", 1)
-        print(f"[API] Return: name='{memory['user_name']}', visits={memory['visit_count']}")
-        return jsonify(memory)
-    except Exception as e:
-        print(f"[API] Load error: {e}")
-        return jsonify({"error": str(e)}), 500
+    print(f"[API] Load: {wallet_hash}")
+    profile = get_or_create_profile(wallet_hash)
+    memory = load_memory(wallet_hash)
+    memory["user_name"] = profile.get("name", "")
+    memory["visit_count"] = profile.get("visit_count", 1)
+    print(f"[API] Return: name='{memory['user_name']}', visits={memory['visit_count']}")
+    return jsonify(memory)
 
 @app.route("/api/memory/save", methods=["POST"])
 def save_memory_route():
-    try:
-        data = request.json
-        wallet_hash = data.get("wallet_hash")
-        if not wallet_hash:
-            return jsonify({"error": "wallet_hash required"}), 400
-        messages = data.get("messages", [])
-        extracted_name = extract_name_from_messages(messages)
-        name_saved = ""
-        if extracted_name and extracted_name.strip():
-            update_profile_name(wallet_hash, extracted_name)
-            name_saved = extracted_name
-        elif data.get("user_name") and data["user_name"].strip():
-            update_profile_name(wallet_hash, data["user_name"])
-            name_saved = data["user_name"]
-        result = save_memory(wallet_hash, data)
-        return jsonify({"success": result["success"], "blob_id": result.get("blob_id", ""),
-            "name_saved": name_saved, "timestamp": datetime.now().isoformat()})
-    except Exception as e:
-        print(f"[API] Save error: {e}")
-        return jsonify({"error": str(e)}), 500
+    data = request.json
+    wallet_hash = data.get("wallet_hash")
+    if not wallet_hash:
+        return jsonify({"error": "wallet_hash required"}), 400
+
+    messages = data.get("messages", [])
+    extracted_name = extract_name_from_messages(messages)
+
+    name_saved = ""
+    if extracted_name and extracted_name.strip():
+        update_profile_name(wallet_hash, extracted_name)
+        name_saved = extracted_name
+    elif data.get("user_name") and data["user_name"].strip():
+        update_profile_name(wallet_hash, data["user_name"])
+        name_saved = data["user_name"]
+
+    result = save_memory(wallet_hash, data)
+    return jsonify({
+        "success": result["success"],
+        "blob_id": result.get("blob_id", ""),
+        "name_saved": name_saved,
+        "timestamp": datetime.now().isoformat()
+    })
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    try:
-        data = request.json
-        agent_id = data.get("agent_id", "J4")
-        messages = data.get("messages", [])
-        memory_summary = data.get("memory_summary", "")
-        user_name = data.get("user_name", "")
-        wallet_hash = data.get("wallet_hash", "")
-        conn = get_db_conn()
-        c = conn.cursor()
-        if USE_SQLITE:
-            c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
-        else:
-            c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
-        row = c.fetchone()
-        conn.close()
-        db_name = row[0] if row else ""
-        final_name = db_name or user_name or ""
-        response = call_deepseek(agent_id, messages, memory_summary, final_name, wallet_hash)
-        if response:
-            return jsonify({"response": response, "source": "deepseek", "name_used": final_name})
-        return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.",
-            "source": "fallback", "name_used": final_name})
-    except Exception as e:
-        print(f"[API] Chat error: {e}")
-        return jsonify({"error": str(e)}), 500
+    data = request.json
+    agent_id = data.get("agent_id", "J4")
+    messages = data.get("messages", [])
+    memory_summary = data.get("memory_summary", "")
+    user_name = data.get("user_name", "")
+    wallet_hash = data.get("wallet_hash", "")
+
+    conn = get_db_conn()
+    c = conn.cursor()
+    if USE_SQLITE:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+    else:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+    row = c.fetchone()
+    conn.close()
+
+    db_name = row[0] if row else ""
+    final_name = db_name or user_name or ""
+
+    response = call_deepseek(agent_id, messages, memory_summary, final_name, wallet_hash)
+
+    if response:
+        return jsonify({"response": response, "source": "deepseek", "name_used": final_name})
+    return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
+
+# ═══════════════════════════════════════════════════════════════
+# API ROUTES — PROFILE SETTINGS (NEW)
+# ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/profile/get/<wallet_hash>", methods=["GET"])
 def profile_get(wallet_hash):
+    """Get full profile settings"""
     try:
         profile = get_profile_settings(wallet_hash)
         if not profile:
-            return jsonify({"success": True, "exists": False, "profile": None})
-        return jsonify({"success": True, "exists": True, "profile": profile})
+            return jsonify({
+                "success": True,
+                "exists": False,
+                "profile": None
+            })
+
+        return jsonify({
+            "success": True,
+            "exists": True,
+            "profile": profile
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/profile/update", methods=["POST"])
 def profile_update():
+    """Update profile settings"""
     try:
         data = request.json
         wallet_hash = data.get("wallet_hash")
+
         if not wallet_hash:
             return jsonify({"success": False, "error": "wallet_hash required"}), 400
+
+        # Fields that can be updated
         allowed_fields = ["bio", "profile_pic", "twitter", "discord", "telegram", "instagram", "website"]
-        updates = {k: v for k, v in data.items() if k in allowed_fields}
+        updates = {}
+        for field in allowed_fields:
+            if field in data:
+                updates[field] = data[field]
+
         if not updates:
-            return jsonify({"success": False, "error": "No valid fields"}), 400
+            return jsonify({"success": False, "error": "No valid fields to update"}), 400
+
         success = update_profile_settings(wallet_hash, updates)
+
         if success:
-            return jsonify({"success": True, "updated": True, "fields_updated": list(updates.keys())})
-        return jsonify({"success": False, "error": "Update failed"}), 500
+            return jsonify({
+                "success": True,
+                "updated": True,
+                "fields_updated": list(updates.keys()),
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({"success": False, "error": "Update failed"}), 500
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/profile/create", methods=["POST"])
 def profile_create():
+    """Create new profile with name"""
     try:
         data = request.json
         wallet_hash = data.get("wallet_hash")
         wallet_address = data.get("wallet_address", "")
         user_name = data.get("user_name", "")
+
         if not wallet_hash:
             return jsonify({"success": False, "error": "wallet_hash required"}), 400
+
+        # Check if exists
         conn = get_db_conn()
         c = conn.cursor()
         if USE_SQLITE:
@@ -673,90 +948,121 @@ def profile_create():
             c.execute("SELECT wallet_hash FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         existing = c.fetchone()
         conn.close()
+
         if existing:
             return jsonify({"success": False, "error": "Profile already exists", "exists": True}), 409
-        get_or_create_profile(wallet_hash, wallet_address)
+
+        # Create profile
+        profile = get_or_create_profile(wallet_hash, wallet_address)
         if user_name:
             update_profile_name(wallet_hash, user_name)
-        return jsonify({"success": True, "created": True, "wallet_hash": wallet_hash, "name": user_name})
+
+        return jsonify({
+            "success": True,
+            "created": True,
+            "wallet_hash": wallet_hash,
+            "name": user_name,
+            "timestamp": datetime.now().isoformat()
+        })
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+# ═══════════════════════════════════════════════════════════════
+# WALRUS ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
 @app.route("/api/walrus/store-chat", methods=["POST"])
 def walrus_store_chat():
-    try:
-        data = request.json
-        wallet_hash = data.get("wallet_hash")
-        chat_history = data.get("chat_history", [])
-        agent_id = data.get("agent_id", "")
-        if not wallet_hash or not chat_history:
-            return jsonify({"error": "wallet_hash and chat_history required"}), 400
-        payload = {"wallet_hash": wallet_hash, "chat_history": chat_history,
-            "agent_id": agent_id, "timestamp": datetime.now().isoformat(), "version": "2.0"}
-        blob_id = walrus_store(payload)
-        if blob_id:
-            conn = get_db_conn()
-            c = conn.cursor()
-            if USE_SQLITE:
-                c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (?, ?, ?, ?, ?)",
-                          (wallet_hash, blob_id, datetime.now().isoformat(), agent_id, len(json.dumps(payload))))
-            else:
-                c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)",
-                          (wallet_hash, blob_id, agent_id, len(json.dumps(payload))))
-            conn.commit()
-            conn.close()
-            return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus"})
-        return jsonify({"success": False, "error": "Failed to store on Walrus"}), 500
-    except Exception as e:
-        print(f"[API] Walrus store error: {e}")
-        return jsonify({"error": str(e)}), 500
+    data = request.json
+    wallet_hash = data.get("wallet_hash")
+    chat_history = data.get("chat_history", [])
+    agent_id = data.get("agent_id", "")
+
+    if not wallet_hash or not chat_history:
+        return jsonify({"error": "wallet_hash and chat_history required"}), 400
+
+    print(f"[API] Walrus store: wallet={wallet_hash}, messages={len(chat_history)}")
+
+    payload = {
+        "wallet_hash": wallet_hash,
+        "chat_history": chat_history,
+        "agent_id": agent_id,
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0"
+    }
+
+    blob_id = walrus_store(payload)
+
+    if blob_id:
+        conn = get_db_conn()
+        c = conn.cursor()
+        if USE_SQLITE:
+            c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (?, ?, ?, ?, ?)",
+                      (wallet_hash, blob_id, datetime.now().isoformat(), agent_id, len(json.dumps(payload))))
+        else:
+            c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)",
+                      (wallet_hash, blob_id, agent_id, len(json.dumps(payload))))
+        conn.commit()
+        conn.close()
+
+        print(f"[API] Walrus ✓ blob_id={blob_id}")
+        return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus MAINNET"})
+
+    print(f"[API] Walrus ✗ FAILED")
+    return jsonify({"success": False, "error": "Failed to store on Walrus"}), 500
 
 @app.route("/api/walrus/load-chat/<wallet_hash>", methods=["GET"])
 def walrus_load_chat(wallet_hash):
-    try:
-        conn = get_db_conn()
-        c = conn.cursor()
-        if USE_SQLITE:
-            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
-        else:
-            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
-        row = c.fetchone()
-        conn.close()
-        if not row or not row[0]:
-            return jsonify({"error": "No Walrus backup found"}), 404
-        blob_id = row[0]
-        chat_data = walrus_read(blob_id)
-        if chat_data:
-            return jsonify({"success": True, "chat_history": chat_data.get("chat_history", []), "blob_id": blob_id})
-        return jsonify({"success": False, "error": "Failed to read from Walrus"}), 500
-    except Exception as e:
-        print(f"[API] Walrus load error: {e}")
-        return jsonify({"error": str(e)}), 500
+    conn = get_db_conn()
+    c = conn.cursor()
+
+    if USE_SQLITE:
+        c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
+    else:
+        c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row or not row[0]:
+        return jsonify({"error": "No Walrus backup found"}), 404
+
+    blob_id = row[0]
+    chat_data = walrus_read(blob_id)
+
+    if chat_data:
+        return jsonify({"success": True, "chat_history": chat_data.get("chat_history", []), "blob_id": blob_id})
+
+    return jsonify({"success": False, "error": "Failed to read from Walrus"}), 500
 
 @app.route("/api/walrus/save", methods=["POST"])
 def walrus_save():
-    try:
-        data = request.json
-        wallet_hash = data.get("wallet_hash")
-        tx_digest = data.get("tx_digest")
-        blob_id = data.get("blob_id", "")
-        if not wallet_hash or not tx_digest:
-            return jsonify({"error": "wallet_hash and tx_digest required"}), 400
-        conn = get_db_conn()
-        c = conn.cursor()
-        if USE_SQLITE:
-            c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (?, ?, ?, ?, ?)",
-                      (wallet_hash, tx_digest, blob_id, datetime.now().isoformat(), data.get("agent_id", "")))
-        else:
-            c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s)",
-                      (wallet_hash, tx_digest, blob_id, data.get("agent_id", "")))
-        conn.commit()
-        conn.close()
-        return jsonify({"success": True, "tx_digest": tx_digest, "blob_id": blob_id, "indexed": True})
-    except Exception as e:
-        print(f"[API] Walrus save error: {e}")
-        return jsonify({"error": str(e)}), 500
+    data = request.json
+    wallet_hash = data.get("wallet_hash")
+    tx_digest = data.get("tx_digest")
+    blob_id = data.get("blob_id", "")
 
+    if not wallet_hash or not tx_digest:
+        return jsonify({"error": "wallet_hash and tx_digest required"}), 400
+
+    conn = get_db_conn()
+    c = conn.cursor()
+
+    if USE_SQLITE:
+        c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (?, ?, ?, ?, ?)",
+                  (wallet_hash, tx_digest, blob_id, datetime.now().isoformat(), data.get("agent_id", "")))
+    else:
+        c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s)",
+                  (wallet_hash, tx_digest, blob_id, data.get("agent_id", "")))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True, "tx_digest": tx_digest, "blob_id": blob_id, "indexed": True})
+
+# ═══════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
