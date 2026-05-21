@@ -34,7 +34,7 @@ USE_SQLITE = not DATABASE_URL
 
 print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
 print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
-print(f"[INIT] Walrus: MAINNET")
+print(f"[INIT] Walrus: TESTNET")
 
 # ═══════════════════════════════════════════════════════════════
 # DATABASE
@@ -738,11 +738,11 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 def health():
     return jsonify({
         "status": "RIOT Chat Wallet API is LIVE — MAINNET STRICT v5",
-        "network": "mainnet",
+        "network": "network",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite",
         "encryption": "enabled",
         "memory_system": "user_profiles + forced_injection_v4 + profile_settings",
-        "walrus": "mainnet",
+        "walrus": "network",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
     })
