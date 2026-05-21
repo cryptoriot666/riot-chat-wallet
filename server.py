@@ -285,27 +285,45 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
             "telegram": "", "instagram": "", "website": "", "preferences": "",
             "visit_count": 1, "created_at": now, "updated_at": now
         }
-    else:
-        c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
-        row = c.fetchone()
-        if row:
-            profile = {
-                "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
-                "bio": row[3] or "", "profile_pic": row[4] or "",
-                "twitter": row[5] or "", "discord": row[6] or "",
-                "telegram": row[7] or "", "instagram": row[8] or "",
-                "website": row[9] or "", "preferences": row[10] or "",
-                "visit_count": row[11] or 1,
-                "created_at": row[12].isoformat() if row[12] else "",
-                "updated_at": row[13].isoformat() if row[13] else ""
-            }
-            c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = CURRENT_TIMESTAMP WHERE wallet_hash = %s",
-                      (wallet_hash,))
-            conn.commit()
-            profile["visit_count"] += 1
+        else:
+        try:
+            c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+            row = c.fetchone()
+            if row:
+                # DETECT schema version by row length
+                if len(row) >= 14:  # NEW schema with profile settings
+                    profile = {
+                        "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
+                        "bio": row[3] or "", "profile_pic": row[4] or "",
+                        "twitter": row[5] or "", "discord": row[6] or "",
+                        "telegram": row[7] or "", "instagram": row[8] or "",
+                        "website": row[9] or "", "preferences": row[10] or "",
+                        "visit_count": row[11] or 1,
+                        "created_at": row[12].isoformat() if row[12] else "",
+                        "updated_at": row[13].isoformat() if row[13] else ""
+                    }
+                else:  # OLD schema (7 columns)
+                    profile = {
+                        "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
+                        "bio": "", "profile_pic": "",
+                        "twitter": "", "discord": "",
+                        "telegram": "", "instagram": "",
+                        "website": "", "preferences": row[3] or "",
+                        "visit_count": row[4] or 1,
+                        "created_at": row[5].isoformat() if row[5] else "",
+                        "updated_at": row[6].isoformat() if row[6] else ""
+                    }
+                c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = CURRENT_TIMESTAMP WHERE wallet_hash = %s",
+                          (wallet_hash,))
+                conn.commit()
+                profile["visit_count"] += 1
+                conn.close()
+                return profile
+        except Exception as e:
+            print(f"[PROFILE] Error loading profile: {e}")
             conn.close()
-            return profile
-
+            return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "", "telegram": "", "instagram": "", "website": "", "preferences": "", "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
+            
         c.execute("""
             INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
                 twitter, discord, telegram, instagram, website, preferences, visit_count)
