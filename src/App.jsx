@@ -85,6 +85,7 @@ function extractNameFromMessages(messages) {
       const c = msg.content
       const patterns = [
         /my\s+name\s+is\s+([a-zA-Z0-9_]+)/i,
+        /my\s+name\s+([a-zA-Z0-9_]+)/i,
         /i\s+am\s+([a-zA-Z0-9_]+)/i,
         /call\s+me\s+([a-zA-Z0-9_]+)/i,
         /nama\s+saya\s+([a-zA-Z0-9_]+)/i,
@@ -517,7 +518,6 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // AUTO-SAVE: every AUTO_SAVE_INTERVAL messages
   useEffect(() => {
     if (connected && walletHash && messages.length > 0 && messages.length % AUTO_SAVE_INTERVAL === 0) {
       autoSaveToWalrus()
@@ -678,7 +678,6 @@ export default function App() {
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-3)
       })
-      // Force reload memory so AI gets updated name immediately
       const freshData = await apiLoadMemory(walletHash)
       if (freshData) {
         setMemory(freshData)

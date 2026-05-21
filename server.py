@@ -157,7 +157,6 @@ def init_db():
 # ENCRYPTION
 # ═══════════════════════════════════════════════════════════════
 def encrypt(data: str) -> str:
-    """Encrypt string → base64 (zlib compress + XOR)"""
     try:
         compressed = zlib.compress(data.encode("utf-8"))
         encrypted = bytearray()
@@ -169,7 +168,6 @@ def encrypt(data: str) -> str:
         return ""
 
 def decrypt(data: str) -> str:
-    """Decrypt base64 → string (XOR + zlib decompress)"""
     try:
         encrypted = base64.b64decode(data)
         decrypted = bytearray()
@@ -593,7 +591,6 @@ def save_memory(wallet_hash, data):
     elif data.get("user_name") and data["user_name"].strip():
         update_profile_name(wallet_hash, data["user_name"])
 
-    # Build memory payload for Walrus
     walrus_payload = {
         "wallet_hash": wallet_hash,
         "wallet_address": data.get("wallet_address", ""),
@@ -607,10 +604,8 @@ def save_memory(wallet_hash, data):
         "version": "2.0"
     }
 
-    # Save to Walrus (primary)
     blob_id = walrus_store(walrus_payload)
 
-    # Save to DB (cache)
     conn = get_db_conn()
     c = conn.cursor()
     try:
@@ -691,7 +686,6 @@ def walrus_read(blob_id):
         res = requests.get(f"{WALRUS_AGGREGATOR}/v1/{blob_id}", timeout=60)
 
         if res.status_code == 200:
-            # Response is raw encrypted bytes
             encrypted_data = res.content.decode('utf-8')
             decrypted = decrypt(encrypted_data)
             if decrypted:
@@ -763,7 +757,7 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
         memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
 
     personality = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["J4"])
-    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it — answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., \"my name is X\", \"call me X\", \"I am X\"), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name. The user has full authority over their own identity."
+    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it — answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., \"my name is X\", \"call me X\", \"I am X\"), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name."
 
     separator = chr(10) + chr(10)
     full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement
@@ -795,7 +789,7 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "RIOT Chat Wallet API v2.2 — WALRUS PRIMARY",
+        "status": "RIOT Chat Wallet API v2.3 — WALRUS PRIMARY",
         "network": "network",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
         "encryption": "enabled (encrypt+compress)",
