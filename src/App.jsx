@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
-import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText } from 'lucide-react'
+import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
@@ -9,6 +9,7 @@ import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, Alert
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
 const RIOT_PINK = '#ff2a6d'
 const RIOT_DARK = '#0a0a0f'
+const AUTO_SAVE_INTERVAL = 5  // Save to Walrus every N messages
 
 // ═══════════════════════════════════════════════════════════════
 // 25 AGENTS
@@ -491,6 +492,8 @@ export default function App() {
   const [showNameAsk, setShowNameAsk] = useState(false)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [profile, setProfile] = useState(null)
+  const [autoSaveCount, setAutoSaveCount] = useState(0)
+  const [latestBlobId, setLatestBlobId] = useState('')
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
@@ -513,6 +516,27 @@ export default function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // AUTO-SAVE: every AUTO_SAVE_INTERVAL messages
+  useEffect(() => {
+    if (connected && walletHash && messages.length > 0 && messages.length % AUTO_SAVE_INTERVAL === 0) {
+      autoSaveToWalrus()
+    }
+  }, [messages.length])
+
+  const autoSaveToWalrus = async () => {
+    if (!connected || !walletHash || messages.length < 2) return
+    const chatHistory = messages.map(m => ({
+      role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
+    }))
+    const result = await apiWalrusStoreChat(walletHash, chatHistory, selectedAgent.id)
+    if (result?.success) {
+      setLatestBlobId(result.blob_id)
+      setWalrusSaved(true)
+      setAutoSaveCount(prev => prev + 1)
+      console.log(`[AUTO-SAVE] Walrus blob: ${result.blob_id}`)
+    }
+  }
 
   const loadMemoryAndGreet = async () => {
     let data = await apiLoadMemory(walletHash)
@@ -544,6 +568,7 @@ export default function App() {
     if (data) {
       setMemory(data)
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
+      if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
 
       // Load full profile settings
       const profileData = await apiGetProfile(walletHash)
@@ -730,6 +755,7 @@ export default function App() {
       }
 
       const blobId = storeResult.blob_id
+      setLatestBlobId(blobId)
 
       const tx = new TransactionBlock()
       tx.setGasBudget(5000000)
@@ -970,8 +996,14 @@ export default function App() {
                 {walrusSaved && (
                   <>
                     <span style={{ color: '#666' }}>|</span>
-                    <Shield size={12} color="#00ff88" />
+                    <Cloud size={12} color="#00ff88" />
                     <span style={{ color: '#00ff88' }}>WALRUS</span>
+                  </>
+                )}
+                {autoSaveCount > 0 && (
+                  <>
+                    <span style={{ color: '#666' }}>|</span>
+                    <span style={{ color: '#00b4d8' }}>Auto: {autoSaveCount}x</span>
                   </>
                 )}
               </div>
@@ -1184,6 +1216,12 @@ export default function App() {
                 <Clock size={12} color="#666" />
                 <span style={{ fontSize: '12px', color: '#aaa' }}>Sessions: {memory.visit_count || 1}</span>
               </div>
+              {latestBlobId && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cloud size={12} color="#00ff88" />
+                  <span style={{ fontSize: '10px', color: '#00ff88', fontFamily: 'monospace' }}>Blob: {latestBlobId.slice(0, 16)}...</span>
+                </div>
+              )}
               {/* Social Links */}
               {profile?.social && Object.values(profile.social).some(v => v) && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>

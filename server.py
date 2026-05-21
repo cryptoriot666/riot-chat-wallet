@@ -10,6 +10,7 @@ import os
 import json
 import re
 import base64
+import zlib
 from datetime import datetime
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify
@@ -86,6 +87,7 @@ def init_db():
                 visited_agents TEXT,
                 last_agent TEXT,
                 last_visit TEXT,
+                latest_blob_id TEXT DEFAULT '',
                 created_at TEXT,
                 updated_at TEXT
             )
@@ -129,6 +131,7 @@ def init_db():
                 visited_agents TEXT,
                 last_agent VARCHAR(10),
                 last_visit TIMESTAMP,
+                latest_blob_id VARCHAR(100) DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -153,22 +156,25 @@ def init_db():
 # ═══════════════════════════════════════════════════════════════
 # ENCRYPTION
 # ═══════════════════════════════════════════════════════════════
-def encrypt(data):
-    data_bytes = data.encode("utf-8")
+def encrypt(data: str) -> str:
+    """Encrypt string → base64 (zlib compress + XOR)"""
+    compressed = zlib.compress(data.encode("utf-8"))
     encrypted = bytearray()
-    for i, byte in enumerate(data_bytes):
+    for i, byte in enumerate(compressed):
         encrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
     return base64.b64encode(bytes(encrypted)).decode("utf-8")
 
-def decrypt(data):
+def decrypt(data: str) -> str:
+    """Decrypt base64 → string (XOR + zlib decompress)"""
     try:
         encrypted = base64.b64decode(data)
         decrypted = bytearray()
         for i, byte in enumerate(encrypted):
             decrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
-        return bytes(decrypted).decode("utf-8")
-    except:
-        return data
+        return zlib.decompress(bytes(decrypted)).decode("utf-8")
+    except Exception as e:
+        print(f"[DECRYPT] Error: {e}")
+        return ""
 
 # ═══════════════════════════════════════════════════════════════
 # NAME EXTRACTION — STRICT VERSION
@@ -503,6 +509,26 @@ def get_profile_settings(wallet_hash):
 # MEMORY MANAGEMENT
 # ═══════════════════════════════════════════════════════════════
 def load_memory(wallet_hash):
+    # Try Walrus first
+    conn = get_db_conn()
+    c = conn.cursor()
+
+    if USE_SQLITE:
+        c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+    else:
+        c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+    row = c.fetchone()
+    conn.close()
+
+    blob_id = row[0] if row and row[0] else ""
+
+    if blob_id:
+        walrus_data = walrus_read(blob_id)
+        if walrus_data:
+            print(f"[LOAD_MEMORY] Loaded from Walrus: {blob_id}")
+            return walrus_data
+
+    # Fallback to DB cache
     conn = get_db_conn()
     c = conn.cursor()
 
@@ -525,6 +551,7 @@ def load_memory(wallet_hash):
         "visited_agents": json.loads(row[3]) if row and row[3] else [],
         "last_agent": row[4] if row else "",
         "last_visit": row[5] if row else "",
+        "latest_blob_id": row[6] if row and len(row) > 6 else "",
         "visit_count": 1,
         "user_name": ""
     }
@@ -547,47 +574,63 @@ def load_memory(wallet_hash):
     return memory
 
 def save_memory(wallet_hash, data):
-    conn = get_db_conn()
-    c = conn.cursor()
-    now = datetime.now().isoformat()
-
     messages = data.get("messages", [])
     extracted_name = extract_name_from_messages(messages)
-
-    print(f"[SAVE_MEMORY] {wallet_hash}: extracted='{extracted_name}', data_name='{data.get('user_name', '')}'")
 
     if extracted_name and extracted_name.strip():
         update_profile_name(wallet_hash, extracted_name)
     elif data.get("user_name") and data["user_name"].strip():
         update_profile_name(wallet_hash, data["user_name"])
 
+    # Build memory payload for Walrus
+    walrus_payload = {
+        "wallet_hash": wallet_hash,
+        "wallet_address": data.get("wallet_address", ""),
+        "summary": data.get("summary", ""),
+        "visited_agents": data.get("visited_agents", []),
+        "last_agent": data.get("last_agent", ""),
+        "last_visit": data.get("last_visit", datetime.now().isoformat()),
+        "user_name": data.get("user_name", ""),
+        "messages": messages[-20:] if messages else [],
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0"
+    }
+
+    # Save to Walrus (primary)
+    blob_id = walrus_store(walrus_payload)
+
+    # Save to DB (cache)
+    conn = get_db_conn()
+    c = conn.cursor()
+    now = datetime.now().isoformat()
     visited = json.dumps(data.get("visited_agents", []))
 
     if USE_SQLITE:
         c.execute("""
             INSERT OR REPLACE INTO memories
-            (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-              data.get("last_agent", ""), data.get("last_visit", now), now, now))
+              data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", now, now))
     else:
         c.execute("""
-            INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (wallet_hash) DO UPDATE SET
                 wallet_address = EXCLUDED.wallet_address,
                 summary = EXCLUDED.summary,
                 visited_agents = EXCLUDED.visited_agents,
                 last_agent = EXCLUDED.last_agent,
                 last_visit = EXCLUDED.last_visit,
+                latest_blob_id = EXCLUDED.latest_blob_id,
                 updated_at = CURRENT_TIMESTAMP
         """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-              data.get("last_agent", ""), data.get("last_visit", now)))
+              data.get("last_agent", ""), data.get("last_visit", now), blob_id or ""))
 
     conn.commit()
     conn.close()
-    print(f"[SAVE_MEMORY] ✓ Success for {wallet_hash}")
-    return True
+    print(f"[SAVE_MEMORY] {wallet_hash}: blob_id={blob_id}, source=WALRUS_PRIMARY")
+    return {"success": True, "blob_id": blob_id}
 
 # ═══════════════════════════════════════════════════════════════
 # WALRUS STORAGE — MAINNET
@@ -633,17 +676,17 @@ def walrus_read(blob_id):
         res = requests.get(f"{WALRUS_AGGREGATOR}/v1/{blob_id}", timeout=60)
 
         if res.status_code == 200:
-            result = res.json()
-            encrypted_data = result.get("data")
-            if encrypted_data:
-                decrypted = decrypt(encrypted_data)
+            # Response is raw encrypted bytes
+            encrypted_data = res.content.decode('utf-8')
+            decrypted = decrypt(encrypted_data)
+            if decrypted:
                 return json.loads(decrypted)
 
-        print(f"[WALRUS] ✗ Read failed: {res.status_code}")
+        print(f"[WALRUS] Read failed: {res.status_code}")
         return None
 
     except Exception as e:
-        print(f"[WALRUS] ✗ Read error: {e}")
+        print(f"[WALRUS] Read error: {e}")
         return None
 
 # ═══════════════════════════════════════════════════════════════
@@ -737,12 +780,12 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "RIOT Chat Wallet API is LIVE — MAINNET STRICT v5",
-        "network": "network",
-        "database": "PostgreSQL" if not USE_SQLITE else "SQLite",
-        "encryption": "enabled",
-        "memory_system": "user_profiles + forced_injection_v4 + profile_settings",
-        "walrus": "network",
+        "status": "RIOT Chat Wallet API v2 — WALRUS PRIMARY",
+        "network": "testnet",
+        "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
+        "encryption": "enabled (encrypt+compress)",
+        "memory_system": "Walrus primary, DB cache",
+        "walrus": "testnet",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
     })
@@ -775,9 +818,10 @@ def save_memory_route():
         update_profile_name(wallet_hash, data["user_name"])
         name_saved = data["user_name"]
 
-    success = save_memory(wallet_hash, data)
+    result = save_memory(wallet_hash, data)
     return jsonify({
-        "success": success,
+        "success": result["success"],
+        "blob_id": result.get("blob_id", ""),
         "name_saved": name_saved,
         "timestamp": datetime.now().isoformat()
     })
