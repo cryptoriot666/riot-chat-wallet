@@ -285,7 +285,7 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
             "telegram": "", "instagram": "", "website": "", "preferences": "",
             "visit_count": 1, "created_at": now, "updated_at": now
         }
-        else:
+    else:
         try:
             c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
             row = c.fetchone()
