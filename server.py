@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RIOT Chat Wallet — Backend API FINAL (pg8000 version)
+RIOT Chat Wallet — Backend API FINAL (pg8000 + URL parsing)
 Features: PostgreSQL (persistent), Walrus Testnet, DeepSeek AI, 
           User Profile Memory, On-Chain Indexing, Chat History Backup
 """
@@ -10,11 +10,12 @@ import json
 import re
 import base64
 from datetime import datetime
+from urllib.parse import urlparse
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 
-# PostgreSQL support via pg8000 (pure Python, compatible with Python 3.14)
+# PostgreSQL support via pg8000 (pure Python)
 import pg8000
 
 app = Flask(__name__)
@@ -34,35 +35,30 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 USE_SQLITE = not DATABASE_URL
 
 # ═══════════════════════════════════════════════════════════════
-# ENCRYPTION
-# ═══════════════════════════════════════════════════════════════
-def encrypt(data):
-    data_bytes = data.encode("utf-8")
-    encrypted = bytearray()
-    for i, byte in enumerate(data_bytes):
-        encrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
-    return base64.b64encode(bytes(encrypted)).decode("utf-8")
-
-def decrypt(data):
-    try:
-        encrypted = base64.b64decode(data)
-        decrypted = bytearray()
-        for i, byte in enumerate(encrypted):
-            decrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
-        return bytes(decrypted).decode("utf-8")
-    except:
-        return data
-
-# ═══════════════════════════════════════════════════════════════
-# DATABASE — PostgreSQL primary (pg8000), SQLite fallback
+# DATABASE CONNECTION
 # ═══════════════════════════════════════════════════════════════
 def get_db_conn():
     if USE_SQLITE:
         import sqlite3
         return sqlite3.connect("riot_chat.db")
     else:
-        # pg8000 connection
-        conn = pg8000.connect(DATABASE_URL)
+        # Parse DATABASE_URL for pg8000
+        # Format: postgresql://user:password@host:port/database
+        parsed = urlparse(DATABASE_URL)
+
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 5432
+        user = parsed.username or ""
+        password = parsed.password or ""
+        database = parsed.path.lstrip("/") or "riot_chat"
+
+        conn = pg8000.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            database=database
+        )
         conn.autocommit = False
         return conn
 
@@ -107,7 +103,6 @@ def init_db():
             )
         """)
     else:
-        # PostgreSQL schema with pg8000
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_profiles (
                 wallet_hash VARCHAR(32) PRIMARY KEY,
@@ -147,6 +142,26 @@ def init_db():
     conn.commit()
     conn.close()
     print("Database initialized (" + ("SQLite" if USE_SQLITE else "PostgreSQL") + ")")
+
+# ═══════════════════════════════════════════════════════════════
+# ENCRYPTION
+# ═══════════════════════════════════════════════════════════════
+def encrypt(data):
+    data_bytes = data.encode("utf-8")
+    encrypted = bytearray()
+    for i, byte in enumerate(data_bytes):
+        encrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
+    return base64.b64encode(bytes(encrypted)).decode("utf-8")
+
+def decrypt(data):
+    try:
+        encrypted = base64.b64decode(data)
+        decrypted = bytearray()
+        for i, byte in enumerate(encrypted):
+            decrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
+        return bytes(decrypted).decode("utf-8")
+    except:
+        return data
 
 # ═══════════════════════════════════════════════════════════════
 # PROFILE MANAGEMENT
@@ -204,7 +219,6 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
         conn.close()
         return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": now, "updated_at": now}
     else:
-        # pg8000 PostgreSQL
         c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row:
@@ -254,7 +268,6 @@ def update_profile_name(wallet_hash, name):
                 VALUES (?, ?, ?, ?, ?)
             """, (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
     else:
-        # pg8000 PostgreSQL
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row and row[0] and row[0].strip().lower() == name.lower():
@@ -330,7 +343,6 @@ def save_memory(wallet_hash, data):
         """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
               data.get("last_agent", ""), data.get("last_visit", now), now, now))
     else:
-        # pg8000 PostgreSQL
         c.execute("""
             INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
