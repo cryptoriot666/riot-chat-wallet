@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-RIOT Chat Wallet — Backend API STRICT
+RIOT Chat Wallet — Backend API STRICT v5
 Features: PostgreSQL, Walrus MAINNET, DeepSeek AI, 
-          User Profile Memory, On-Chain Indexing
+          User Profile Memory + Profile Settings (Bio, Social, Pic),
+          On-Chain Indexing
 """
 
 import os
@@ -64,6 +65,13 @@ def init_db():
                 wallet_hash TEXT PRIMARY KEY,
                 wallet_address TEXT,
                 name TEXT DEFAULT '',
+                bio TEXT DEFAULT '',
+                profile_pic TEXT DEFAULT '',
+                twitter TEXT DEFAULT '',
+                discord TEXT DEFAULT '',
+                telegram TEXT DEFAULT '',
+                instagram TEXT DEFAULT '',
+                website TEXT DEFAULT '',
                 preferences TEXT DEFAULT '',
                 visit_count INTEGER DEFAULT 1,
                 created_at TEXT,
@@ -100,6 +108,13 @@ def init_db():
                 wallet_hash VARCHAR(32) PRIMARY KEY,
                 wallet_address VARCHAR(66),
                 name VARCHAR(100) DEFAULT '',
+                bio VARCHAR(500) DEFAULT '',
+                profile_pic TEXT DEFAULT '',
+                twitter VARCHAR(100) DEFAULT '',
+                discord VARCHAR(100) DEFAULT '',
+                telegram VARCHAR(100) DEFAULT '',
+                instagram VARCHAR(100) DEFAULT '',
+                website TEXT DEFAULT '',
                 preferences TEXT DEFAULT '',
                 visit_count INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -158,7 +173,6 @@ def decrypt(data):
 # ═══════════════════════════════════════════════════════════════
 # NAME EXTRACTION — STRICT VERSION
 # ═══════════════════════════════════════════════════════════════
-# Blacklist: common words that should NEVER be names
 NAME_BLACKLIST = {
     'a', 'an', 'the', 'is', 'am', 'are', 'was', 'were', 'be', 'been',
     'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
@@ -183,12 +197,10 @@ NAME_BLACKLIST = {
 }
 
 def is_valid_name(name):
-    """Check if extracted string is actually a valid name"""
     if not name or len(name) < 2:
         return False
     if name.lower() in NAME_BLACKLIST:
         return False
-    # Must contain at least one letter
     if not any(c.isalpha() for c in name):
         return False
     return True
@@ -205,55 +217,23 @@ def extract_name_from_messages(messages):
 
             print(f"[EXTRACT] Checking: '{content[:60]}...'")
 
-            # Pattern 1: "my name is [name]" — MOST RELIABLE
-            m = re.search(r"my\s+name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'my name is': {m.group(1)}")
-                return m.group(1)
+            patterns = [
+                (r"my\s+name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "my name is"),
+                (r"i\s+am\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "i am"),
+                (r"call\s+me\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "call me"),
+                (r"nama\s+saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "nama saya"),
+                (r"saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "saya"),
+                (r"aku\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "aku"),
+                (r"my\s+name\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "my name"),
+                (r"name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", "name is"),
+            ]
 
-            # Pattern 2: "i am [name]"
-            m = re.search(r"i\s+am\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'i am': {m.group(1)}")
-                return m.group(1)
+            for pattern, label in patterns:
+                m = re.search(pattern, content, re.IGNORECASE)
+                if m and is_valid_name(m.group(1)):
+                    print(f"[EXTRACT] ✓ '{label}': {m.group(1)}")
+                    return m.group(1)
 
-            # Pattern 3: "call me [name]"
-            m = re.search(r"call\s+me\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'call me': {m.group(1)}")
-                return m.group(1)
-
-            # Pattern 4: "nama saya [name]"
-            m = re.search(r"nama\s+saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'nama saya': {m.group(1)}")
-                return m.group(1)
-
-            # Pattern 5: "saya [name]" (but NOT common words)
-            m = re.search(r"saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'saya': {m.group(1)}")
-                return m.group(1)
-
-            # Pattern 6: "aku [name]"
-            m = re.search(r"aku\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'aku': {m.group(1)}")
-                return m.group(1)
-
-            # Pattern 7: "my name [name]" (without "is")
-            m = re.search(r"my\s+name\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'my name': {m.group(1)}")
-                return m.group(1)
-
-            # Pattern 8: "name is [name]"
-            m = re.search(r"name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
-            if m and is_valid_name(m.group(1)):
-                print(f"[EXTRACT] ✓ 'name is': {m.group(1)}")
-                return m.group(1)
-
-            # Pattern 9: Single word message (2-15 chars, starts with letter)
             words = content.split()
             if len(words) == 1:
                 w = words[0]
@@ -277,8 +257,12 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
         if row:
             profile = {
                 "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
-                "preferences": row[3] or "", "visit_count": row[4] or 1,
-                "created_at": row[5], "updated_at": row[6]
+                "bio": row[3] or "", "profile_pic": row[4] or "",
+                "twitter": row[5] or "", "discord": row[6] or "",
+                "telegram": row[7] or "", "instagram": row[8] or "",
+                "website": row[9] or "", "preferences": row[10] or "",
+                "visit_count": row[11] or 1,
+                "created_at": row[12], "updated_at": row[13]
             }
             c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = ? WHERE wallet_hash = ?",
                       (datetime.now().isoformat(), wallet_hash))
@@ -288,20 +272,32 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
             return profile
 
         now = datetime.now().isoformat()
-        c.execute("INSERT INTO user_profiles (wallet_hash, wallet_address, name, preferences, visit_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                  (wallet_hash, wallet_address, "", "", 1, now, now))
+        c.execute("""
+            INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic, 
+                twitter, discord, telegram, instagram, website, preferences, visit_count, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1, now, now))
         conn.commit()
         conn.close()
-        return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": now, "updated_at": now}
+        return {
+            "wallet_hash": wallet_hash, "wallet_address": wallet_address,
+            "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "",
+            "telegram": "", "instagram": "", "website": "", "preferences": "",
+            "visit_count": 1, "created_at": now, "updated_at": now
+        }
     else:
         c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row:
             profile = {
                 "wallet_hash": row[0], "wallet_address": row[1], "name": row[2] or "",
-                "preferences": row[3] or "", "visit_count": row[4] or 1,
-                "created_at": row[5].isoformat() if row[5] else "", 
-                "updated_at": row[6].isoformat() if row[6] else ""
+                "bio": row[3] or "", "profile_pic": row[4] or "",
+                "twitter": row[5] or "", "discord": row[6] or "",
+                "telegram": row[7] or "", "instagram": row[8] or "",
+                "website": row[9] or "", "preferences": row[10] or "",
+                "visit_count": row[11] or 1,
+                "created_at": row[12].isoformat() if row[12] else "",
+                "updated_at": row[13].isoformat() if row[13] else ""
             }
             c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = CURRENT_TIMESTAMP WHERE wallet_hash = %s",
                       (wallet_hash,))
@@ -310,11 +306,19 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
             conn.close()
             return profile
 
-        c.execute("INSERT INTO user_profiles (wallet_hash, wallet_address, name, preferences, visit_count) VALUES (%s, %s, %s, %s, %s)",
-                  (wallet_hash, wallet_address, "", "", 1))
+        c.execute("""
+            INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
+                twitter, discord, telegram, instagram, website, preferences, visit_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1))
         conn.commit()
         conn.close()
-        return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
+        return {
+            "wallet_hash": wallet_hash, "wallet_address": wallet_address,
+            "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "",
+            "telegram": "", "instagram": "", "website": "", "preferences": "",
+            "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()
+        }
 
 def update_profile_name(wallet_hash, name):
     if not name or not wallet_hash or not name.strip():
@@ -322,8 +326,6 @@ def update_profile_name(wallet_hash, name):
         return False
 
     name = name.strip()
-
-    # STRICT validation
     if not is_valid_name(name):
         print(f"[UPDATE_NAME] ✗ Rejected invalid name: '{name}'")
         return False
@@ -337,23 +339,22 @@ def update_profile_name(wallet_hash, name):
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         row = c.fetchone()
         if row:
-            old_name = row[0] or ""
-            print(f"[UPDATE_NAME] Old name: '{old_name}' → New: '{name}'")
+            print(f"[UPDATE_NAME] Old name: '{row[0] or ''}' → New: '{name}'")
 
-        # FORCE OVERWRITE — always update
-        c.execute("UPDATE user_profiles SET name = ?, updated_at = ? WHERE wallet_hash = ?",
-                  (name, datetime.now().isoformat(), wallet_hash))
+        c.execute("""
+            UPDATE user_profiles SET name = ?, updated_at = ? WHERE wallet_hash = ?
+        """, (name, datetime.now().isoformat(), wallet_hash))
         if c.rowcount == 0:
-            c.execute("INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                      (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
+            c.execute("""
+                INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
     else:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row:
-            old_name = row[0] or ""
-            print(f"[UPDATE_NAME] Old name: '{old_name}' → New: '{name}'")
+            print(f"[UPDATE_NAME] Old name: '{row[0] or ''}' → New: '{name}'")
 
-        # FORCE OVERWRITE
         c.execute("""
             INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
             VALUES (%s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -364,6 +365,121 @@ def update_profile_name(wallet_hash, name):
     conn.close()
     print(f"[UPDATE_NAME] ✓ Success: '{name}' saved")
     return True
+
+# ═══════════════════════════════════════════════════════════════
+# PROFILE SETTINGS API
+# ═══════════════════════════════════════════════════════════════
+
+def update_profile_settings(wallet_hash, settings):
+    """Update profile settings: bio, profile_pic, social links"""
+    if not wallet_hash or not settings:
+        return False
+
+    allowed_fields = ["bio", "profile_pic", "twitter", "discord", "telegram", "instagram", "website"]
+    updates = {}
+    for field in allowed_fields:
+        if field in settings:
+            updates[field] = settings[field]
+
+    if not updates:
+        return False
+
+    conn = get_db_conn()
+    c = conn.cursor()
+
+    if USE_SQLITE:
+        set_clauses = []
+        values = []
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = ?")
+            values.append(value)
+        values.append(datetime.now().isoformat())
+        values.append(wallet_hash)
+
+        c.execute(f"""
+            UPDATE user_profiles 
+            SET {', '.join(set_clauses)}, updated_at = ?
+            WHERE wallet_hash = ?
+        """, values)
+        if c.rowcount == 0:
+            # Profile doesn't exist, create with settings
+            fields = ["wallet_hash", "name", "visit_count", "created_at", "updated_at"] + list(updates.keys())
+            placeholders = ["?", "?", "?", "?", "?"] + ["?"] * len(updates)
+            values = [wallet_hash, "", 1, datetime.now().isoformat(), datetime.now().isoformat()] + list(updates.values())
+            c.execute(f"""
+                INSERT INTO user_profiles ({', '.join(fields)})
+                VALUES ({', '.join(placeholders)})
+            """, values)
+    else:
+        set_clauses = []
+        values = []
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = %s")
+            values.append(value)
+        values.append(wallet_hash)
+
+        c.execute(f"""
+            UPDATE user_profiles 
+            SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
+            WHERE wallet_hash = %s
+        """, values)
+        if c.rowcount == 0:
+            fields = ["wallet_hash", "name", "visit_count", "created_at", "updated_at"] + list(updates.keys())
+            placeholders = ["%s"] * len(fields)
+            values = [wallet_hash, "", 1] + list(updates.values())
+            c.execute(f"""
+                INSERT INTO user_profiles ({', '.join(fields)})
+                VALUES ({', '.join(placeholders)})
+            """, values)
+
+    conn.commit()
+    conn.close()
+    print(f"[UPDATE_SETTINGS] ✓ Updated {list(updates.keys())} for {wallet_hash}")
+    return True
+
+def get_profile_settings(wallet_hash):
+    """Get full profile settings"""
+    conn = get_db_conn()
+    c = conn.cursor()
+
+    if USE_SQLITE:
+        c.execute("""
+            SELECT wallet_hash, name, bio, profile_pic, twitter, discord, 
+                   telegram, instagram, website, visit_count, preferences,
+                   created_at, updated_at
+            FROM user_profiles WHERE wallet_hash = ?
+        """, (wallet_hash,))
+    else:
+        c.execute("""
+            SELECT wallet_hash, name, bio, profile_pic, twitter, discord,
+                   telegram, instagram, website, visit_count, preferences,
+                   created_at, updated_at
+            FROM user_profiles WHERE wallet_hash = %s
+        """, (wallet_hash,))
+
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "wallet_hash": row[0],
+        "name": row[1] or "",
+        "bio": row[2] or "",
+        "profile_pic": row[3] or "",
+        "social": {
+            "twitter": row[4] or "",
+            "discord": row[5] or "",
+            "telegram": row[6] or "",
+            "instagram": row[7] or "",
+            "website": row[8] or ""
+        },
+        "visit_count": row[9] or 1,
+        "preferences": row[10] or "",
+        "created_at": row[11] if not USE_SQLITE and row[11] else str(row[11]) if row[11] else "",
+        "updated_at": row[12] if not USE_SQLITE and row[12] else str(row[12]) if row[12] else ""
+    }
 
 # ═══════════════════════════════════════════════════════════════
 # MEMORY MANAGEMENT
@@ -397,8 +513,17 @@ def load_memory(wallet_hash):
 
     if profile_row:
         memory["user_name"] = profile_row[2] or ""
-        memory["visit_count"] = profile_row[4] or 1
-        memory["preferences"] = profile_row[3] or ""
+        memory["visit_count"] = profile_row[11] or 1
+        memory["preferences"] = profile_row[10] or ""
+        memory["bio"] = profile_row[3] or ""
+        memory["profile_pic"] = profile_row[4] or ""
+        memory["social"] = {
+            "twitter": profile_row[5] or "",
+            "discord": profile_row[6] or "",
+            "telegram": profile_row[7] or "",
+            "instagram": profile_row[8] or "",
+            "website": profile_row[9] or ""
+        }
 
     print(f"[LOAD_MEMORY] {wallet_hash}: name='{memory['user_name']}', visits={memory['visit_count']}")
     return memory
@@ -588,17 +713,17 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
         return None
 
 # ═══════════════════════════════════════════════════════════════
-# API ROUTES
+# API ROUTES — EXISTING
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "RIOT Chat Wallet API is LIVE — MAINNET STRICT",
+        "status": "RIOT Chat Wallet API is LIVE — MAINNET STRICT v5",
         "network": "mainnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite",
         "encryption": "enabled",
-        "memory_system": "user_profiles + forced_injection_v4",
+        "memory_system": "user_profiles + forced_injection_v4 + profile_settings",
         "walrus": "mainnet",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
@@ -665,6 +790,106 @@ def chat():
     if response:
         return jsonify({"response": response, "source": "deepseek", "name_used": final_name})
     return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
+
+# ═══════════════════════════════════════════════════════════════
+# API ROUTES — PROFILE SETTINGS (NEW)
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/api/profile/get/<wallet_hash>", methods=["GET"])
+def profile_get(wallet_hash):
+    """Get full profile settings"""
+    try:
+        profile = get_profile_settings(wallet_hash)
+        if not profile:
+            return jsonify({
+                "success": True,
+                "exists": False,
+                "profile": None
+            })
+
+        return jsonify({
+            "success": True,
+            "exists": True,
+            "profile": profile
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/profile/update", methods=["POST"])
+def profile_update():
+    """Update profile settings"""
+    try:
+        data = request.json
+        wallet_hash = data.get("wallet_hash")
+
+        if not wallet_hash:
+            return jsonify({"success": False, "error": "wallet_hash required"}), 400
+
+        # Fields that can be updated
+        allowed_fields = ["bio", "profile_pic", "twitter", "discord", "telegram", "instagram", "website"]
+        updates = {}
+        for field in allowed_fields:
+            if field in data:
+                updates[field] = data[field]
+
+        if not updates:
+            return jsonify({"success": False, "error": "No valid fields to update"}), 400
+
+        success = update_profile_settings(wallet_hash, updates)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "updated": True,
+                "fields_updated": list(updates.keys()),
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({"success": False, "error": "Update failed"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/profile/create", methods=["POST"])
+def profile_create():
+    """Create new profile with name"""
+    try:
+        data = request.json
+        wallet_hash = data.get("wallet_hash")
+        wallet_address = data.get("wallet_address", "")
+        user_name = data.get("user_name", "")
+
+        if not wallet_hash:
+            return jsonify({"success": False, "error": "wallet_hash required"}), 400
+
+        # Check if exists
+        conn = get_db_conn()
+        c = conn.cursor()
+        if USE_SQLITE:
+            c.execute("SELECT wallet_hash FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+        else:
+            c.execute("SELECT wallet_hash FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+        existing = c.fetchone()
+        conn.close()
+
+        if existing:
+            return jsonify({"success": False, "error": "Profile already exists", "exists": True}), 409
+
+        # Create profile
+        profile = get_or_create_profile(wallet_hash, wallet_address)
+        if user_name:
+            update_profile_name(wallet_hash, user_name)
+
+        return jsonify({
+            "success": True,
+            "created": True,
+            "wallet_hash": wallet_hash,
+            "name": user_name,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════════
 # WALRUS ENDPOINTS
