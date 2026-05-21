@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-RIOT Chat Wallet — Backend API FINAL (pg8000 + URL parsing)
-Features: PostgreSQL (persistent), Walrus Testnet, DeepSeek AI, 
-          User Profile Memory, On-Chain Indexing, Chat History Backup
+RIOT Chat Wallet — Backend API FINAL v2
+FIXED: Better regex for name extraction, debug logging
 """
 
 import os
@@ -14,8 +13,6 @@ from urllib.parse import urlparse
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-
-# PostgreSQL support via pg8000 (pure Python)
 import pg8000
 
 app = Flask(__name__)
@@ -30,34 +27,27 @@ DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
 
-# Database URL: Render PostgreSQL or local fallback
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 USE_SQLITE = not DATABASE_URL
 
+print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
+print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
+
 # ═══════════════════════════════════════════════════════════════
-# DATABASE CONNECTION
+# DATABASE
 # ═══════════════════════════════════════════════════════════════
 def get_db_conn():
     if USE_SQLITE:
         import sqlite3
         return sqlite3.connect("riot_chat.db")
     else:
-        # Parse DATABASE_URL for pg8000
-        # Format: postgresql://user:password@host:port/database
         parsed = urlparse(DATABASE_URL)
-
-        host = parsed.hostname or "localhost"
-        port = parsed.port or 5432
-        user = parsed.username or ""
-        password = parsed.password or ""
-        database = parsed.path.lstrip("/") or "riot_chat"
-
         conn = pg8000.connect(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            database=database
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 5432,
+            user=parsed.username or "",
+            password=parsed.password or "",
+            database=parsed.path.lstrip("/") or "riot_chat"
         )
         conn.autocommit = False
         return conn
@@ -141,55 +131,86 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("Database initialized (" + ("SQLite" if USE_SQLITE else "PostgreSQL") + ")")
+    print("[INIT] Database initialized")
 
 # ═══════════════════════════════════════════════════════════════
-# ENCRYPTION
-# ═══════════════════════════════════════════════════════════════
-def encrypt(data):
-    data_bytes = data.encode("utf-8")
-    encrypted = bytearray()
-    for i, byte in enumerate(data_bytes):
-        encrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
-    return base64.b64encode(bytes(encrypted)).decode("utf-8")
-
-def decrypt(data):
-    try:
-        encrypted = base64.b64decode(data)
-        decrypted = bytearray()
-        for i, byte in enumerate(encrypted):
-            decrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
-        return bytes(decrypted).decode("utf-8")
-    except:
-        return data
-
-# ═══════════════════════════════════════════════════════════════
-# PROFILE MANAGEMENT
+# NAME EXTRACTION — FIXED: More flexible regex
 # ═══════════════════════════════════════════════════════════════
 def extract_name_from_messages(messages):
     if not messages:
         return ""
+
     for msg in messages:
         if isinstance(msg, dict) and msg.get("role") == "user":
-            content = msg.get("content", "")
-            patterns = [
-                r"my\s+name\s+is\s+([a-zA-Z0-9_]+)",
-                r"i\s+am\s+([a-zA-Z0-9_]+)",
-                r"call\s+me\s+([a-zA-Z0-9_]+)",
-                r"nama\s+saya\s+([a-zA-Z0-9_]+)",
-                r"saya\s+([a-zA-Z0-9_]+)",
-                r"aku\s+([a-zA-Z0-9_]+)",
-            ]
-            ignore = ['a','an','the','here','there','good','fine','happy','back',
-                      'baik','senang','suka','mau','ingin','nanda','kembali','disini']
-            for pattern in patterns:
-                m = re.search(pattern, content, re.IGNORECASE)
-                if m:
-                    name = m.group(1)
-                    if name.lower() not in ignore:
-                        return name
+            content = msg.get("content", "").strip()
+            if not content:
+                continue
+
+            print(f"[EXTRACT] Checking message: '{content[:50]}...'")
+
+            # Pattern 1: "my name is [name]" (with optional punctuation)
+            m = re.search(r"my\s+name\s+is\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m:
+                print(f"[EXTRACT] Found via 'my name is': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 2: "my name [name]" (without "is")
+            m = re.search(r"my\s+name\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m:
+                print(f"[EXTRACT] Found via 'my name': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 3: "i am [name]"
+            m = re.search(r"i\s+am\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m and m.group(1).lower() not in ['a','an','the','here','there','good','fine','happy','back']:
+                print(f"[EXTRACT] Found via 'i am': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 4: "call me [name]"
+            m = re.search(r"call\s+me\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m:
+                print(f"[EXTRACT] Found via 'call me': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 5: "nama saya [name]"
+            m = re.search(r"nama\s+saya\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m:
+                print(f"[EXTRACT] Found via 'nama saya': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 6: "saya [name]"
+            m = re.search(r"saya\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m and m.group(1).lower() not in ['baik','senang','suka','mau','ingin','nanda','kembali','disini']:
+                print(f"[EXTRACT] Found via 'saya': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 7: "aku [name]"
+            m = re.search(r"aku\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m and m.group(1).lower() not in ['baik','senang','suka','mau','ingin','nanda','kembali','disini']:
+                print(f"[EXTRACT] Found via 'aku': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 8: Single word that looks like a name (2+ chars, not common words)
+            # Only if message is very short (1-2 words)
+            words = content.split()
+            if len(words) == 1 and len(words[0]) >= 2:
+                w = words[0]
+                if w.lower() not in ['hello','hi','hey','yo','ok','yes','no','thanks','please','nanda']:
+                    print(f"[EXTRACT] Found single word: {w}")
+                    return w
+
+            # Pattern 9: "name is [name]"
+            m = re.search(r"name\s+is\s+([a-zA-Z0-9_]+)", content, re.IGNORECASE)
+            if m:
+                print(f"[EXTRACT] Found via 'name is': {m.group(1)}")
+                return m.group(1)
+
+    print("[EXTRACT] No name found")
     return ""
 
+# ═══════════════════════════════════════════════════════════════
+# PROFILE MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
 def get_or_create_profile(wallet_hash, wallet_address=""):
     conn = get_db_conn()
     c = conn.cursor()
@@ -211,10 +232,8 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
             return profile
 
         now = datetime.now().isoformat()
-        c.execute("""
-            INSERT INTO user_profiles (wallet_hash, wallet_address, name, preferences, visit_count, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (wallet_hash, wallet_address, "", "", 1, now, now))
+        c.execute("INSERT INTO user_profiles (wallet_hash, wallet_address, name, preferences, visit_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                  (wallet_hash, wallet_address, "", "", 1, now, now))
         conn.commit()
         conn.close()
         return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": now, "updated_at": now}
@@ -228,29 +247,27 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
                 "created_at": row[5].isoformat() if row[5] else "", 
                 "updated_at": row[6].isoformat() if row[6] else ""
             }
-            c.execute("""
-                UPDATE user_profiles 
-                SET visit_count = visit_count + 1, updated_at = CURRENT_TIMESTAMP 
-                WHERE wallet_hash = %s
-            """, (wallet_hash,))
+            c.execute("UPDATE user_profiles SET visit_count = visit_count + 1, updated_at = CURRENT_TIMESTAMP WHERE wallet_hash = %s",
+                      (wallet_hash,))
             conn.commit()
             profile["visit_count"] += 1
             conn.close()
             return profile
 
-        c.execute("""
-            INSERT INTO user_profiles (wallet_hash, wallet_address, name, preferences, visit_count)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (wallet_hash, wallet_address, "", "", 1))
+        c.execute("INSERT INTO user_profiles (wallet_hash, wallet_address, name, preferences, visit_count) VALUES (%s, %s, %s, %s, %s)",
+                  (wallet_hash, wallet_address, "", "", 1))
         conn.commit()
         conn.close()
         return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "preferences": "", "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
 
 def update_profile_name(wallet_hash, name):
     if not name or not wallet_hash or not name.strip():
+        print(f"[UPDATE_NAME] Skipped: name='{name}', wallet_hash='{wallet_hash}'")
         return False
 
     name = name.strip()
+    print(f"[UPDATE_NAME] Saving name '{name}' for wallet {wallet_hash}")
+
     conn = get_db_conn()
     c = conn.cursor()
 
@@ -258,19 +275,19 @@ def update_profile_name(wallet_hash, name):
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         row = c.fetchone()
         if row and row[0] and row[0].strip().lower() == name.lower():
+            print(f"[UPDATE_NAME] Name already same, skipping")
             conn.close()
             return True
         c.execute("UPDATE user_profiles SET name = ?, updated_at = ? WHERE wallet_hash = ?",
                   (name, datetime.now().isoformat(), wallet_hash))
         if c.rowcount == 0:
-            c.execute("""
-                INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-            """, (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
+            c.execute("INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                      (wallet_hash, name, 1, datetime.now().isoformat(), datetime.now().isoformat()))
     else:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         if row and row[0] and row[0].strip().lower() == name.lower():
+            print(f"[UPDATE_NAME] Name already same, skipping")
             conn.close()
             return True
         c.execute("""
@@ -281,6 +298,7 @@ def update_profile_name(wallet_hash, name):
 
     conn.commit()
     conn.close()
+    print(f"[UPDATE_NAME] Success: name '{name}' saved")
     return True
 
 # ═══════════════════════════════════════════════════════════════
@@ -318,6 +336,7 @@ def load_memory(wallet_hash):
         memory["visit_count"] = profile_row[4] or 1
         memory["preferences"] = profile_row[3] or ""
 
+    print(f"[LOAD_MEMORY] wallet={wallet_hash}, name='{memory['user_name']}', visits={memory['visit_count']}")
     return memory
 
 def save_memory(wallet_hash, data):
@@ -327,6 +346,8 @@ def save_memory(wallet_hash, data):
 
     messages = data.get("messages", [])
     extracted_name = extract_name_from_messages(messages)
+
+    print(f"[SAVE_MEMORY] wallet={wallet_hash}, extracted_name='{extracted_name}', data_name='{data.get('user_name', '')}'")
 
     if extracted_name and extracted_name.strip():
         update_profile_name(wallet_hash, extracted_name)
@@ -358,11 +379,29 @@ def save_memory(wallet_hash, data):
 
     conn.commit()
     conn.close()
+    print(f"[SAVE_MEMORY] Success for wallet {wallet_hash}")
     return True
 
 # ═══════════════════════════════════════════════════════════════
-# WALRUS STORAGE — Chat History Backup
+# WALRUS STORAGE
 # ═══════════════════════════════════════════════════════════════
+def encrypt(data):
+    data_bytes = data.encode("utf-8")
+    encrypted = bytearray()
+    for i, byte in enumerate(data_bytes):
+        encrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
+    return base64.b64encode(bytes(encrypted)).decode("utf-8")
+
+def decrypt(data):
+    try:
+        encrypted = base64.b64decode(data)
+        decrypted = bytearray()
+        for i, byte in enumerate(encrypted):
+            decrypted.append(byte ^ ENCRYPTION_KEY[i % len(ENCRYPTION_KEY)])
+        return bytes(decrypted).decode("utf-8")
+    except:
+        return data
+
 def walrus_store(data):
     try:
         payload = json.dumps(data)
@@ -371,10 +410,10 @@ def walrus_store(data):
         if res.status_code == 200:
             result = res.json()
             return result.get("blobId") or result.get("newlyCreated", {}).get("blobObject", {}).get("blobId")
-        print(f"Walrus store error: {res.status_code} — {res.text[:200]}")
+        print(f"[WALRUS] Store error: {res.status_code}")
         return None
     except Exception as e:
-        print(f"Walrus store error: {e}")
+        print(f"[WALRUS] Store error: {e}")
         return None
 
 def walrus_read(blob_id):
@@ -386,14 +425,14 @@ def walrus_read(blob_id):
             if encrypted_data:
                 decrypted = decrypt(encrypted_data)
                 return json.loads(decrypted)
-        print(f"Walrus read error: {res.status_code}")
+        print(f"[WALRUS] Read error: {res.status_code}")
         return None
     except Exception as e:
-        print(f"Walrus read error: {e}")
+        print(f"[WALRUS] Read error: {e}")
         return None
 
 # ═══════════════════════════════════════════════════════════════
-# DEEPSEEK AI — Strong Memory Enforcement
+# DEEPSEEK AI
 # ═══════════════════════════════════════════════════════════════
 AGENT_PROMPTS = {
     "J1": "You are J1 — The Architect. Cold precision. Mathematical certainty. Build systems, analyze patterns, see world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in human OS.",
@@ -437,6 +476,8 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     db_name = row[0] if row else ""
     final_name = db_name or user_name or ""
 
+    print(f"[DEEPSEEK] wallet={wallet_hash}, db_name='{db_name}', user_name='{user_name}', final='{final_name}'")
+
     memory_blocks = []
 
     if final_name:
@@ -468,10 +509,10 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
         if res.status_code == 200:
             data = res.json()
             return data["choices"][0]["message"]["content"]
-        print(f"DeepSeek error: {res.status_code} — {res.text[:200]}")
+        print(f"[DEEPSEEK] Error: {res.status_code}")
         return None
     except Exception as e:
-        print(f"DeepSeek API error: {e}")
+        print(f"[DEEPSEEK] API error: {e}")
         return None
 
 # ═══════════════════════════════════════════════════════════════
@@ -481,7 +522,7 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "RIOT Chat Wallet API is LIVE — FINAL",
+        "status": "RIOT Chat Wallet API is LIVE — FINAL v2",
         "network": "testnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite",
         "encryption": "enabled",
@@ -493,10 +534,12 @@ def health():
 
 @app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
+    print(f"[API] Load memory for wallet: {wallet_hash}")
     profile = get_or_create_profile(wallet_hash)
     memory = load_memory(wallet_hash)
     memory["user_name"] = profile.get("name", "")
     memory["visit_count"] = profile.get("visit_count", 1)
+    print(f"[API] Returning: name='{memory['user_name']}', visits={memory['visit_count']}")
     return jsonify(memory)
 
 @app.route("/api/memory/save", methods=["POST"])
@@ -552,7 +595,7 @@ def chat():
     return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
 
 # ═══════════════════════════════════════════════════════════════
-# WALRUS CHAT HISTORY ENDPOINTS
+# WALRUS ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/walrus/store-chat", methods=["POST"])
@@ -579,24 +622,15 @@ def walrus_store_chat():
         conn = get_db_conn()
         c = conn.cursor()
         if USE_SQLITE:
-            c.execute("""
-                INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size)
-                VALUES (?, ?, ?, ?, ?)
-            """, (wallet_hash, blob_id, datetime.now().isoformat(), agent_id, len(json.dumps(payload))))
+            c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (?, ?, ?, ?, ?)",
+                      (wallet_hash, blob_id, datetime.now().isoformat(), agent_id, len(json.dumps(payload))))
         else:
-            c.execute("""
-                INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size)
-                VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)
-            """, (wallet_hash, blob_id, agent_id, len(json.dumps(payload))))
+            c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)",
+                      (wallet_hash, blob_id, agent_id, len(json.dumps(payload))))
         conn.commit()
         conn.close()
 
-        return jsonify({
-            "success": True,
-            "blob_id": blob_id,
-            "message": "Chat history stored on Walrus",
-            "timestamp": datetime.now().isoformat()
-        })
+        return jsonify({"success": True, "blob_id": blob_id, "message": "Chat history stored on Walrus"})
 
     return jsonify({"success": False, "error": "Failed to store on Walrus"}), 500
 
@@ -606,17 +640,9 @@ def walrus_load_chat(wallet_hash):
     c = conn.cursor()
 
     if USE_SQLITE:
-        c.execute("""
-            SELECT blob_id FROM on_chain_saves 
-            WHERE wallet_hash = ? AND blob_id IS NOT NULL 
-            ORDER BY timestamp DESC LIMIT 1
-        """, (wallet_hash,))
+        c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
     else:
-        c.execute("""
-            SELECT blob_id FROM on_chain_saves 
-            WHERE wallet_hash = %s AND blob_id IS NOT NULL 
-            ORDER BY timestamp DESC LIMIT 1
-        """, (wallet_hash,))
+        c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
     row = c.fetchone()
     conn.close()
 
@@ -627,64 +653,15 @@ def walrus_load_chat(wallet_hash):
     chat_data = walrus_read(blob_id)
 
     if chat_data:
-        return jsonify({
-            "success": True,
-            "chat_history": chat_data.get("chat_history", []),
-            "blob_id": blob_id,
-            "stored_at": chat_data.get("timestamp", "unknown"),
-            "agent_id": chat_data.get("agent_id", "")
-        })
+        return jsonify({"success": True, "chat_history": chat_data.get("chat_history", []), "blob_id": blob_id})
 
     return jsonify({"success": False, "error": "Failed to read from Walrus"}), 500
 
-@app.route("/api/walrus/history/<wallet_hash>", methods=["GET"])
-def walrus_history(wallet_hash):
-    conn = get_db_conn()
-    c = conn.cursor()
-
-    if USE_SQLITE:
-        c.execute("""
-            SELECT tx_digest, blob_id, timestamp, agent_id, data_size 
-            FROM on_chain_saves 
-            WHERE wallet_hash = ? 
-            ORDER BY timestamp DESC
-        """, (wallet_hash,))
-    else:
-        c.execute("""
-            SELECT tx_digest, blob_id, timestamp, agent_id, data_size 
-            FROM on_chain_saves 
-            WHERE wallet_hash = %s 
-            ORDER BY timestamp DESC
-        """, (wallet_hash,))
-    rows = c.fetchall()
-    conn.close()
-
-    history = []
-    for row in rows:
-        entry = {
-            "tx_digest": row[0],
-            "blob_id": row[1],
-            "timestamp": row[2] if USE_SQLITE else (row[2].isoformat() if row[2] else ""),
-            "agent_id": row[3],
-            "data_size": row[4]
-        }
-        if row[0]:
-            entry["explorer_url"] = f"https://suiscan.xyz/testnet/tx/{row[0]}"
-        if row[1]:
-            entry["walrus_url"] = f"{WALRUS_AGGREGATOR}/v1/{row[1]}"
-        history.append(entry)
-
-    return jsonify({"wallet_hash": wallet_hash, "saves": history, "total": len(history)})
-
-# ═══════════════════════════════════════════════════════════════
-# ON-CHAIN SAVE (Sui Transaction Indexing)
-# ═══════════════════════════════════════════════════════════════
 @app.route("/api/walrus/save", methods=["POST"])
 def walrus_save():
     data = request.json
     wallet_hash = data.get("wallet_hash")
     tx_digest = data.get("tx_digest")
-    object_id = data.get("object_id", "")
     blob_id = data.get("blob_id", "")
 
     if not wallet_hash or not tx_digest:
@@ -694,27 +671,16 @@ def walrus_save():
     c = conn.cursor()
 
     if USE_SQLITE:
-        c.execute("""
-            INSERT INTO on_chain_saves (wallet_hash, tx_digest, object_id, blob_id, timestamp, agent_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (wallet_hash, tx_digest, object_id, blob_id, datetime.now().isoformat(), data.get("agent_id", "")))
+        c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (?, ?, ?, ?, ?)",
+                  (wallet_hash, tx_digest, blob_id, datetime.now().isoformat(), data.get("agent_id", "")))
     else:
-        c.execute("""
-            INSERT INTO on_chain_saves (wallet_hash, tx_digest, object_id, blob_id, timestamp, agent_id)
-            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
-        """, (wallet_hash, tx_digest, object_id, blob_id, data.get("agent_id", "")))
+        c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s)",
+                  (wallet_hash, tx_digest, blob_id, data.get("agent_id", "")))
 
     conn.commit()
     conn.close()
 
-    return jsonify({
-        "success": True,
-        "tx_digest": tx_digest,
-        "object_id": object_id,
-        "blob_id": blob_id,
-        "indexed": True,
-        "timestamp": datetime.now().isoformat()
-    })
+    return jsonify({"success": True, "tx_digest": tx_digest, "blob_id": blob_id, "indexed": True})
 
 # ═══════════════════════════════════════════════════════════════
 # MAIN
