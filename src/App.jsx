@@ -74,7 +74,7 @@ async function getMemWalStatus() {
     return { ready: false };
   }
 }
-
+const AGENTS = [
   { id: 'J5', name: 'J5 — The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', img: '/assets/J5.jpg' },
   { id: 'J6', name: 'J6 — The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', img: '/assets/J6.jpg' },
   { id: 'J7', name: 'J7 — The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', img: '/assets/J7.jpg' },
