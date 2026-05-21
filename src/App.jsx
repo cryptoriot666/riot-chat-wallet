@@ -9,7 +9,7 @@ import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, Alert
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
 const RIOT_PINK = '#ff2a6d'
 const RIOT_DARK = '#0a0a0f'
-const AUTO_SAVE_INTERVAL = 5  // Save to Walrus every N messages
+const AUTO_SAVE_INTERVAL = 5
 
 // ═══════════════════════════════════════════════════════════════
 // 25 AGENTS
@@ -517,7 +517,6 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // AUTO-SAVE: every AUTO_SAVE_INTERVAL messages
   useEffect(() => {
     if (connected && walletHash && messages.length > 0 && messages.length % AUTO_SAVE_INTERVAL === 0) {
       autoSaveToWalrus()
