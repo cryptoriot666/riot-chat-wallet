@@ -23,8 +23,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://walrus-mainnet-publisher-1.staketab.org"
-WALRUS_AGGREGATOR = "https://walrus-mainnet-aggregator.staketab.org"
+WALRUS_PUBLISHER = "https://walrus-testnet-publisher.natsai.xyz"
+WALRUS_AGGREGATOR = "https://walrus-testnet-aggregator.natsai.xyz"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
