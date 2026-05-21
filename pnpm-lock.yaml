@@ -10,22 +10,19 @@ importers:
     dependencies:
       '@mysten-incubation/memwal':
         specifier: ^0.0.4
-        version: 0.0.4(@mysten/seal@1.1.3(@mysten/sui@2.17.0(typescript@6.0.3)))(@mysten/sui@2.17.0(typescript@6.0.3))(@mysten/walrus@1.1.7(@mysten/sui@2.17.0(typescript@6.0.3)))
+        version: 0.0.4(@mysten/seal@1.1.3)(@mysten/walrus@1.1.7)
       '@mysten/seal':
         specifier: ^1.1.3
-        version: 1.1.3(@mysten/sui@2.17.0(typescript@6.0.3))
-      '@mysten/sui':
-        specifier: ^2.17.0
-        version: 2.17.0(typescript@6.0.3)
+        version: 1.1.3
       '@mysten/sui.js':
         specifier: ^0.54.1
         version: 0.54.1(typescript@6.0.3)
       '@mysten/walrus':
         specifier: ^1.1.7
-        version: 1.1.7(@mysten/sui@2.17.0(typescript@6.0.3))
+        version: 1.1.7
       '@suiet/wallet-kit':
         specifier: ^0.3.0
-        version: 0.3.8(@mysten/sui@2.17.0(typescript@6.0.3))(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)
+        version: 0.3.8(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)
       lucide-react:
         specifier: ^1.16.0
         version: 1.16.0(react@18.3.1)
@@ -866,10 +863,6 @@ packages:
     resolution: {integrity: sha512-iL7yztpePS/GWFZ7yiD/Pl7ciuOD2ySyogJZmLFu4WxZfiIcXJX+U/U+Egq9VHvELk8+m+Z1OvvPlNQfuowMIg==}
     engines: {node: '>=18'}
 
-  '@mysten/sui@2.17.0':
-    resolution: {integrity: sha512-TrS1BCPm4V6rC69MBejmcqnKIyJ5t1iksax4XA9jWarZxAAp9LMmdxEBebejyDT/yAJxYIf3fNm5WBkHE2qnIw==}
-    engines: {node: '>=22'}
-
   '@mysten/utils@0.0.0':
     resolution: {integrity: sha512-KRI57Qow3E7TGqczimazwGf7+fwukdOi+6a31igSCzz0kPjAXbyK1a1gXaxeLMF8xEZ07ouW3RnsWt+EaUuHUw==}
 
@@ -917,15 +910,6 @@ packages:
   '@noble/hashes@2.2.0':
     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
     engines: {node: '>= 20.19.0'}
-
-  '@protobuf-ts/grpcweb-transport@2.11.1':
-    resolution: {integrity: sha512-1W4utDdvOB+RHMFQ0soL4JdnxjXV+ddeGIUg08DvZrA8Ms6k5NN6GBFU2oHZdTOcJVpPrDJ02RJlqtaoCMNBtw==}
-
-  '@protobuf-ts/runtime-rpc@2.11.1':
-    resolution: {integrity: sha512-4CqqUmNA+/uMz00+d3CYKgElXO9VrEbucjnBFEjqI4GuDrEQ32MaI3q+9qPBvIGOlL4PmHXrzM32vBPWRhQKWQ==}
-
-  '@protobuf-ts/runtime@2.11.1':
-    resolution: {integrity: sha512-KuDaT1IfHkugM2pyz+FwiY80ejWrkH1pAtOBOZFuR6SXEFTsnb/jiQWQ1rCIrcKx2BtyxnxW6BWwsVSA/Ie+WQ==}
 
   '@radix-ui/primitive@1.0.0':
     resolution: {integrity: sha512-3e7rn8FDMin4CgeL7Z/49smCA3rFYY3Ha2rUQ7HRWFadS5iCRw08ZgVT1LaNTCNqgvrUiyczLflrVrF0SRQtNA==}
@@ -1165,14 +1149,8 @@ packages:
   '@scure/bip32@1.7.0':
     resolution: {integrity: sha512-E4FFX/N3f4B80AKWp5dP6ow+flD1LQZo/w8UnLGYZO674jS6YnYeepycOOksv+vLPSpgN35wgKgy+ybfTb2SMw==}
 
-  '@scure/bip32@2.2.0':
-    resolution: {integrity: sha512-zFr7t2F+a9+5tB7QbarF2HQNYrgjCNaoLAupZdKkrFMYMozJf5zqH2WJCQibMzm1qQ0QogrxVGO3qXfQDYMaQg==}
-
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
-
-  '@scure/bip39@2.2.0':
-    resolution: {integrity: sha512-T/Bj/YvYMNkIPq6EENO6/rcs2e7qTNuyoUXf0KBFDmp0ZDu0H2X4Lq6yC3i0c8PcWkov5EbW+yQZZbdMmk154A==}
 
   '@suchipi/femver@1.0.0':
     resolution: {integrity: sha512-bprE8+K5V+DPX7q2e2K57ImqNBdfGHDIWaGI5xHxZoxbKOuQZn4wzPiUxOAHnsUr3w3xHrWXwN7gnG/iIuEMIg==}
@@ -1898,14 +1876,6 @@ packages:
 
   valibot@0.36.0:
     resolution: {integrity: sha512-CjF1XN4sUce8sBK9TixrDqFM7RwNkuXdJu174/AwmQUB62QbCQADg5lLe8ldBalFgtj1uKj+pKwDJiNo4Mn+eQ==}
-
-  valibot@1.4.0:
-    resolution: {integrity: sha512-iC/x7fVcSyOwlm/VSt7RlHnzNGLGvR9GnxdifUeWoCJo0q4ZZvrVkIHC6faTlkxG47I2Y4UrFquPuVHCrOnrLg==}
-    peerDependencies:
-      typescript: '>=5'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   vite@5.4.21:
     resolution: {integrity: sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw==}
@@ -2816,14 +2786,13 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mysten-incubation/memwal@0.0.4(@mysten/seal@1.1.3(@mysten/sui@2.17.0(typescript@6.0.3)))(@mysten/sui@2.17.0(typescript@6.0.3))(@mysten/walrus@1.1.7(@mysten/sui@2.17.0(typescript@6.0.3)))':
+  '@mysten-incubation/memwal@0.0.4(@mysten/seal@1.1.3)(@mysten/walrus@1.1.7)':
     dependencies:
-      '@mysten/seal': 1.1.3(@mysten/sui@2.17.0(typescript@6.0.3))
-      '@mysten/sui': 2.17.0(typescript@6.0.3)
+      '@mysten/seal': 1.1.3
       '@noble/ed25519': 2.3.0
       '@noble/hashes': 2.2.0
     optionalDependencies:
-      '@mysten/walrus': 1.1.7(@mysten/sui@2.17.0(typescript@6.0.3))
+      '@mysten/walrus': 1.1.7
 
   '@mysten/bcs@0.11.1':
     dependencies:
@@ -2842,10 +2811,9 @@ snapshots:
       '@mysten/utils': 0.3.3
       '@scure/base': 2.2.0
 
-  '@mysten/seal@1.1.3(@mysten/sui@2.17.0(typescript@6.0.3))':
+  '@mysten/seal@1.1.3':
     dependencies:
       '@mysten/bcs': 2.0.5
-      '@mysten/sui': 2.17.0(typescript@6.0.3)
       '@noble/curves': 2.2.0
       '@noble/hashes': 2.2.0
 
@@ -2919,28 +2887,6 @@ snapshots:
       - '@gql.tada/vue-support'
       - typescript
 
-  '@mysten/sui@2.17.0(typescript@6.0.3)':
-    dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.0)
-      '@mysten/bcs': 2.0.5
-      '@mysten/utils': 0.3.3
-      '@noble/curves': 2.2.0
-      '@noble/hashes': 2.2.0
-      '@protobuf-ts/grpcweb-transport': 2.11.1
-      '@protobuf-ts/runtime': 2.11.1
-      '@protobuf-ts/runtime-rpc': 2.11.1
-      '@scure/base': 2.2.0
-      '@scure/bip32': 2.2.0
-      '@scure/bip39': 2.2.0
-      gql.tada: 1.9.2(graphql@16.14.0)(typescript@6.0.3)
-      graphql: 16.14.0
-      poseidon-lite: 0.2.1
-      valibot: 1.4.0(typescript@6.0.3)
-    transitivePeerDependencies:
-      - '@gql.tada/svelte-support'
-      - '@gql.tada/vue-support'
-      - typescript
-
   '@mysten/utils@0.0.0':
     dependencies:
       '@scure/base': 1.2.6
@@ -2969,10 +2915,9 @@ snapshots:
 
   '@mysten/walrus-wasm@0.2.2': {}
 
-  '@mysten/walrus@1.1.7(@mysten/sui@2.17.0(typescript@6.0.3))':
+  '@mysten/walrus@1.1.7':
     dependencies:
       '@mysten/bcs': 2.0.5
-      '@mysten/sui': 2.17.0(typescript@6.0.3)
       '@mysten/utils': 0.3.3
       '@mysten/walrus-wasm': 0.2.2
       dataloader: 2.2.3
@@ -3010,17 +2955,6 @@ snapshots:
   '@noble/hashes@1.8.0': {}
 
   '@noble/hashes@2.2.0': {}
-
-  '@protobuf-ts/grpcweb-transport@2.11.1':
-    dependencies:
-      '@protobuf-ts/runtime': 2.11.1
-      '@protobuf-ts/runtime-rpc': 2.11.1
-
-  '@protobuf-ts/runtime-rpc@2.11.1':
-    dependencies:
-      '@protobuf-ts/runtime': 2.11.1
-
-  '@protobuf-ts/runtime@2.11.1': {}
 
   '@radix-ui/primitive@1.0.0':
     dependencies:
@@ -3231,32 +3165,20 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@scure/bip32@2.2.0':
-    dependencies:
-      '@noble/curves': 2.2.0
-      '@noble/hashes': 2.2.0
-      '@scure/base': 2.2.0
-
   '@scure/bip39@1.6.0':
     dependencies:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@scure/bip39@2.2.0':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@scure/base': 2.2.0
-
   '@suchipi/femver@1.0.0': {}
 
-  '@suiet/wallet-kit@0.3.8(@mysten/sui@2.17.0(typescript@6.0.3))(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)':
+  '@suiet/wallet-kit@0.3.8(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)':
     dependencies:
       '@mysten/slush-wallet': 0.1.0(typescript@6.0.3)
-      '@mysten/sui': 2.17.0(typescript@6.0.3)
       '@mysten/wallet-standard': 0.14.7(typescript@6.0.3)
       '@mysten/zksend': 0.11.0(typescript@6.0.3)
       '@radix-ui/react-dialog': 1.0.2(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@suiet/wallet-sdk': 0.3.7(@mysten/sui@2.17.0(typescript@6.0.3))(typescript@6.0.3)
+      '@suiet/wallet-sdk': 0.3.7(typescript@6.0.3)
       '@svgr/rollup': 6.5.1
       '@wallet-standard/core': 1.0.3
       buffer: 6.0.3
@@ -3274,10 +3196,9 @@ snapshots:
       - supports-color
       - typescript
 
-  '@suiet/wallet-sdk@0.3.7(@mysten/sui@2.17.0(typescript@6.0.3))(typescript@6.0.3)':
+  '@suiet/wallet-sdk@0.3.7(typescript@6.0.3)':
     dependencies:
       '@mysten/slush-wallet': 0.1.0(typescript@6.0.3)
-      '@mysten/sui': 2.17.0(typescript@6.0.3)
       '@mysten/wallet-standard': 0.14.7(typescript@6.0.3)
       '@mysten/zksend': 0.11.0(typescript@6.0.3)
       '@noble/hashes': 1.3.0
@@ -4014,10 +3935,6 @@ snapshots:
       '@types/react': 18.3.29
 
   valibot@0.36.0: {}
-
-  valibot@1.4.0(typescript@6.0.3):
-    optionalDependencies:
-      typescript: 6.0.3
 
   vite@5.4.21:
     dependencies:
