@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RIOT Chat Wallet — Backend API MAINNET
+RIOT Chat Wallet — Backend API STRICT
 Features: PostgreSQL, Walrus MAINNET, DeepSeek AI, 
           User Profile Memory, On-Chain Indexing
 """
@@ -20,7 +20,7 @@ app = Flask(__name__)
 CORS(app, origins=["*"])
 
 # ═══════════════════════════════════════════════════════════════
-# CONFIG — MAINNET
+# CONFIG
 # ═══════════════════════════════════════════════════════════════
 WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
 WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
@@ -156,8 +156,43 @@ def decrypt(data):
         return data
 
 # ═══════════════════════════════════════════════════════════════
-# NAME EXTRACTION
+# NAME EXTRACTION — STRICT VERSION
 # ═══════════════════════════════════════════════════════════════
+# Blacklist: common words that should NEVER be names
+NAME_BLACKLIST = {
+    'a', 'an', 'the', 'is', 'am', 'are', 'was', 'were', 'be', 'been',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'can', 'shall',
+    'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her',
+    'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours',
+    'this', 'that', 'these', 'those', 'here', 'there', 'where', 'when',
+    'what', 'who', 'which', 'why', 'how', 'all', 'some', 'any', 'no',
+    'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very',
+    'just', 'now', 'then', 'also', 'back', 'still', 'already',
+    'good', 'fine', 'happy', 'sad', 'bad', 'new', 'old', 'first', 'last',
+    'long', 'great', 'little', 'big', 'high', 'small', 'large', 'next',
+    'early', 'young', 'important', 'public', 'sure', 'able', 'ready',
+    'baik', 'senang', 'suka', 'mau', 'ingin', 'kembali', 'disini',
+    'ada', 'tidak', 'bisa', 'sudah', 'belum', 'akan', 'dari', 'ke',
+    'di', 'yang', 'untuk', 'dengan', 'pada', 'dalam', 'oleh', 'seperti',
+    'hello', 'hi', 'hey', 'yo', 'ok', 'yes', 'no', 'thanks', 'please',
+    'gonna', 'wanna', 'gotta', 'dunno', 'lemme', 'gimme', 'kinda',
+    'sorta', 'outta', 'lotta', 'gotcha', 'betta', 'coulda', 'shoulda',
+    'woulda', 'mighta', 'musta', 'dunno', 'ain\'t', 'y\'all',
+    'cuz', 'coz', 'cos', 'cause', 'becuz',
+}
+
+def is_valid_name(name):
+    """Check if extracted string is actually a valid name"""
+    if not name or len(name) < 2:
+        return False
+    if name.lower() in NAME_BLACKLIST:
+        return False
+    # Must contain at least one letter
+    if not any(c.isalpha() for c in name):
+        return False
+    return True
+
 def extract_name_from_messages(messages):
     if not messages:
         return ""
@@ -168,43 +203,69 @@ def extract_name_from_messages(messages):
             if not content:
                 continue
 
-            print(f"[EXTRACT] Checking: '{content[:50]}...'")
+            print(f"[EXTRACT] Checking: '{content[:60]}...'")
 
-            patterns = [
-                (r"my\s+name\s+is\s+([a-zA-Z0-9_]+)", "my name is"),
-                (r"my\s+name\s+([a-zA-Z0-9_]+)", "my name"),
-                (r"i\s+am\s+([a-zA-Z0-9_]+)", "i am"),
-                (r"call\s+me\s+([a-zA-Z0-9_]+)", "call me"),
-                (r"nama\s+saya\s+([a-zA-Z0-9_]+)", "nama saya"),
-                (r"saya\s+([a-zA-Z0-9_]+)", "saya"),
-                (r"aku\s+([a-zA-Z0-9_]+)", "aku"),
-                (r"name\s+is\s+([a-zA-Z0-9_]+)", "name is"),
-            ]
+            # Pattern 1: "my name is [name]" — MOST RELIABLE
+            m = re.search(r"my\s+name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'my name is': {m.group(1)}")
+                return m.group(1)
 
-            ignore = ['a','an','the','here','there','good','fine','happy','back',
-                      'baik','senang','suka','mau','ingin','nanda','kembali','disini']
+            # Pattern 2: "i am [name]"
+            m = re.search(r"i\s+am\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'i am': {m.group(1)}")
+                return m.group(1)
 
-            for pattern, label in patterns:
-                m = re.search(pattern, content, re.IGNORECASE)
-                if m:
-                    name = m.group(1)
-                    if name.lower() not in ignore:
-                        print(f"[EXTRACT] Found via '{label}': {name}")
-                        return name
+            # Pattern 3: "call me [name]"
+            m = re.search(r"call\s+me\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'call me': {m.group(1)}")
+                return m.group(1)
 
-            # Single word fallback
+            # Pattern 4: "nama saya [name]"
+            m = re.search(r"nama\s+saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'nama saya': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 5: "saya [name]" (but NOT common words)
+            m = re.search(r"saya\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'saya': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 6: "aku [name]"
+            m = re.search(r"aku\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'aku': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 7: "my name [name]" (without "is")
+            m = re.search(r"my\s+name\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'my name': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 8: "name is [name]"
+            m = re.search(r"name\s+is\s+([a-zA-Z][a-zA-Z0-9_]{1,20})", content, re.IGNORECASE)
+            if m and is_valid_name(m.group(1)):
+                print(f"[EXTRACT] ✓ 'name is': {m.group(1)}")
+                return m.group(1)
+
+            # Pattern 9: Single word message (2-15 chars, starts with letter)
             words = content.split()
-            if len(words) == 1 and len(words[0]) >= 2:
+            if len(words) == 1:
                 w = words[0]
-                if w.lower() not in ['hello','hi','hey','yo','ok','yes','no','thanks','please']:
-                    print(f"[EXTRACT] Found single word: {w}")
+                if is_valid_name(w):
+                    print(f"[EXTRACT] ✓ single word: {w}")
                     return w
 
-    print("[EXTRACT] No name found")
+    print("[EXTRACT] ✗ No valid name found")
     return ""
 
 # ═══════════════════════════════════════════════════════════════
-# PROFILE MANAGEMENT
+# PROFILE MANAGEMENT — FORCE OVERWRITE
 # ═══════════════════════════════════════════════════════════════
 def get_or_create_profile(wallet_hash, wallet_address=""):
     conn = get_db_conn()
@@ -257,9 +318,16 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
 
 def update_profile_name(wallet_hash, name):
     if not name or not wallet_hash or not name.strip():
+        print(f"[UPDATE_NAME] ✗ Skipped: empty name")
         return False
 
     name = name.strip()
+
+    # STRICT validation
+    if not is_valid_name(name):
+        print(f"[UPDATE_NAME] ✗ Rejected invalid name: '{name}'")
+        return False
+
     print(f"[UPDATE_NAME] Saving '{name}' for {wallet_hash}")
 
     conn = get_db_conn()
@@ -268,9 +336,11 @@ def update_profile_name(wallet_hash, name):
     if USE_SQLITE:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         row = c.fetchone()
-        if row and row[0] and row[0].strip().lower() == name.lower():
-            conn.close()
-            return True
+        if row:
+            old_name = row[0] or ""
+            print(f"[UPDATE_NAME] Old name: '{old_name}' → New: '{name}'")
+
+        # FORCE OVERWRITE — always update
         c.execute("UPDATE user_profiles SET name = ?, updated_at = ? WHERE wallet_hash = ?",
                   (name, datetime.now().isoformat(), wallet_hash))
         if c.rowcount == 0:
@@ -279,9 +349,11 @@ def update_profile_name(wallet_hash, name):
     else:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
-        if row and row[0] and row[0].strip().lower() == name.lower():
-            conn.close()
-            return True
+        if row:
+            old_name = row[0] or ""
+            print(f"[UPDATE_NAME] Old name: '{old_name}' → New: '{name}'")
+
+        # FORCE OVERWRITE
         c.execute("""
             INSERT INTO user_profiles (wallet_hash, name, visit_count, created_at, updated_at)
             VALUES (%s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -290,7 +362,7 @@ def update_profile_name(wallet_hash, name):
 
     conn.commit()
     conn.close()
-    print(f"[UPDATE_NAME] Success: '{name}' saved")
+    print(f"[UPDATE_NAME] ✓ Success: '{name}' saved")
     return True
 
 # ═══════════════════════════════════════════════════════════════
@@ -371,11 +443,11 @@ def save_memory(wallet_hash, data):
 
     conn.commit()
     conn.close()
-    print(f"[SAVE_MEMORY] Success for {wallet_hash}")
+    print(f"[SAVE_MEMORY] ✓ Success for {wallet_hash}")
     return True
 
 # ═══════════════════════════════════════════════════════════════
-# WALRUS STORAGE — MAINNET with detailed error logging
+# WALRUS STORAGE — MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     try:
@@ -383,7 +455,6 @@ def walrus_store(data):
         encrypted = encrypt(payload)
 
         print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
-        print(f"[WALRUS] Publisher: {WALRUS_PUBLISHER}")
 
         res = requests.put(
             f"{WALRUS_PUBLISHER}/v1/store",
@@ -391,34 +462,32 @@ def walrus_store(data):
             timeout=60
         )
 
-        print(f"[WALRUS] Response status: {res.status_code}")
-        print(f"[WALRUS] Response body: {res.text[:200]}")
+        print(f"[WALRUS] Status: {res.status_code}")
+        print(f"[WALRUS] Body: {res.text[:200]}")
 
         if res.status_code == 200:
             result = res.json()
             blob_id = result.get("blobId") or result.get("newlyCreated", {}).get("blobObject", {}).get("blobId")
-            print(f"[WALRUS] Success! Blob ID: {blob_id}")
+            print(f"[WALRUS] ✓ Blob ID: {blob_id}")
             return blob_id
 
-        print(f"[WALRUS] Store failed: HTTP {res.status_code}")
+        print(f"[WALRUS] ✗ Failed: HTTP {res.status_code}")
         return None
 
     except requests.exceptions.Timeout:
-        print(f"[WALRUS] Timeout after 60s")
+        print(f"[WALRUS] ✗ Timeout")
         return None
     except requests.exceptions.ConnectionError as e:
-        print(f"[WALRUS] Connection error: {e}")
+        print(f"[WALRUS] ✗ Connection error: {e}")
         return None
     except Exception as e:
-        print(f"[WALRUS] Unexpected error: {e}")
+        print(f"[WALRUS] ✗ Error: {e}")
         return None
 
 def walrus_read(blob_id):
     try:
-        print(f"[WALRUS] Reading blob {blob_id} from MAINNET...")
+        print(f"[WALRUS] Reading {blob_id}...")
         res = requests.get(f"{WALRUS_AGGREGATOR}/v1/{blob_id}", timeout=60)
-
-        print(f"[WALRUS] Read status: {res.status_code}")
 
         if res.status_code == 200:
             result = res.json()
@@ -427,11 +496,11 @@ def walrus_read(blob_id):
                 decrypted = decrypt(encrypted_data)
                 return json.loads(decrypted)
 
-        print(f"[WALRUS] Read failed: HTTP {res.status_code}")
+        print(f"[WALRUS] ✗ Read failed: {res.status_code}")
         return None
 
     except Exception as e:
-        print(f"[WALRUS] Read error: {e}")
+        print(f"[WALRUS] ✗ Read error: {e}")
         return None
 
 # ═══════════════════════════════════════════════════════════════
@@ -525,11 +594,11 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "RIOT Chat Wallet API is LIVE — MAINNET",
+        "status": "RIOT Chat Wallet API is LIVE — MAINNET STRICT",
         "network": "mainnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite",
         "encryption": "enabled",
-        "memory_system": "user_profiles + forced_injection_v3",
+        "memory_system": "user_profiles + forced_injection_v4",
         "walrus": "mainnet",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
@@ -537,7 +606,7 @@ def health():
 
 @app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
-    print(f"[API] Load memory: {wallet_hash}")
+    print(f"[API] Load: {wallet_hash}")
     profile = get_or_create_profile(wallet_hash)
     memory = load_memory(wallet_hash)
     memory["user_name"] = profile.get("name", "")
@@ -598,7 +667,7 @@ def chat():
     return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
 
 # ═══════════════════════════════════════════════════════════════
-# WALRUS CHAT HISTORY — MAINNET
+# WALRUS ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/walrus/store-chat", methods=["POST"])
@@ -611,7 +680,7 @@ def walrus_store_chat():
     if not wallet_hash or not chat_history:
         return jsonify({"error": "wallet_hash and chat_history required"}), 400
 
-    print(f"[API] Walrus store-chat: wallet={wallet_hash}, messages={len(chat_history)}")
+    print(f"[API] Walrus store: wallet={wallet_hash}, messages={len(chat_history)}")
 
     payload = {
         "wallet_hash": wallet_hash,
@@ -635,15 +704,10 @@ def walrus_store_chat():
         conn.commit()
         conn.close()
 
-        print(f"[API] Walrus store success: blob_id={blob_id}")
-        return jsonify({
-            "success": True,
-            "blob_id": blob_id,
-            "message": "Chat history stored on Walrus MAINNET",
-            "timestamp": datetime.now().isoformat()
-        })
+        print(f"[API] Walrus ✓ blob_id={blob_id}")
+        return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus MAINNET"})
 
-    print(f"[API] Walrus store FAILED")
+    print(f"[API] Walrus ✗ FAILED")
     return jsonify({"success": False, "error": "Failed to store on Walrus"}), 500
 
 @app.route("/api/walrus/load-chat/<wallet_hash>", methods=["GET"])
