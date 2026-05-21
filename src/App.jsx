@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
-import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X } from 'lucide-react'
+import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
@@ -168,6 +168,41 @@ async function apiWalrusLoadChat(walletHash) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// PROFILE API FUNCTIONS (NEW)
+// ═══════════════════════════════════════════════════════════════
+async function apiGetProfile(walletHash) {
+  try {
+    const res = await fetch(`${API_BASE}/api/profile/get/${walletHash}`)
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) { return null }
+}
+
+async function apiUpdateProfile(walletHash, profileData) {
+  try {
+    const res = await fetch(`${API_BASE}/api/profile/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet_hash: walletHash, ...profileData })
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) { return null }
+}
+
+async function apiCreateProfile(walletHash, walletAddress, userName) {
+  try {
+    const res = await fetch(`${API_BASE}/api/profile/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet_hash: walletHash, wallet_address: walletAddress, user_name: userName })
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) { return null }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FALLBACK RESPONSE
 // ═══════════════════════════════════════════════════════════════
 function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
@@ -200,7 +235,245 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP — COMPLETE VERSION WITH ALL FEATURES
+// NAME ASK MODAL (NEW)
+// ═══════════════════════════════════════════════════════════════
+function NameAskModal({ onSubmit, agentName }) {
+  const [name, setName] = useState('')
+  
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.95)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #0f0f1a, #1a1a2e)',
+        padding: '40px', borderRadius: '16px',
+        border: '2px solid rgba(255,42,109,0.5)',
+        maxWidth: '420px', width: '90%', textAlign: 'center',
+        boxShadow: '0 0 40px rgba(255,42,109,0.2)'
+      }}>
+        <Zap size={40} color={RIOT_PINK} style={{ marginBottom: '15px' }} />
+        <h2 style={{
+          fontFamily: "'Orbitron', monospace", fontSize: '20px',
+          color: '#fff', margin: '0 0 10px 0'
+        }}>⚡ FIRST CONTACT</h2>
+        <p style={{ color: '#888', fontSize: '13px', marginBottom: '25px', lineHeight: '1.6' }}>
+          New soul detected in the RIOT network.<br/>
+          {agentName} wants to know what to call you.
+        </p>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name..."
+          style={{
+            width: '100%', padding: '14px', background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,42,109,0.3)', color: '#fff',
+            borderRadius: '10px', fontSize: '16px', textAlign: 'center',
+            fontFamily: "'Rajdhani', sans-serif", marginBottom: '20px',
+            outline: 'none'
+          }}
+          onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.8)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,42,109,0.3)'}
+          onKeyPress={(e) => e.key === 'Enter' && name.trim() && onSubmit(name.trim())}
+          autoFocus
+        />
+        <button 
+          onClick={() => name.trim() && onSubmit(name.trim())}
+          style={{
+            width: '100%', padding: '14px',
+            background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
+            border: 'none', color: '#fff', borderRadius: '10px',
+            cursor: 'pointer', fontFamily: "'Orbitron', monospace",
+            fontWeight: 700, fontSize: '14px', letterSpacing: '2px',
+            textTransform: 'uppercase', opacity: name.trim() ? 1 : 0.5
+          }}
+          disabled={!name.trim()}
+        >
+          ENTER THE RIOT →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROFILE SETTINGS PANEL (NEW)
+// ═══════════════════════════════════════════════════════════════
+function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
+  const [form, setForm] = useState({
+    bio: profile?.bio || '',
+    profile_pic: profile?.profile_pic || '',
+    twitter: profile?.social?.twitter || '',
+    discord: profile?.social?.discord || '',
+    telegram: profile?.social?.telegram || '',
+    instagram: profile?.social?.instagram || '',
+    website: profile?.social?.website || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const handleChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+    setSaved(false)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    const result = await apiUpdateProfile(walletHash, form)
+    if (result?.success) {
+      setSaved(true)
+      onUpdate({
+        ...profile,
+        bio: form.bio,
+        profile_pic: form.profile_pic,
+        social: {
+          twitter: form.twitter,
+          discord: form.discord,
+          telegram: form.telegram,
+          instagram: form.instagram,
+          website: form.website
+        }
+      })
+      setTimeout(() => setSaved(false), 2000)
+    }
+    setSaving(false)
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
+    borderRadius: '8px', fontSize: '13px', fontFamily: "'Rajdhani', sans-serif",
+    outline: 'none', marginBottom: '12px'
+  }
+
+  const labelStyle = {
+    display: 'block', color: '#888', fontSize: '11px',
+    marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px'
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, right: 0, width: '380px', height: '100vh',
+      background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
+      borderLeft: '1px solid rgba(255,42,109,0.3)',
+      padding: '25px', overflowY: 'auto', zIndex: 100,
+      boxShadow: '-10px 0 30px rgba(0,0,0,0.5)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
+        <h2 style={{
+          fontFamily: "'Orbitron', monospace", fontSize: '16px',
+          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <Edit3 size={18} /> PROFILE SETTINGS
+        </h2>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '5px'
+        }}>
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Profile Preview */}
+      {profile?.profile_pic && (
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img src={profile.profile_pic} alt="Profile" style={{
+            width: '80px', height: '80px', borderRadius: '50%',
+            border: '3px solid rgba(255,42,109,0.5)',
+            objectFit: 'cover'
+          }} onError={e => e.target.style.display = 'none'} />
+        </div>
+      )}
+
+      {/* Bio */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={labelStyle}>
+          <FileText size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Bio (max 500 chars)
+        </label>
+        <textarea
+          value={form.bio}
+          onChange={e => handleChange('bio', e.target.value)}
+          placeholder="Who you are in the RIOT..."
+          style={{...inputStyle, minHeight: '80px', resize: 'vertical'}}
+          maxLength={500}
+        />
+        <div style={{ textAlign: 'right', fontSize: '10px', color: '#555' }}>
+          {form.bio.length}/500
+        </div>
+      </div>
+
+      {/* Profile Pic */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={labelStyle}>
+          <ImageIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Profile Picture URL
+        </label>
+        <input
+          type="text"
+          value={form.profile_pic}
+          onChange={e => handleChange('profile_pic', e.target.value)}
+          placeholder="https://..."
+          style={inputStyle}
+        />
+      </div>
+
+      {/* Social Links */}
+      <div style={{
+        padding: '15px', background: 'rgba(255,255,255,0.02)',
+        borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)',
+        marginBottom: '15px'
+      }}>
+        <h4 style={{
+          fontSize: '12px', color: '#888', margin: '0 0 15px 0',
+          textTransform: 'uppercase', letterSpacing: '1px'
+        }}>
+          <LinkIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Social Links
+        </h4>
+
+        {[
+          { key: 'twitter', label: 'Twitter / X', placeholder: '@username' },
+          { key: 'discord', label: 'Discord', placeholder: 'username#0000' },
+          { key: 'telegram', label: 'Telegram', placeholder: '@username' },
+          { key: 'instagram', label: 'Instagram', placeholder: '@username' },
+          { key: 'website', label: 'Website', placeholder: 'https://...' },
+        ].map(({ key, label, placeholder }) => (
+          <div key={key} style={{ marginBottom: '10px' }}>
+            <label style={{...labelStyle, fontSize: '10px'}}>{label}</label>
+            <input
+              type="text"
+              value={form[key]}
+              onChange={e => handleChange(key, e.target.value)}
+              placeholder={placeholder}
+              style={inputStyle}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Save Button */}
+      <button 
+        onClick={handleSave} 
+        disabled={saving}
+        style={{
+          width: '100%', padding: '14px',
+          background: saving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00ff88, #00cc6a)',
+          border: 'none', color: '#0a0a0f', borderRadius: '10px',
+          cursor: saving ? 'wait' : 'pointer', fontWeight: 700,
+          fontSize: '14px', fontFamily: "'Orbitron', monospace",
+          letterSpacing: '1px', opacity: saving ? 0.6 : 1
+        }}
+      >
+        {saving ? '💾 SAVING...' : saved ? '✅ SAVED!' : '💾 SAVE PROFILE'}
+      </button>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN APP — COMPLETE VERSION WITH ALL FEATURES + PROFILE SETTINGS
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
@@ -215,6 +488,9 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
   const [walrusSaved, setWalrusSaved] = useState(false)
+  const [showNameAsk, setShowNameAsk] = useState(false)
+  const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [profile, setProfile] = useState(null)
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
@@ -227,7 +503,7 @@ export default function App() {
       .catch(() => setApiStatus('offline'))
   }, [])
 
-  // Load memory on connection
+  // Load memory & profile on connection
   useEffect(() => {
     if (connected && walletHash) {
       loadMemoryAndGreet()
@@ -269,6 +545,17 @@ export default function App() {
       setMemory(data)
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
 
+      // Load full profile settings
+      const profileData = await apiGetProfile(walletHash)
+      if (profileData?.success && profileData.exists) {
+        setProfile(profileData.profile)
+      }
+
+      // Auto-ask name if new user or no name
+      if (!data.user_name && !showNameAsk) {
+        setShowNameAsk(true)
+      }
+
       if (messages.length === 0) {
         const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, !!data.user_name)
         setMessages([{
@@ -276,6 +563,25 @@ export default function App() {
         }])
       }
     }
+  }
+
+  const handleNameSubmit = async (name) => {
+    setShowNameAsk(false)
+    
+    // Create/update profile with name
+    await apiCreateProfile(walletHash, account?.address, name)
+    
+    // Save to memory too
+    await apiSaveMemory(walletHash, {
+      user_name: name,
+      summary: `User introduced as ${name}`,
+      visited_agents: Array.from(visitedAgents),
+      last_agent: selectedAgent.id,
+      last_visit: new Date().toISOString()
+    })
+    
+    // Reload everything
+    await loadMemoryAndGreet()
   }
 
   const generateGreeting = (agentId, name, visitCount, hasMemory) => {
@@ -464,13 +770,26 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // RENDER — COMPLETE WITH ALL ORIGINAL FEATURES
+  // RENDER — COMPLETE WITH ALL ORIGINAL FEATURES + PROFILE SETTINGS
   // ═══════════════════════════════════════════════════════════════
   return (
     <div style={{
       width: '100vw', height: '100vh', background: RIOT_DARK,
       display: 'flex', fontFamily: "'Rajdhani', sans-serif", overflow: 'hidden'
     }}>
+      {/* Name Ask Modal */}
+      {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
+
+      {/* Profile Settings Panel */}
+      {showProfileSettings && connected && (
+        <ProfileSettingsPanel
+          walletHash={walletHash}
+          profile={profile}
+          onUpdate={setProfile}
+          onClose={() => setShowProfileSettings(false)}
+        />
+      )}
+
       {/* ═══ LEFT SIDEBAR ═══ */}
       <div style={{
         width: '280px',
@@ -501,12 +820,24 @@ export default function App() {
               <div style={{ fontSize: '11px', color: '#888', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
-              <button onClick={disconnect} style={{
-                marginTop: '8px', padding: '4px 12px', fontSize: '10px',
-                background: 'transparent', border: '1px solid rgba(255,42,109,0.4)',
-                color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
-              }}>DISCONNECT</button>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button onClick={() => setShowProfileSettings(true)} style={{
+                  flex: 1, padding: '6px', fontSize: '10px',
+                  background: 'rgba(255,42,109,0.15)',
+                  border: '1px solid rgba(255,42,109,0.4)',
+                  color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+                }}>
+                  <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  PROFILE
+                </button>
+                <button onClick={disconnect} style={{
+                  padding: '6px 10px', fontSize: '10px',
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#888', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+                }}>DISCONNECT</button>
+              </div>
             </div>
           ) : (
             <div>
@@ -839,6 +1170,12 @@ export default function App() {
                   Name: {memory.user_name ? <span style={{color: RIOT_PINK, fontWeight: 600}}>{memory.user_name}</span> : <span style={{ color: '#555' }}>Not set</span>}
                 </span>
               </div>
+              {profile?.bio && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <FileText size={12} color="#666" />
+                  <span style={{ fontSize: '11px', color: '#888', lineHeight: '1.4' }}>{profile.bio}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Hash size={12} color="#666" />
                 <span style={{ fontSize: '12px', color: '#aaa', fontFamily: 'monospace' }}>ID: {walletHash}</span>
@@ -847,6 +1184,16 @@ export default function App() {
                 <Clock size={12} color="#666" />
                 <span style={{ fontSize: '12px', color: '#aaa' }}>Sessions: {memory.visit_count || 1}</span>
               </div>
+              {/* Social Links */}
+              {profile?.social && Object.values(profile.social).some(v => v) && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>
+                  {profile.social.twitter && <span style={{fontSize: '10px', color: '#00ff88'}}>🐦 {profile.social.twitter}</span>}
+                  {profile.social.discord && <span style={{fontSize: '10px', color: '#5865F2'}}>💬 {profile.social.discord}</span>}
+                  {profile.social.telegram && <span style={{fontSize: '10px', color: '#0088cc'}}>✈️ {profile.social.telegram}</span>}
+                  {profile.social.instagram && <span style={{fontSize: '10px', color: '#E1306C'}}>📷 {profile.social.instagram}</span>}
+                  {profile.social.website && <span style={{fontSize: '10px', color: '#00b4d8'}}>🌐 {profile.social.website}</span>}
+                </div>
+              )}
             </div>
           </div>
 
