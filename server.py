@@ -1054,6 +1054,164 @@ def walrus_save():
 
     return jsonify({"success": True, "tx_digest": tx_digest, "blob_id": blob_id, "indexed": True})
 
+
+# ═══════════════════════════════════════════════════════════════
+# MEMWAL INTEGRATION (via HTTP API - no npm dependency)
+# ═══════════════════════════════════════════════════════════════
+
+MEMWAL_RELAYER = "https://relayer.memwal.ai"
+MEMWAL_NAMESPACE = "riot-chat-wallet"
+MEMWAL_DELEGATE_KEY = os.environ.get("MEMWAL_DELEGATE_KEY", "")
+MEMWAL_ACCOUNT_ID = os.environ.get("MEMWAL_ACCOUNT_ID", "")
+
+def memwal_api_call(endpoint, method="GET", payload=None):
+    """Call MemWal relayer API directly via HTTP"""
+    try:
+        url = f"{MEMWAL_RELAYER}/{endpoint}"
+        headers = {
+            "Content-Type": "application/json",
+            "X-MemWal-Delegate-Key": MEMWAL_DELEGATE_KEY,
+            "X-MemWal-Account-Id": MEMWAL_ACCOUNT_ID,
+            "X-MemWal-Namespace": MEMWAL_NAMESPACE
+        }
+
+        if method == "POST":
+            res = requests.post(url, headers=headers, json=payload, timeout=30)
+        else:
+            res = requests.get(url, headers=headers, params=payload, timeout=30)
+
+        if res.status_code in [200, 202]:
+            return res.json()
+        print(f"[MEMWAL_API] Error {res.status_code}: {res.text[:200]}")
+        return None
+    except Exception as e:
+        print(f"[MEMWAL_API] Exception: {e}")
+        return None
+
+@app.route("/api/memwal/status", methods=["GET"])
+def memwal_status():
+    """Check MemWal connection status"""
+    try:
+        result = memwal_api_call("health")
+        if result:
+            return jsonify({"ready": True, "status": "connected", "relayer": MEMWAL_RELAYER})
+        return jsonify({"ready": False, "status": "disconnected", "error": "Relayer unreachable"})
+    except Exception as e:
+        return jsonify({"ready": False, "status": "error", "error": str(e)})
+
+@app.route("/api/memwal/save", methods=["POST"])
+def memwal_save():
+    """Save memory to MemWal via relayer"""
+    try:
+        data = request.json
+        wallet_address = data.get("wallet_address", "")
+        agent_id = data.get("agent_id", "")
+        messages = data.get("messages", [])
+
+        # Build payload for MemWal
+        payload = {
+            "text": json.dumps({
+                "wallet_address": wallet_address,
+                "agent_id": agent_id,
+                "messages": messages,
+                "timestamp": data.get("timestamp", datetime.now().isoformat()),
+                "message_count": data.get("message_count", len(messages))
+            }),
+            "metadata": {
+                "wallet_address": wallet_address,
+                "agent_id": agent_id,
+                "source": "riot-chat-wallet"
+            }
+        }
+
+        result = memwal_api_call("remember", method="POST", payload=payload)
+
+        if result and result.get("job_id"):
+            # Poll for completion
+            job_id = result["job_id"]
+            for _ in range(10):  # Max 10 retries
+                status = memwal_api_call(f"jobs/{job_id}")
+                if status and status.get("status") == "completed":
+                    return jsonify({
+                        "success": True,
+                        "blob_id": status.get("blob_id", ""),
+                        "job_id": job_id,
+                        "status": "completed"
+                    })
+                import time
+                time.sleep(0.5)
+
+            return jsonify({
+                "success": True,
+                "job_id": job_id,
+                "status": "pending",
+                "message": "MemWal job submitted"
+            })
+
+        # Fallback: save to local Walrus
+        fallback_blob = walrus_store(data)
+        return jsonify({
+            "success": fallback_blob is not None,
+            "blob_id": fallback_blob,
+            "source": "walrus_fallback",
+            "memwal_error": "Relayer failed, used fallback"
+        })
+
+    except Exception as e:
+        print(f"[MEMWAL_SAVE] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/memwal/search", methods=["GET"])
+def memwal_search():
+    """Semantic search via MemWal"""
+    try:
+        query = request.args.get("query", "")
+        limit = int(request.args.get("limit", 5))
+
+        if not query:
+            return jsonify({"results": []})
+
+        result = memwal_api_call("recall", payload={"query": query, "limit": limit})
+
+        if result and "results" in result:
+            return jsonify({
+                "success": True,
+                "results": result["results"],
+                "query": query,
+                "count": len(result["results"])
+            })
+
+        return jsonify({"results": [], "error": "No results from MemWal"})
+
+    except Exception as e:
+        print(f"[MEMWAL_SEARCH] Error: {e}")
+        return jsonify({"results": [], "error": str(e)})
+
+@app.route("/api/memwal/analyze", methods=["POST"])
+def memwal_analyze():
+    """Analyze text and extract facts"""
+    try:
+        data = request.json
+        text = data.get("text", "")
+
+        if not text:
+            return jsonify({"error": "text required"}), 400
+
+        result = memwal_api_call("analyze", method="POST", payload={"text": text})
+
+        if result:
+            return jsonify({
+                "success": True,
+                "facts": result.get("facts", []),
+                "fact_count": result.get("fact_count", 0)
+            })
+
+        return jsonify({"success": False, "error": "Analysis failed"})
+
+    except Exception as e:
+        print(f"[MEMWAL_ANALYZE] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════

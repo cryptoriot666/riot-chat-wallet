@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search } from 'lucide-react'
-import { MemWal } from "@mysten-incubation/memwal";
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
@@ -12,63 +11,26 @@ const RIOT_DARK = '#0a0a0f'
 const AUTO_SAVE_INTERVAL = 5
 
 // ═══════════════════════════════════════════════════════════════
-// MEMWAL CONFIG
 // ═══════════════════════════════════════════════════════════════
-const MEMWAL_RELAYER = "https://relayer.memwal.ai";
-const MEMWAL_NAMESPACE = "riot-chat-wallet";
-
-let memwalInstance = null;
-let memwalInitPromise = null;
-
-async function getMemWal() {
-  if (memwalInstance) return memwalInstance;
-  if (memwalInitPromise) return memwalInitPromise;
-
-  const key = import.meta.env.VITE_MEMWAL_DELEGATE_KEY;
-  const accountId = import.meta.env.VITE_MEMWAL_ACCOUNT_ID;
-
-  if (!key || !accountId) {
-    console.warn("[MemWal] Credentials not configured");
-    return null;
-  }
-
-  memwalInitPromise = (async () => {
-    try {
-      const mw = MemWal.create({
-        key,
-        accountId,
-        serverUrl: MEMWAL_RELAYER,
-        namespace: MEMWAL_NAMESPACE,
-        suiNetwork: "mainnet"
-      });
-      await mw.health();
-      console.log("[MemWal] Connected to mainnet");
-      memwalInstance = mw;
-      return mw;
-    } catch (err) {
-      console.error("[MemWal] Init failed:", err.message);
-      return null;
-    }
-  })();
-
-  return memwalInitPromise;
-}
-
+// MEMWAL API CLIENT (via backend - no npm dependency)
+// ═══════════════════════════════════════════════════════════════
 async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {}) {
-  const mw = await getMemWal();
-  if (!mw) return null;
-
   try {
-    const payload = JSON.stringify({
-      wallet_address: walletAddress,
-      agent_id: agentId,
-      messages: messages.slice(-10),
-      timestamp: Date.now(),
-      message_count: messages.length,
-      ...metadata
+    const res = await fetch(`${API_BASE}/api/memwal/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wallet_address: walletAddress,
+        agent_id: agentId,
+        messages: messages.slice(-10),
+        timestamp: Date.now(),
+        message_count: messages.length,
+        ...metadata
+      })
     });
-    const result = await mw.rememberAndWait(payload);
-    console.log("[MemWal] Saved:", result.blob_id?.slice(0, 16));
+    if (!res.ok) return null;
+    const result = await res.json();
+    console.log("[MemWal] Saved via API:", result.blob_id?.slice(0, 16));
     return result;
   } catch (err) {
     console.error("[MemWal] Save failed:", err.message);
@@ -77,11 +39,10 @@ async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {})
 }
 
 async function memwalSearch(query, limit = 5) {
-  const mw = await getMemWal();
-  if (!mw) return [];
-
   try {
-    const result = await mw.recall(query, limit);
+    const res = await fetch(`${API_BASE}/api/memwal/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!res.ok) return [];
+    const result = await res.json();
     return result.results || [];
   } catch (err) {
     console.error("[MemWal] Search failed:", err.message);
@@ -90,26 +51,30 @@ async function memwalSearch(query, limit = 5) {
 }
 
 async function memwalAnalyze(text) {
-  const mw = await getMemWal();
-  if (!mw) return null;
-
   try {
-    const result = await mw.analyzeAndWait(text);
-    return result;
+    const res = await fetch(`${API_BASE}/api/memwal/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) return null;
+    return await res.json();
   } catch (err) {
     console.error("[MemWal] Analyze failed:", err.message);
     return null;
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// 25 AGENTS
-// ═══════════════════════════════════════════════════════════════
-const AGENTS = [
-  { id: 'J1', name: 'J1 — The Architect', trait: 'Calculating', desc: 'Builds systems. Cold logic.', color: '#00d4aa', img: '/assets/J1.jpg' },
-  { id: 'J2', name: 'J2 — The Enforcer', trait: 'Aggressive', desc: 'Zero tolerance. Maximum force.', color: '#ff2a6d', img: '/assets/J2.jpg' },
-  { id: 'J3', name: 'J3 — The Phantom', trait: 'Mysterious', desc: 'Unseen. Unknown. Unpredictable.', color: '#7b2cbf', img: '/assets/J3.jpg' },
-  { id: 'J4', name: 'J4 — The Rebel', trait: 'Rebellious', desc: 'Rules are made to be broken.', color: '#ff2a6d', img: '/assets/J4.jpg' },
+async function getMemWalStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/api/memwal/status`);
+    if (!res.ok) return { ready: false };
+    return await res.json();
+  } catch (err) {
+    return { ready: false };
+  }
+}
+
   { id: 'J5', name: 'J5 — The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', img: '/assets/J5.jpg' },
   { id: 'J6', name: 'J6 — The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', img: '/assets/J6.jpg' },
   { id: 'J7', name: 'J7 — The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', img: '/assets/J7.jpg' },
