@@ -832,6 +832,7 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
 
 
 function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
+  const { address, signAndExecuteTransactionBlock } = wallet || {}
   const [showGas, setShowGas] = useState(false)
   const [immortalizing, setImmortalizing] = useState(false)
   const [gasEstimate, setGasEstimate] = useState(null)
@@ -851,13 +852,13 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
         role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
       }))
 
-      const storeResult = await apiWalrusStoreChat(hashWallet(wallet.address), chatHistory, agentId)
+      const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, agentId)
       const blobId = storeResult?.blob_id || ''
 
       const tx = new TransactionBlock()
       tx.setGasBudget(50000000)
 
-      const walletAddr = wallet.address
+      const walletAddr = address
       const agentIdStr = agentId
       const sessionId = `session_${Date.now()}`
       const messageContents = messages.filter(m => m.role === 'user' || m.role === 'agent').map(m => m.content).slice(-10)
@@ -872,7 +873,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
         ]
       })
 
-      const result = await wallet.signAndExecuteTransactionBlock({ transactionBlock: tx })
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
 
       if (result.digest) {
         const createdObjects = result.effects?.created || []
@@ -882,7 +883,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            wallet_hash: hashWallet(wallet.address),
+            wallet_hash: hashWallet(address),
             tx_digest: result.digest,
             blob_id: blobId,
             object_id: objectId,
@@ -1616,9 +1617,9 @@ export default function App() {
                 </button>
 
                 <ImmortalizeButton 
-                  messages={messages}
-                  wallet={account}
-                  agentId={selectedAgent.id}
+  messages={messages}
+  wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
+  agentId={selectedAgent.id}
                   onImmortalized={(data) => {
                     setMoveObjectId(data.object_id)
                     setLatestBlobId(data.blob_id)
