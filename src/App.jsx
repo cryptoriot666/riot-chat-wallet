@@ -75,6 +75,10 @@ async function getMemWalStatus() {
   }
 }
 const AGENTS = [
+  { id: 'J1', name: 'J1 — The Architect', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00ff88', img: '/assets/J1.jpg' },
+  { id: 'J2', name: 'J2 — The Enforcer', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#ff0044', img: '/assets/J2.jpg' },
+  { id: 'J3', name: 'J3 — The Phantom', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#9d4edd', img: '/assets/J3.jpg' },
+  { id: 'J4', name: 'J4 — The Rebel', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', img: '/assets/J4.jpg' },
   { id: 'J5', name: 'J5 — The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', img: '/assets/J5.jpg' },
   { id: 'J6', name: 'J6 — The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', img: '/assets/J6.jpg' },
   { id: 'J7', name: 'J7 — The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', img: '/assets/J7.jpg' },
@@ -541,7 +545,7 @@ function MemorySearchPanel({ walletAddress, onClose }) {
 
   useEffect(() => {
     const check = async () => {
-      const mw = await getMemWal()
+      const mw = await getMemWalStatus()
       setMemwalReady(!!mw)
     }
     check()
@@ -725,7 +729,7 @@ function MemWalBadge({ count }) {
 
   useEffect(() => {
     const check = async () => {
-      const mw = await getMemWal()
+      const mw = await getMemWalStatus()
       setReady(!!mw)
     }
     check()
@@ -754,7 +758,7 @@ function MemWalBadge({ count }) {
 // MAIN APP — COMPLETE VERSION WITH ALL FEATURES + MEMWAL INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
-  const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
+  const { connected, account, disconnect } = useWallet()
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -1046,12 +1050,12 @@ export default function App() {
     }
   }
 
-  // WALRUS MANUAL SAVE
+  // WALRUS MANUAL SAVE — Pure Walrus (no on-chain tx needed)
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
     setIsSaving(true)
-    setSaveStatus('Encrypting & storing to Walrus...')
+    setSaveStatus('Storing to Walrus...')
 
     try {
       const storeResult = await apiWalrusStoreChat(walletHash, messages, selectedAgent.id)
@@ -1062,39 +1066,13 @@ export default function App() {
 
       const blobId = storeResult.blob_id
       setLatestBlobId(blobId)
-
-      const tx = new TransactionBlock()
-      tx.setGasBudget(5000000)
-      const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)])
-      tx.transferObjects([zeroSui], tx.pure(account.address))
-
-      setSaveStatus('Waiting for wallet signature...')
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
-
-      if (result.digest) {
-        await fetch(`${API_BASE}/api/walrus/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet_hash: walletHash,
-            tx_digest: result.digest,
-            blob_id: blobId,
-            agent_id: selectedAgent.id
-          })
-        })
-
-        setWalrusSaved(true)
-        setSaveStatus('Saved to Walrus + on-chain proof!')
-        alert(`💾 Chat history saved to Walrus!\n\nBlob ID: ${blobId}\nTx: ${result.digest.slice(0, 20)}...\n\nYour conversation is now permanent on the blockchain.`)
-      }
+      setWalrusSaved(true)
+      setSaveStatus('Saved!')
+      alert(`💾 Chat saved to Walrus!\n\nBlob ID: ${blobId}\n\nYour conversation is permanent on Walrus.`)
     } catch (e) {
       console.error('Save error:', e)
       setSaveStatus('Save failed')
-      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
-        alert('❌ Transaction cancelled by user')
-      } else {
-        alert('❌ Walrus save failed. Chat still saved in database.')
-      }
+      alert('❌ Walrus save failed. Chat still saved in database.')
     } finally {
       setIsSaving(false)
       setTimeout(() => setSaveStatus(''), 3000)
