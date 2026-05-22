@@ -1,3 +1,4 @@
+// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -5,11 +6,22 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   optimizeDeps: {
-    include: ['@mysten/sui']
+    include: ['@mysten/sui'],
+    esbuildOptions: {
+      target: 'es2020',
+      format: 'esm'
+    }
   },
   build: {
     commonjsOptions: {
-      transformMixedEsModules: true
+      transformMixedEsModules: true,
+      include: [/node_modules/]
+    },
+    rollupOptions: {
+      external: []
     }
+  },
+  resolve: {
+    mainFields: ['module', 'main']
   }
 })
