@@ -662,8 +662,7 @@ def walrus_store(data):
         )
         
         print(f"[WALRUS] Status: {res.status_code}")
-print(f"[WALRUS] Response body: {res.text[:2000]}")
-print(f"[WALRUS] URL: {res.url}")
+        print(f"[WALRUS] Response: {res.text[:1000]}")
         
         if res.status_code in [200, 202]:
             result = res.json()
