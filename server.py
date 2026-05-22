@@ -26,8 +26,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 WALRUS_PUBLISHER = "https://walrus-mainnet-publisher-1.staketab.org"
 WALRUS_AGGREGATOR = "https://walrus-mainnet-aggregator-1.staketab.org"
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
-DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+AI_API_KEY = os.environ.get("AI_API_KEY", "")
+AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -35,7 +35,7 @@ USE_SQLITE = not DATABASE_URL
 
 print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
 print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
-print(f"[INIT] Walrus: TESTNET")
+print(f"[INIT] Walrus: MAINNET")
 
 # ═══════════════════════════════════════════════════════════════
 # DATABASE
@@ -748,7 +748,7 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     db_name = row[0] if row else ""
     final_name = db_name or user_name or ""
 
-    print(f"[DEEPSEEK] {wallet_hash}: db='{db_name}', input='{user_name}', final='{final_name}'")
+    print(f"[AI] {wallet_hash}: db='{db_name}', input='{user_name}', final='{final_name}'")
 
     memory_blocks = []
 
@@ -775,16 +775,16 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     }
 
     try:
-        res = requests.post(DEEPSEEK_API_URL,
-            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+        res = requests.post(AI_API_URL,
+            headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"},
             json=payload, timeout=30)
         if res.status_code == 200:
             data = res.json()
             return data["choices"][0]["message"]["content"]
-        print(f"[DEEPSEEK] Error: {res.status_code}")
+        print(f"[AI] Error: {res.status_code}")
         return None
     except Exception as e:
-        print(f"[DEEPSEEK] API error: {e}")
+        print(f"[AI] API error: {e}")
         return None
 
 # ═══════════════════════════════════════════════════════════════
@@ -864,7 +864,7 @@ def chat():
     response = call_deepseek(agent_id, messages, memory_summary, final_name, wallet_hash)
 
     if response:
-        return jsonify({"response": response, "source": "deepseek", "name_used": final_name})
+        return jsonify({"response": response, "source": "ai", "name_used": final_name})
     return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
 
 # ═══════════════════════════════════════════════════════════════
