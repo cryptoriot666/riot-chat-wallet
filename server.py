@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 RIOT Chat Wallet — Backend API STRICT v5
-Features: PostgreSQL, Walrus MAINNET, DeepSeek AI, 
+Features: PostgreSQL, Walrus TESTNET, DeepSeek AI, 
           User Profile Memory + Profile Settings (Bio, Social, Pic),
           On-Chain Indexing
 """
@@ -24,8 +24,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://walrus-mainnet-publisher-1.staketab.org:443"
-WALRUS_AGGREGATOR = "https://wal-aggregator-mainnet.staketab.org:443"
+WALRUS_PUBLISHER = "https://walrus-testnet-publisher.natsai.xyz"
+WALRUS_AGGREGATOR = "https://walrus-testnet-aggregator.natsai.xyz"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -35,7 +35,7 @@ USE_SQLITE = not DATABASE_URL
 
 print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
 print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
-print(f"[INIT] Walrus: MAINNET")
+print(f"[INIT] Walrus: TESTNET")
 
 # ═══════════════════════════════════════════════════════════════
 # DATABASE
@@ -648,7 +648,7 @@ def save_memory(wallet_hash, data):
 def walrus_store(data):
     try:
         payload = json.dumps(data).encode('utf-8')
-        print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
+        print(f"[WALRUS] Storing {len(payload)} bytes to TESTNET...")
         print(f"[WALRUS] Endpoint: {WALRUS_PUBLISHER}")
         
         res = requests.put(
@@ -792,11 +792,11 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 def health():
     return jsonify({
         "status": "RIOT Chat Wallet API v2.3 — WALRUS PRIMARY",
-        "mainnet": "mainnet",
+        "testnet": "testnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
         "encryption": "enabled (encrypt+compress)",
         "memory_system": "Walrus primary, DB cache",
-        "walrus": "mainnet",
+        "walrus": "testnet",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
     })
@@ -1003,7 +1003,7 @@ def walrus_store_chat():
         conn.close()
 
         print(f"[API] Walrus ✓ blob_id={blob_id}")
-        return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus MAINNET"})
+        return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus TESTNET"})
 
     print(f"[API] Walrus ✗ FAILED")
     return jsonify({"success": False, "error": "Failed to store on Walrus"}), 500
