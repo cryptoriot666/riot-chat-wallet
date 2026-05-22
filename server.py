@@ -24,8 +24,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://walrus-mainnet-publisher-1.staketab.org"
-WALRUS_AGGREGATOR = "https://walrus-mainnet-aggregator-1.staketab.org"
+WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
+WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -662,8 +662,8 @@ def walrus_store(data):
         )
         
         print(f"[WALRUS] Status: {res.status_code}")
-        print(f"[WALRUS] Headers: {dict(res.headers)}")
-        print(f"[WALRUS] Response: {res.text[:1000]}")
+print(f"[WALRUS] Response body: {res.text[:2000]}")
+print(f"[WALRUS] URL: {res.url}")
         
         if res.status_code in [200, 202]:
             result = res.json()
