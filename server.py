@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 RIOT Chat Wallet — Backend API STRICT v5
-Features: PostgreSQL, Walrus TESTNET, DeepSeek AI, 
+Features: PostgreSQL, Walrus MAINNET, DeepSeek AI, 
           User Profile Memory + Profile Settings (Bio, Social, Pic),
           On-Chain Indexing
 """
@@ -24,8 +24,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://walrus-testnet-publisher.natsai.xyz"
-WALRUS_AGGREGATOR = "https://walrus-testnet-aggregator.natsai.xyz"
+WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
+WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -647,8 +647,11 @@ def save_memory(wallet_hash, data):
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     try:
-        payload = json.dumps(data).encode('utf-8')
-        print(f"[WALRUS] Storing {len(payload)} bytes to TESTNET...")
+        # Encrypt + compress before storing
+        payload_str = json.dumps(data)
+        encrypted = encrypt(payload_str)
+        payload = encrypted.encode(\'utf-8\')
+        print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
         print(f"[WALRUS] Endpoint: {WALRUS_PUBLISHER}")
         
         res = requests.put(
@@ -792,11 +795,11 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 def health():
     return jsonify({
         "status": "RIOT Chat Wallet API v2.3 — WALRUS PRIMARY",
-        "testnet": "testnet",
+        "mainnet": "mainnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
         "encryption": "enabled (encrypt+compress)",
         "memory_system": "Walrus primary, DB cache",
-        "walrus": "testnet",
+        "walrus": "mainnet",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
     })
@@ -1003,7 +1006,7 @@ def walrus_store_chat():
         conn.close()
 
         print(f"[API] Walrus ✓ blob_id={blob_id}")
-        return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus TESTNET"})
+        return jsonify({"success": True, "blob_id": blob_id, "message": "Stored on Walrus MAINNET"})
 
     print(f"[API] Walrus ✗ FAILED")
     return jsonify({"success": False, "error": "Failed to store on Walrus"}), 500

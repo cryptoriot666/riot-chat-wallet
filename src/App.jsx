@@ -10,8 +10,8 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onren
 const RIOT_PINK = '#ff2a6d'
 const RIOT_DARK = '#0a0a0f'
 const AUTO_SAVE_INTERVAL = 5
-const PACKAGE_ID = '0xf001e78f7fb10bbc09e2d738f5d956c31ee6bdc2aebf78542b3e61b5fb9ea5db'
-const SUI_EXPLORER = 'https://suiscan.xyz/testnet'
+const PACKAGE_ID = '0x859fc3622fcae47d1c505fee911ad167ca2c2f4e7fe29daa68ab485e0622779b'
+const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
 
 // ═══════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
