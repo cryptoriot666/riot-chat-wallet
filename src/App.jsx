@@ -10,6 +10,8 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onren
 const RIOT_PINK = '#ff2a6d'
 const RIOT_DARK = '#0a0a0f'
 const AUTO_SAVE_INTERVAL = 5
+const PACKAGE_ID = '0xf001e78f7fb10bbc09e2d738f5d956c31ee6bdc2aebf78542b3e61b5fb9ea5db'
+const SUI_EXPLORER = 'https://suiscan.xyz/testnet'
 
 // ═══════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
@@ -778,6 +780,7 @@ export default function App() {
   const [autoSaveCount, setAutoSaveCount] = useState(0)
   const [memwalSaveCount, setMemwalSaveCount] = useState(0)
   const [latestBlobId, setLatestBlobId] = useState('')
+  const [moveObjectId, setMoveObjectId] = useState('')
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
@@ -1051,46 +1054,64 @@ export default function App() {
     }
   }
 
-  // WALRUS MANUAL SAVE
+  // WALRUS + MOVE CONTRACT SAVE — Real on-chain memory object
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
     setIsSaving(true)
-    setSaveStatus('Encrypting & storing to Walrus...')
+    setSaveStatus('Storing to Walrus + Move contract...')
 
     try {
       const storeResult = await apiWalrusStoreChat(walletHash, messages, selectedAgent.id)
-
       if (!storeResult || !storeResult.success) {
         throw new Error('Walrus store failed')
       }
-
       const blobId = storeResult.blob_id
       setLatestBlobId(blobId)
 
       const tx = new TransactionBlock()
-      tx.setGasBudget(5000000)
-      const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)])
-      tx.transferObjects([zeroSui], tx.pure(account.address))
+      tx.setGasBudget(50000000)
+
+      const walletAddr = account.address
+      const agentIdStr = selectedAgent.id
+      const summary = messages.slice(-3).map(m => m.content).join(' | ').slice(0, 200)
+
+      tx.moveCall({
+        target: `0xf001e78f7fb10bbc09e2d738f5d956c31ee6bdc2aebf78542b3e61b5fb9ea5db::memory::store_memory`,
+        arguments: [
+          tx.pure(walletAddr),
+          tx.pure(agentIdStr),
+          tx.pure(messages.map(m => m.content).slice(-5)),
+          tx.pure(summary),
+        ]
+      })
 
       setSaveStatus('Waiting for wallet signature...')
       const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
 
-      if (result.digest) {
-        await fetch(`${API_BASE}/api/walrus/save`, {
+      if (result.digest && result.effects) {
+        const createdObjects = result.effects?.created || []
+        const memoryObject = createdObjects.find(obj => obj.owner === walletAddr)
+        const objectId = memoryObject?.reference?.objectId || ''
+        setMoveObjectId(objectId)
+
+        await fetch(`${API_BASE}/api/move/tx-index`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             wallet_hash: walletHash,
             tx_digest: result.digest,
             blob_id: blobId,
-            agent_id: selectedAgent.id
+            object_id: objectId,
+            agent_id: selectedAgent.id,
+            package_id: PACKAGE_ID
           })
         })
 
         setWalrusSaved(true)
-        setSaveStatus('Saved to Walrus + on-chain proof!')
-        alert(`💾 Chat history saved to Walrus!\n\nBlob ID: ${blobId}\nTx: ${result.digest.slice(0, 20)}...\n\nYour conversation is now permanent on the blockchain.`)
+        setSaveStatus('Saved!')
+        const explorerUrl = `${SUI_EXPLORER}/tx/${result.digest}`
+        alert(`💾 Chat saved to Walrus + Move contract!\n\nBlob ID: ${blobId}\nObject ID: ${objectId?.slice(0, 16)}...\nTx: ${result.digest.slice(0, 20)}...\n\nView on SuiScan: ${explorerUrl}`)
       }
     } catch (e) {
       console.error('Save error:', e)
@@ -1098,7 +1119,7 @@ export default function App() {
       if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
         alert('❌ Transaction cancelled by user')
       } else {
-        alert('❌ Walrus save failed. Chat still saved in database.')
+        alert('❌ Save failed. Chat still saved in database.')
       }
     } finally {
       setIsSaving(false)
@@ -1614,12 +1635,27 @@ export default function App() {
             background: 'rgba(0,255,136,0.05)',
             borderRadius: '8px',
             border: '1px solid rgba(0,255,136,0.15)',
-            display: 'flex', alignItems: 'center', gap: '8px'
+            display: 'flex', flexDirection: 'column', gap: '8px'
           }}>
-            <Shield size={12} color="#00ff88" />
-            <span style={{ fontSize: '11px', color: '#00ff88' }}>
-              On-Chain: Mainnet Active
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Shield size={12} color="#00ff88" />
+              <span style={{ fontSize: '11px', color: '#00ff88', fontWeight: 600 }}>
+                Move Contract: Active
+              </span>
+            </div>
+            <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              Package: 0xf001e78f7fb10bbc09...
+            </div>
+            {moveObjectId && (
+              <div style={{ fontSize: '10px', color: '#00ff88', fontFamily: 'monospace' }}>
+                Object: {moveObjectId.slice(0, 20)}...
+              </div>
+            )}
+            {latestBlobId && (
+              <div style={{ fontSize: '10px', color: '#00b4d8', fontFamily: 'monospace' }}>
+                Walrus Blob: {latestBlobId.slice(0, 20)}...
+              </div>
+            )}
           </div>
         </div>
       )}

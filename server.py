@@ -1215,6 +1215,102 @@ def memwal_analyze():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════════
+# MOVE CONTRACT ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/api/move/tx-index", methods=["POST"])
+def move_tx_index():
+    """Index tx digest from Move contract store_memory call"""
+    try:
+        data = request.json
+        wallet_hash = data.get("wallet_hash")
+        tx_digest = data.get("tx_digest")
+        blob_id = data.get("blob_id", "")
+        object_id = data.get("object_id", "")
+        agent_id = data.get("agent_id", "")
+        package_id = data.get("package_id", "")
+
+        if not wallet_hash or not tx_digest:
+            return jsonify({"error": "wallet_hash and tx_digest required"}), 400
+
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        if USE_SQLITE:
+            c.execute("""
+                INSERT INTO on_chain_saves (wallet_hash, tx_digest, object_id, blob_id, timestamp, agent_id, data_size)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (wallet_hash, tx_digest, object_id, blob_id, datetime.now().isoformat(), agent_id, 0))
+        else:
+            c.execute("""
+                INSERT INTO on_chain_saves (wallet_hash, tx_digest, object_id, blob_id, timestamp, agent_id, data_size)
+                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
+            """, (wallet_hash, tx_digest, object_id, blob_id, agent_id, 0))
+
+        conn.commit()
+        conn.close()
+
+        print(f"[MOVE] Indexed tx: {tx_digest[:20]}... object: {object_id[:20]}...")
+
+        return jsonify({
+            "success": True,
+            "tx_digest": tx_digest,
+            "object_id": object_id,
+            "blob_id": blob_id,
+            "package_id": package_id,
+            "indexed": True
+        })
+
+    except Exception as e:
+        print(f"[MOVE] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/move/objects/<wallet_hash>", methods=["GET"])
+def move_get_objects(wallet_hash):
+    """Get all Move contract objects for wallet"""
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        if USE_SQLITE:
+            c.execute("""
+                SELECT tx_digest, object_id, blob_id, agent_id, timestamp
+                FROM on_chain_saves
+                WHERE wallet_hash = ? AND object_id IS NOT NULL AND object_id != ''
+                ORDER BY timestamp DESC
+            """, (wallet_hash,))
+        else:
+            c.execute("""
+                SELECT tx_digest, object_id, blob_id, agent_id, timestamp
+                FROM on_chain_saves
+                WHERE wallet_hash = %s AND object_id IS NOT NULL AND object_id != ''
+                ORDER BY timestamp DESC
+            """, (wallet_hash,))
+
+        rows = c.fetchall()
+        conn.close()
+
+        objects = []
+        for row in rows:
+            objects.append({
+                "tx_digest": row[0],
+                "object_id": row[1],
+                "blob_id": row[2],
+                "agent_id": row[3],
+                "timestamp": row[4] if USE_SQLITE else (row[4].isoformat() if row[4] else "")
+            })
+
+        return jsonify({
+            "success": True,
+            "wallet_hash": wallet_hash,
+            "objects": objects,
+            "count": len(objects)
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
