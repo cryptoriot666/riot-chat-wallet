@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search } from 'lucide-react'
+import { TransactionBlock } from '@mysten/sui'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
@@ -758,7 +759,7 @@ function MemWalBadge({ count }) {
 // MAIN APP — COMPLETE VERSION WITH ALL FEATURES + MEMWAL INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
-  const { connected, account, disconnect } = useWallet()
+  const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -1050,12 +1051,12 @@ export default function App() {
     }
   }
 
-  // WALRUS MANUAL SAVE — Pure Walrus (no on-chain tx needed)
+  // WALRUS MANUAL SAVE
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
     setIsSaving(true)
-    setSaveStatus('Storing to Walrus...')
+    setSaveStatus('Encrypting & storing to Walrus...')
 
     try {
       const storeResult = await apiWalrusStoreChat(walletHash, messages, selectedAgent.id)
@@ -1066,13 +1067,39 @@ export default function App() {
 
       const blobId = storeResult.blob_id
       setLatestBlobId(blobId)
-      setWalrusSaved(true)
-      setSaveStatus('Saved!')
-      alert(`💾 Chat saved to Walrus!\n\nBlob ID: ${blobId}\n\nYour conversation is permanent on Walrus.`)
+
+      const tx = new TransactionBlock()
+      tx.setGasBudget(5000000)
+      const [zeroSui] = tx.splitCoins(tx.gas, [tx.pure(0)])
+      tx.transferObjects([zeroSui], tx.pure(account.address))
+
+      setSaveStatus('Waiting for wallet signature...')
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
+
+      if (result.digest) {
+        await fetch(`${API_BASE}/api/walrus/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet_hash: walletHash,
+            tx_digest: result.digest,
+            blob_id: blobId,
+            agent_id: selectedAgent.id
+          })
+        })
+
+        setWalrusSaved(true)
+        setSaveStatus('Saved to Walrus + on-chain proof!')
+        alert(`💾 Chat history saved to Walrus!\n\nBlob ID: ${blobId}\nTx: ${result.digest.slice(0, 20)}...\n\nYour conversation is now permanent on the blockchain.`)
+      }
     } catch (e) {
       console.error('Save error:', e)
       setSaveStatus('Save failed')
-      alert('❌ Walrus save failed. Chat still saved in database.')
+      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
+        alert('❌ Transaction cancelled by user')
+      } else {
+        alert('❌ Walrus save failed. Chat still saved in database.')
+      }
     } finally {
       setIsSaving(false)
       setTimeout(() => setSaveStatus(''), 3000)
