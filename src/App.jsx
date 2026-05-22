@@ -864,14 +864,13 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
       const messageContents = messages.filter(m => m.role === 'user' || m.role === 'agent').map(m => m.content).slice(-10)
 
       tx.moveCall({
-        target: `${PACKAGE_ID}::memory::batch_store_memory`,
-        arguments: [
-          tx.pure(walletAddr),
-          tx.pure(agentIdStr),
-          tx.pure(messageContents),
-          tx.pure(sessionId),
-        ]
-      })
+  target: `${PACKAGE_ID}::memory::store_memory`,
+  arguments: [
+    tx.pure(walletAddr),
+    tx.pure(agentIdStr),
+    tx.pure(messageContents[0] || ''),  
+  ]
+})
 
       const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
 
