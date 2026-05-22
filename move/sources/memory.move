@@ -1,4 +1,4 @@
-module riot_chat::memory {
+module riot::memory {
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -6,18 +6,24 @@ module riot_chat::memory {
     use std::string::{Self, String};
     use std::vector;
 
-    public struct Memory has key, store {
+    // ═══════════════════════════════════════════════════════════════
+    // ORIGINAL STRUCTS (exactly as deployed v1)
+    // ═══════════════════════════════════════════════════════════════
+
+    public struct Memory has key {
         id: UID,
         wallet: address,
         agent_id: String,
-        content: String,
-        session_id: String,
+        messages: vector<String>,
+        summary: String,
         timestamp: u64,
-        tx_digest: String,
-        message_index: u64,
     }
 
-    public struct MemoryArchive has key, store {
+    // ═══════════════════════════════════════════════════════════════
+    // NEW STRUCTS (v2 additions only)
+    // ═══════════════════════════════════════════════════════════════
+
+    public struct MemoryArchive has key {
         id: UID,
         wallet: address,
         memories: vector<address>,
@@ -26,14 +32,20 @@ module riot_chat::memory {
         total_messages: u64,
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // ORIGINAL EVENTS (exactly as deployed v1)
+    // ═══════════════════════════════════════════════════════════════
+
     public struct MemoryStored has copy, drop {
         memory_id: address,
         wallet: address,
         agent_id: String,
-        session_id: String,
         timestamp: u64,
-        message_index: u64,
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // NEW EVENTS (v2 additions only)
+    // ═══════════════════════════════════════════════════════════════
 
     public struct BatchMemoryStored has copy, drop {
         archive_id: address,
@@ -45,6 +57,51 @@ module riot_chat::memory {
         tx_digest: String,
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // ORIGINAL FUNCTIONS (exactly as deployed v1)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Store single memory (ORIGINAL v1 signature)
+    public fun store_memory(
+        wallet: address,
+        agent_id: String,
+        messages: vector<String>,
+        summary: String,
+        ctx: &mut TxContext
+    ) {
+        let memory = Memory {
+            id: object::new(ctx),
+            wallet,
+            agent_id,
+            messages,
+            summary,
+            timestamp: tx_context::epoch(ctx),
+        };
+        let memory_id = object::id_address(&memory);
+        transfer::transfer(memory, wallet);
+        event::emit(MemoryStored {
+            memory_id,
+            wallet,
+            agent_id,
+            timestamp: tx_context::epoch(ctx),
+        });
+    }
+
+    /// Get memory summary (ORIGINAL v1 - 4 return types)
+    public fun get_memory_summary(memory: &Memory): (address, String, String, u64) {
+        (memory.wallet, memory.agent_id, memory.summary, memory.timestamp)
+    }
+
+    /// Check if caller is owner (ORIGINAL v1)
+    public fun is_owner(memory: &Memory, caller: address): bool {
+        memory.wallet == caller
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // NEW FUNCTIONS (v2 additions only)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Create a MemoryArchive for a wallet (NEW v2)
     public fun create_archive(ctx: &mut TxContext) {
         let archive = MemoryArchive {
             id: object::new(ctx),
@@ -57,63 +114,29 @@ module riot_chat::memory {
         transfer::transfer(archive, tx_context::sender(ctx));
     }
 
-    public fun store_memory(
-        archive: &mut MemoryArchive,
-        agent_id: String,
-        content: String,
-        session_id: String,
-        tx_digest: String,
-        ctx: &mut TxContext
-    ) {
-        let message_index = archive.total_messages;
-        let memory = Memory {
-            id: object::new(ctx),
-            wallet: archive.wallet,
-            agent_id,
-            content,
-            session_id,
-            timestamp: tx_context::epoch(ctx),
-            tx_digest,
-            message_index,
-        };
-        let memory_id = object::id_address(&memory);
-        vector::push_back(&mut archive.memories, memory_id);
-        archive.last_updated = tx_context::epoch(ctx);
-        archive.total_messages = archive.total_messages + 1;
-        transfer::transfer(memory, archive.wallet);
-        event::emit(MemoryStored {
-            memory_id,
-            wallet: archive.wallet,
-            agent_id: memory.agent_id,
-            session_id: memory.session_id,
-            timestamp: memory.timestamp,
-            message_index,
-        });
-    }
-
+    /// Batch store multiple memories in ONE transaction (NEW v2)
     public fun batch_store_memory(
         archive: &mut MemoryArchive,
         agent_id: String,
-        messages: vector<String>,
+        mut messages: vector<String>,
         session_id: String,
         tx_digest: String,
         ctx: &mut TxContext
     ) {
         let message_count = vector::length(&messages);
         let wallet = archive.wallet;
-        let start_index = archive.total_messages;
-        let i = 0;
+        let mut i = 0;
         while (i < message_count) {
             let content = vector::pop_back(&mut messages);
+            let mut single_messages = vector::empty<String>();
+            vector::push_back(&mut single_messages, content);
             let memory = Memory {
                 id: object::new(ctx),
                 wallet,
                 agent_id: agent_id,
-                content,
-                session_id: session_id,
+                messages: single_messages,
+                summary: session_id,
                 timestamp: tx_context::epoch(ctx),
-                tx_digest: tx_digest,
-                message_index: start_index + i,
             };
             let memory_id = object::id_address(&memory);
             vector::push_back(&mut archive.memories, memory_id);
@@ -134,14 +157,12 @@ module riot_chat::memory {
         });
     }
 
-    public fun get_memory_fields(memory: &Memory): (address, String, String, String, u64, String, u64) {
-        (memory.wallet, memory.agent_id, memory.content, memory.session_id, memory.timestamp, memory.tx_digest, memory.message_index)
-    }
-
+    /// Get archive stats (NEW v2)
     public fun get_archive_stats(archive: &MemoryArchive): (address, u64, u64, u64, u64) {
         (archive.wallet, vector::length(&archive.memories), archive.session_count, archive.last_updated, archive.total_messages)
     }
 
+    /// Get all memory IDs from archive (NEW v2)
     public fun get_memory_ids(archive: &MemoryArchive): vector<address> {
         archive.memories
     }
