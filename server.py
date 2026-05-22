@@ -24,8 +24,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
-WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
+WALRUS_PUBLISHER = "https://walrus-mainnet-publisher-1.staketab.org"
+WALRUS_AGGREGATOR = "https://walrus-mainnet-aggregator-1.staketab.org"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -647,10 +647,10 @@ def save_memory(wallet_hash, data):
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     try:
-        # Encrypt + compress before storing
+        # Encrypt + compress before storing to match walrus_read decrypt
         payload_str = json.dumps(data)
         encrypted = encrypt(payload_str)
-        payload = encrypted.encode(\'utf-8\')
+        payload = encrypted.encode('utf-8')
         print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
         print(f"[WALRUS] Endpoint: {WALRUS_PUBLISHER}")
         
