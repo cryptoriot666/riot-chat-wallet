@@ -649,18 +649,21 @@ def walrus_store(data):
     try:
         payload = json.dumps(data).encode('utf-8')
         print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
+        print(f"[WALRUS] Endpoint: {WALRUS_PUBLISHER}")
         
         res = requests.put(
             f"{WALRUS_PUBLISHER}/v1/blobs",
             data=payload,
+            headers={"Content-Type": "application/octet-stream"},
             timeout=60
         )
         
         print(f"[WALRUS] Status: {res.status_code}")
+        print(f"[WALRUS] Headers: {dict(res.headers)}")
+        print(f"[WALRUS] Response: {res.text[:1000]}")
         
         if res.status_code in [200, 202]:
             result = res.json()
-            # Parse response
             if "newlyCreated" in result:
                 blob_id = result["newlyCreated"]["blobObject"]["blobId"]
                 print(f"[WALRUS] ✓ New blob: {blob_id}")
@@ -670,11 +673,13 @@ def walrus_store(data):
                 print(f"[WALRUS] ✓ Existing blob: {blob_id}")
                 return blob_id
         
-        print(f"[WALRUS] ✗ Failed: {res.text[:200]}")
+        print(f"[WALRUS] ✗ Unexpected response format")
         return None
         
     except Exception as e:
-        print(f"[WALRUS] ✗ Error: {e}")
+        print(f"[WALRUS] ✗ Exception: {e}")
+        import traceback
+        traceback.print_exc()
         return None
         
 def walrus_read(blob_id):
