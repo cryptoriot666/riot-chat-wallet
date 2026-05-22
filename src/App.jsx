@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
-import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search } from 'lucide-react'
+import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
 
 // ═══════════════════════════════════════════════════════════════
@@ -261,6 +261,19 @@ async function apiCreateProfile(walletHash, walletAddress, userName) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ wallet_hash: walletHash, wallet_address: walletAddress, user_name: userName })
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch (e) { return null }
+}
+
+
+async function apiGasEstimate(messageCount) {
+  try {
+    const res = await fetch(`${API_BASE}/api/move/gas-estimate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message_count: messageCount })
     })
     if (!res.ok) return null
     return await res.json()
@@ -760,6 +773,210 @@ function MemWalBadge({ count }) {
 // ═══════════════════════════════════════════════════════════════
 // MAIN APP — COMPLETE VERSION WITH ALL FEATURES + MEMWAL INTEGRATION
 // ═══════════════════════════════════════════════════════════════
+function OnChainBadge({ objectId, txDigest, timestamp }) {
+  const [hovered, setHovered] = useState(false)
+  const suiscanUrl = objectId ? `https://suiscan.xyz/mainnet/object/${objectId}` : ''
+  const txUrl = txDigest ? `https://suiscan.xyz/mainnet/tx/${txDigest}` : ''
+
+  return (
+    <div 
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        background: 'linear-gradient(135deg, #00d4aa 0%, #00a884 100%)',
+        color: '#000', padding: '2px 8px', borderRadius: '12px',
+        fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+        position: 'relative', marginLeft: '8px'
+      }}
+    >
+      <CheckCircle size={10} />
+      <span>On-chain</span>
+      {hovered && (objectId || txDigest) && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+          background: '#1a1a2e', border: '1px solid #00d4aa', borderRadius: '8px',
+          padding: '12px', minWidth: '280px', zIndex: 1000,
+          boxShadow: '0 10px 40px rgba(0,0,0,0.5)', marginBottom: '8px'
+        }}>
+          <div style={{ color: '#00d4aa', fontWeight: 700, marginBottom: '8px', fontSize: '12px' }}>
+            Verified on Sui Mainnet
+          </div>
+          {objectId && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', margin: '4px 0' }}>
+              <span>Object:</span>
+              <a href={suiscanUrl} target="_blank" rel="noopener" style={{ color: '#ff0055' }}>
+                {objectId.slice(0, 12)}...{objectId.slice(-6)}
+              </a>
+            </div>
+          )}
+          {txDigest && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', margin: '4px 0' }}>
+              <span>Tx:</span>
+              <a href={txUrl} target="_blank" rel="noopener" style={{ color: '#ff0055' }}>
+                {txDigest.slice(0, 12)}...{txDigest.slice(-6)}
+              </a>
+            </div>
+          )}
+          {timestamp && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', margin: '4px 0' }}>
+              <span>Time:</span>
+              <span>{new Date(timestamp).toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
+  const [showGas, setShowGas] = useState(false)
+  const [immortalizing, setImmortalizing] = useState(false)
+  const [gasEstimate, setGasEstimate] = useState(null)
+
+  const userMessages = messages.filter(m => m.role === 'user' || m.role === 'agent')
+
+  const handleShowGas = async () => {
+    const estimate = await apiGasEstimate(userMessages.length)
+    setGasEstimate(estimate)
+    setShowGas(true)
+  }
+
+  const handleImmortalize = async () => {
+    setImmortalizing(true)
+    try {
+      const chatHistory = messages.map(m => ({
+        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
+      }))
+
+      const storeResult = await apiWalrusStoreChat(hashWallet(wallet.address), chatHistory, agentId)
+      const blobId = storeResult?.blob_id || ''
+
+      const tx = new TransactionBlock()
+      tx.setGasBudget(50000000)
+
+      const walletAddr = wallet.address
+      const agentIdStr = agentId
+      const sessionId = `session_${Date.now()}`
+      const messageContents = messages.filter(m => m.role === 'user' || m.role === 'agent').map(m => m.content).slice(-10)
+
+      tx.moveCall({
+        target: `${PACKAGE_ID}::memory::batch_store_memory`,
+        arguments: [
+          tx.pure(walletAddr),
+          tx.pure(agentIdStr),
+          tx.pure(messageContents),
+          tx.pure(sessionId),
+        ]
+      })
+
+      const result = await wallet.signAndExecuteTransactionBlock({ transactionBlock: tx })
+
+      if (result.digest) {
+        const createdObjects = result.effects?.created || []
+        const objectId = createdObjects[0]?.reference?.objectId || ''
+
+        await fetch(`${API_BASE}/api/move/tx-index`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet_hash: hashWallet(wallet.address),
+            tx_digest: result.digest,
+            blob_id: blobId,
+            object_id: objectId,
+            agent_id: agentId,
+            package_id: PACKAGE_ID,
+            session_id: sessionId,
+            message_count: messageContents.length
+          })
+        })
+
+        onImmortalized({
+          tx_digest: result.digest,
+          object_id: objectId,
+          blob_id: blobId,
+          timestamp: Date.now(),
+          message_count: messageContents.length
+        })
+      }
+    } catch (e) {
+      console.error('Immortalize failed:', e)
+      alert('Immortalize failed: ' + (e.message || 'Unknown error'))
+    }
+    setImmortalizing(false)
+    setShowGas(false)
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {!showGas ? (
+        <button 
+          onClick={handleShowGas}
+          disabled={userMessages.length < 2}
+          style={{
+            background: 'linear-gradient(135deg, #ff0055 0%, #ff00aa 100%)',
+            color: '#fff', border: 'none', padding: '8px 16px',
+            borderRadius: '6px', fontWeight: 700, fontSize: '11px',
+            cursor: userMessages.length < 2 ? 'not-allowed' : 'pointer',
+            textTransform: 'uppercase', letterSpacing: '1px',
+            opacity: userMessages.length < 2 ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: '6px',
+            fontFamily: "'Rajdhani', sans-serif"
+          }}
+        >
+          <Flame size={12} />
+          ⚡ IMMORTALIZE ({userMessages.length})
+        </button>
+      ) : (
+        <div style={{
+          background: '#1a0a1a', border: '1px solid #ff5500', borderRadius: '8px',
+          padding: '12px', textAlign: 'center', minWidth: '200px'
+        }}>
+          <div style={{ color: '#ff5500', fontSize: '11px', marginBottom: '6px' }}>⛽ GAS ESTIMATE</div>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginBottom: '4px' }}>
+            {gasEstimate?.estimated_gas_sui?.toFixed(4) || '0.0230'} SUI
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', fontSize: '10px', color: '#888', marginBottom: '10px' }}>
+            <span>Base: {gasEstimate?.breakdown?.base_sui?.toFixed(4) || '0.0080'}</span>
+            <span>+ {userMessages.length} × {gasEstimate?.breakdown?.per_message_sui?.toFixed(4) || '0.0030'}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setShowGas(false)} style={{
+              flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.2)', color: '#888',
+              borderRadius: '4px', cursor: 'pointer', fontSize: '10px'
+            }}>CANCEL</button>
+            <button onClick={handleImmortalize} style={{
+              flex: 1, padding: '8px',
+              background: 'linear-gradient(135deg, #ff0055 0%, #ff5500 100%)',
+              border: 'none', color: '#fff', borderRadius: '4px',
+              cursor: 'pointer', fontWeight: 700, fontSize: '10px'
+            }}>APPROVE</button>
+          </div>
+        </div>
+      )}
+
+      {immortalizing && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.9)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', animation: 'blockPulse 1s ease infinite' }}>⛓️</div>
+            <div style={{ color: '#ff0055', fontSize: '14px', marginTop: '16px', animation: 'textPulse 1.5s ease infinite' }}>
+              Writing to Sui Mainnet...
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
@@ -781,6 +998,9 @@ export default function App() {
   const [memwalSaveCount, setMemwalSaveCount] = useState(0)
   const [latestBlobId, setLatestBlobId] = useState('')
   const [moveObjectId, setMoveObjectId] = useState('')
+  const [onChainMessages, setOnChainMessages] = useState([])
+  const [allSessionMessages, setAllSessionMessages] = useState([])
+  const [showVerificationPanel, setShowVerificationPanel] = useState(false)
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
@@ -978,6 +1198,7 @@ export default function App() {
       role: 'user', content: userMsg, timestamp: Date.now()
     }]
     setMessages(newMessages)
+    setAllSessionMessages(prev => [...prev, { role: 'user', content: userMsg, timestamp: Date.now(), agent: selectedAgent.id }])
 
     const extractedName = extractNameFromMessages(newMessages)
 
@@ -1031,6 +1252,7 @@ export default function App() {
     setMessages(prev => [...prev, {
       role: 'agent', content: response, agent: selectedAgent.id, timestamp: Date.now()
     }])
+    setAllSessionMessages(prev => [...prev, { role: 'agent', content: response, agent: selectedAgent.id, timestamp: Date.now() }])
     setIsLoading(false)
 
     if (connected && walletHash) {
@@ -1284,6 +1506,19 @@ export default function App() {
         {/* Memory Panel Toggle */}
         {connected && memory && (
           <div style={{ padding: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <button onClick={() => setShowVerificationPanel(!showVerificationPanel)} style={{
+              width: '100%', padding: '8px',
+              background: 'rgba(0,255,136,0.1)',
+              border: '1px solid rgba(0,255,136,0.3)',
+              color: '#00ff88', borderRadius: '6px', cursor: 'pointer',
+              fontSize: '11px', fontFamily: "'Rajdhani', sans-serif",
+              fontWeight: 600, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: '6px', marginBottom: '8px'
+            }}>
+              <Shield size={12} />
+              {showVerificationPanel ? 'HIDE VERIFICATION' : 'BLOCKCHAIN VERIFY'}
+            </button>
+
             <button onClick={() => setShowMemoryPanel(!showMemoryPanel)} style={{
               width: '100%', padding: '8px',
               background: 'rgba(255,42,109,0.1)',
@@ -1366,18 +1601,39 @@ export default function App() {
 
             {/* WALRUS SAVE BUTTON */}
             {connected && messages.length >= 2 && (
-              <button onClick={handleWalrusSave} disabled={isSaving} style={{
-                padding: '8px 16px',
-                background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
-                border: 'none', color: '#fff', borderRadius: '6px',
-                cursor: isSaving ? 'wait' : 'pointer', fontSize: '11px',
-                fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: '6px',
-                boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
-              }}>
-                <Save size={12} />
-                {isSaving ? saveStatus || 'Saving...' : 'SAVE TO WALRUS'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={handleWalrusSave} disabled={isSaving} style={{
+                  padding: '8px 16px',
+                  background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
+                  border: 'none', color: '#fff', borderRadius: '6px',
+                  cursor: isSaving ? 'wait' : 'pointer', fontSize: '11px',
+                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
+                }}>
+                  <Save size={12} />
+                  {isSaving ? saveStatus || 'Saving...' : 'SAVE TO WALRUS'}
+                </button>
+
+                <ImmortalizeButton 
+                  messages={messages}
+                  wallet={account}
+                  agentId={selectedAgent.id}
+                  onImmortalized={(data) => {
+                    setMoveObjectId(data.object_id)
+                    setLatestBlobId(data.blob_id)
+                    setOnChainMessages(prev => [...prev, ...messages.filter(m => !m.onChain).map(m => m.content)])
+                    setMessages(prev => prev.map(m => ({
+                      ...m,
+                      onChain: true,
+                      objectId: data.object_id,
+                      txDigest: data.tx_digest,
+                      onChainTime: data.timestamp
+                    })))
+                    alert(`Immortalized! Tx: ${data.tx_digest.slice(0, 20)}...`)
+                  }}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -1450,7 +1706,15 @@ export default function App() {
                   ? '1px solid rgba(255,42,109,0.3)'
                   : '1px solid rgba(255,255,255,0.08)',
                 color: '#e0e0e0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word'
-              }}>{msg.content}</div>
+              }}>{msg.content}
+                {msg.onChain && (
+                  <OnChainBadge 
+                    objectId={msg.objectId}
+                    txDigest={msg.txDigest}
+                    timestamp={msg.onChainTime}
+                  />
+                )}
+              </div>
               <div style={{
                 fontSize: '10px', color: '#555',
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -1660,11 +1924,94 @@ export default function App() {
         </div>
       )}
 
+      {/* RIGHT: VERIFICATION PANEL */}
+      {showVerificationPanel && connected && (
+        <div style={{
+          width: '300px',
+          background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
+          borderLeft: '1px solid rgba(0,255,136,0.2)',
+          padding: '20px', overflowY: 'auto'
+        }}>
+          <h3 style={{
+            fontFamily: "'Orbitron', monospace", fontSize: '14px',
+            color: '#00ff88', margin: '0 0 20px 0',
+            display: 'flex', alignItems: 'center', gap: '8px'
+          }}>
+            <Shield size={16} /> VERIFICATION
+          </h3>
+
+          <div style={{
+            padding: '15px', background: 'rgba(0,255,136,0.05)', borderRadius: '10px',
+            border: '1px solid rgba(0,255,136,0.15)', marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: 600 }}>Immortalized</span>
+              <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: 700 }}>
+                {onChainMessages.length}/{messages.length}
+              </span>
+            </div>
+            <div style={{
+              height: '8px', background: '#1a1a2e', borderRadius: '4px', overflow: 'hidden', position: 'relative'
+            }}>
+              <div style={{
+                height: '100%', width: `${messages.length > 0 ? Math.round((onChainMessages.length / messages.length) * 100) : 0}%`,
+                background: 'linear-gradient(90deg, #ff0055 0%, #ff5500 100%)',
+                transition: 'width 0.5s ease', borderRadius: '4px'
+              }} />
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '10px', color: '#888', marginTop: '4px' }}>
+              {messages.length > 0 ? Math.round((onChainMessages.length / messages.length) * 100) : 0}% On-Chain
+            </div>
+          </div>
+
+          {moveObjectId && (
+            <div style={{
+              padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#00ff88', marginBottom: '4px' }}>Latest Object</div>
+              <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {moveObjectId}
+              </div>
+              <a href={`https://suiscan.xyz/mainnet/object/${moveObjectId}`} target="_blank" style={{
+                fontSize: '10px', color: '#ff0055', textDecoration: 'none', marginTop: '4px', display: 'inline-block'
+              }}>
+                View on SuiScan →
+              </a>
+            </div>
+          )}
+
+          {latestBlobId && (
+            <div style={{
+              padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <div style={{ fontSize: '11px', color: '#00b4d8', marginBottom: '4px' }}>Walrus Blob</div>
+              <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {latestBlobId}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* CSS Animations */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        @keyframes blockPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
+        @keyframes textPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes skeleton {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
         }
       `}</style>
     </div>

@@ -1313,6 +1313,33 @@ def move_get_objects(wallet_hash):
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
+@app.route("/api/move/gas-estimate", methods=["POST"])
+def move_gas_estimate():
+    try:
+        data = request.json
+        message_count = data.get("message_count", 1)
+
+        base_gas_mist = 8000000
+        per_message_mist = 3000000
+        total_mist = base_gas_mist + (per_message_mist * message_count)
+        total_sui = total_mist / 1000000000.0
+
+        return jsonify({
+            "success": True,
+            "estimated_gas_sui": round(total_sui, 4),
+            "estimated_gas_mist": total_mist,
+            "currency": "SUI",
+            "message_count": message_count,
+            "breakdown": {
+                "base_sui": round(base_gas_mist / 1000000000.0, 4),
+                "per_message_sui": round(per_message_mist / 1000000000.0, 4),
+                "total_sui": round(total_sui, 4)
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
