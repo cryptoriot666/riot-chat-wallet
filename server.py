@@ -792,11 +792,11 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 def health():
     return jsonify({
         "status": "RIOT Chat Wallet API v2.3 — WALRUS PRIMARY",
-        "network": "network",
+        "mainnet": "mainnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
         "encryption": "enabled (encrypt+compress)",
         "memory_system": "Walrus primary, DB cache",
-        "walrus": "network",
+        "walrus": "mainnet",
         "on_chain": "enabled",
         "timestamp": datetime.now().isoformat()
     })
