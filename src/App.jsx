@@ -862,13 +862,15 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
       const agentIdStr = agentId
       const sessionId = `session_${Date.now()}`
       const messageContents = messages.filter(m => m.role === 'user' || m.role === 'agent').map(m => m.content).slice(-10)
+      const summary = messageContents.join(' | ').slice(0, 200)
 
-      tx.moveCall({
+tx.moveCall({
   target: `${PACKAGE_ID}::memory::store_memory`,
   arguments: [
     tx.pure(walletAddr),
     tx.pure(agentIdStr),
-    tx.pure(messageContents[0] || ''),  
+    tx.pure(messageContents),
+    tx.pure(summary),
   ]
 })
 
