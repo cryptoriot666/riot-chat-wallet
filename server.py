@@ -24,8 +24,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://walrus-testnet-publisher.natsai.xyz"
-WALRUS_AGGREGATOR = "https://walrus-testnet-aggregator.natsai.xyz"
+WALRUS_PUBLISHER = "https://walrus-mainnet-publisher-1.staketab.org:443"
+WALRUS_AGGREGATOR = "https://wal-aggregator-mainnet.staketab.org:443"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -35,7 +35,7 @@ USE_SQLITE = not DATABASE_URL
 
 print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
 print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
-print(f"[INIT] Walrus: TESTNET")
+print(f"[INIT] Walrus: MAINNET")
 
 # ═══════════════════════════════════════════════════════════════
 # DATABASE
@@ -647,15 +647,12 @@ def save_memory(wallet_hash, data):
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     try:
-        # Convert data to bytes
         payload = json.dumps(data).encode('utf-8')
+        print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
         
-        print(f"[WALRUS] Storing {len(payload)} bytes...")
-        
-        # Try testnet first (gratis, no auth)
         res = requests.put(
-            "https://walrus-testnet-publisher.natsai.xyz/v1/blobs",
-            data=payload,  # RAW bytes, not JSON
+            f"{WALRUS_PUBLISHER}/v1/blobs",
+            data=payload,
             timeout=60
         )
         

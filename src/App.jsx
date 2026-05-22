@@ -1618,7 +1618,7 @@ export default function App() {
           }}>
             <Shield size={12} color="#00ff88" />
             <span style={{ fontSize: '11px', color: '#00ff88' }}>
-              On-Chain: Testnet Active
+              On-Chain: Mainnet Active
             </span>
           </div>
         </div>
