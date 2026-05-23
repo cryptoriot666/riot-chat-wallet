@@ -219,9 +219,12 @@ async function apiWalrusStoreChat(walletHash, chatHistory, agentId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ wallet_hash: walletHash, chat_history: chatHistory, agent_id: agentId })
     })
-    if (!res.ok) return null
-    return await res.json()
-  } catch (e) { return null }
+    if (!res.ok) return { success: false, fallback: 'db_only' }  // Return object, not null
+    const data = await res.json()
+    return data  // Return full response (includes success: true/false)
+  } catch (e) { 
+    return { success: false, fallback: 'db_only', error: e.message } 
+  }
 }
 
 async function apiWalrusLoadChat(walletHash) {
