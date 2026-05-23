@@ -1233,10 +1233,11 @@ export default function App() {
         setMemwalSaveCount(c => c + 1)
         console.log(`[MemWal] Auto-saved: ${result.blob_id?.slice(0, 16)}`)
       } else {
-        const chatHistory = messages.map(m => ({
-          role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
-        }))
-        await apiWalrusStoreChat(walletHash, chatHistory, selectedAgent.id)
+        const agentId = selectedAgent?.id || 'J4'
+const chatHistory = messages.map(m => ({
+  role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
+}))
+await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       }
     }, 3000)
 
@@ -1245,15 +1246,11 @@ export default function App() {
 
   const autoSaveToWalrus = async () => {
     if (!connected || !walletHash || messages.length < 2) return
+    const agentId = selectedAgent?.id || 'J4'
     const chatHistory = messages.map(m => ({
-      role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
+      role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
     }))
-    const result = await apiWalrusStoreChat(walletHash, messages, selectedAgent?.id || 'J4')
-    if (result && result.success) {
-      showToast("Saved to Walrus! Blob: " + result.blob_id.slice(0, 16), "success")
-    } else {
-      showToast("Saved to database. Walrus sync pending.", "info")
-    }
+    const result = await apiWalrusStoreChat(walletHash, messages, agentId)
   }
 
   const loadMemoryAndGreet = async () => {
