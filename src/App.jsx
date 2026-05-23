@@ -861,18 +861,19 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
   const handleImmortalize = async () => {
     setImmortalizing(true)
     try {
+      const currentAgentId = agentId || 'J4'  // ✅ pakai prop, bukan selectedAgent
+      
       const chatHistory = messages.map(m => ({
         role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || currentAgentId
       }))
 
-      const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, agentId)
+      const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, currentAgentId)
       const blobId = storeResult?.blob_id || ''
 
       const tx = new TransactionBlock()
       tx.setGasBudget(50000000)
 
       const walletAddr = address
-      const agentIdStr = agentId
       const sessionId = `session_${Date.now()}`
       const messageContents = messages.filter(m => m.role === 'user' || m.role === 'agent').map(m => m.content).slice(-10)
       const summary = messageContents.join(' | ').slice(0, 200)
@@ -881,7 +882,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
         target: `${PACKAGE_ID}::memory::store_memory`,
         arguments: [
           tx.pure(walletAddr),
-          tx.pure(currentAgentId),
+          tx.pure(agentId || 'J4'),  // ✅ pakai currentAgentId yang dari prop
           tx.pure(messageContents),
           tx.pure(summary),
         ]
@@ -901,7 +902,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
             tx_digest: result.digest,
             blob_id: blobId,
             object_id: objectId,
-            agent_id: agentId,
+            agent_id: currentAgentId,  // ✅ pakai currentAgentId
             package_id: PACKAGE_ID,
             session_id: sessionId,
             message_count: messageContents.length
@@ -1459,7 +1460,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     if (!connected || !account?.address || messages.length < 2) return
 
     // Defensive: ensure we have a valid agent ID
-    const currentAgentId = selectedAgent?.id || 'J4'
+    const currentAgentId = agentId || 'J4'
 
     setIsSaving(true)
     setSaveStatus('Storing to Walrus + Move contract...')
@@ -1483,7 +1484,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
         target: `0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474::memory::store_memory`,
         arguments: [
           tx.pure(walletAddr),
-          tx.pure(currentAgentId),
+          tx.pure(agentId || 'J4'),
           tx.pure(messages.map(m => m.content).slice(-5)),
           tx.pure(summary),
         ]
