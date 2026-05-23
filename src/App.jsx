@@ -1911,7 +1911,7 @@ if (result && result.success) {
               </span>
             </div>
             <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              Package: 0xf001e78f7fb10bbc09...
+              Package: 0x1674e28b68c5928f60f39...
             </div>
             {moveObjectId && (
               <div style={{ fontSize: '10px', color: '#00ff88', fontFamily: 'monospace' }}>
