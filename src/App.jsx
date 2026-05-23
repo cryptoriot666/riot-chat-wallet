@@ -851,7 +851,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
     setImmortalizing(true)
     try {
       const chatHistory = messages.map(m => ({
-        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
+        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent?.id || 'J4'
       }))
 
       const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, agentId)
@@ -1289,7 +1289,7 @@ if (result && result.success) {
     try {
       const storeResult = await apiWalrusStoreChat(walletHash, messages, selectedAgent.id)
       if (!storeResult || !storeResult.success) {
-        throw new Error('Walrus store failed')
+        console.log('Walrus unavailable, continuing with Move contract')
       }
       const blobId = storeResult.blob_id
       setLatestBlobId(blobId)
