@@ -862,7 +862,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
     setImmortalizing(true)
     try {
       const chatHistory = messages.map(m => ({
-        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent?.id || 'J4'
+        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || currentAgentId
       }))
 
       const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, agentId)
@@ -881,7 +881,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
         target: `${PACKAGE_ID}::memory::store_memory`,
         arguments: [
           tx.pure(walletAddr),
-          tx.pure(agentIdStr),
+          tx.pure(currentAgentId),
           tx.pure(messageContents),
           tx.pure(summary),
         ]
@@ -1460,11 +1460,14 @@ export default function App() {
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
+    // Defensive: ensure we have a valid agent ID
+    const currentAgentId = selectedAgent?.id || 'J4'
+
     setIsSaving(true)
     setSaveStatus('Storing to Walrus + Move contract...')
 
     try {
-      const storeResult = await apiWalrusStoreChat(walletHash, messages, selectedAgent.id)
+      const storeResult = await apiWalrusStoreChat(walletHash, messages, currentAgentId)
       if (!storeResult || !storeResult.success) {
         console.log('Walrus unavailable, continuing with Move contract')
       }
@@ -1482,7 +1485,7 @@ export default function App() {
         target: `0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474::memory::store_memory`,
         arguments: [
           tx.pure(walletAddr),
-          tx.pure(agentIdStr),
+          tx.pure(currentAgentId),
           tx.pure(messages.map(m => m.content).slice(-5)),
           tx.pure(summary),
         ]
