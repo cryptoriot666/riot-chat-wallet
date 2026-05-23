@@ -1224,7 +1224,8 @@ export default function App() {
     if (!connected || !walletHash || messages.length === 0) return
 
     const timer = setTimeout(async () => {
-      const result = await memwalSaveMemory(account?.address, messages, selectedAgent.id, {
+      const memwalAgentId = selectedAgent?.id || 'J4'
+const result = await memwalSaveMemory(account?.address, messages, memwalAgentId, {
         agent_name: selectedAgent.name,
         wallet_hash: walletHash
       })
@@ -1475,7 +1476,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       tx.setGasBudget(50000000)
 
       const walletAddr = account.address
-      const agentIdStr = selectedAgent.id
+      const agentIdStr = selectedAgent?.id || 'J4'
       const summary = messages.slice(-3).map(m => m.content).join(' | ').slice(0, 200)
 
       tx.moveCall({
@@ -1505,7 +1506,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
             tx_digest: result.digest,
             blob_id: blobId,
             object_id: objectId,
-            agent_id: selectedAgent.id,
+            agent_id: agentIdStr,
             package_id: PACKAGE_ID
           })
         })
