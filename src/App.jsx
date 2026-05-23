@@ -219,9 +219,8 @@ async function apiWalrusStoreChat(walletHash, chatHistory, agentId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ wallet_hash: walletHash, chat_history: chatHistory, agent_id: agentId })
     })
-    if (!res.ok) return { success: false, fallback: 'db_only' }  // Return object, not null
-    const data = await res.json()
-    return data  // Return full response (includes success: true/false)
+    const data = await res.json()  // Always parse JSON
+    return data  // Return {success: true/false, ...}
   } catch (e) { 
     return { success: false, fallback: 'db_only', error: e.message } 
   }
@@ -1066,13 +1065,12 @@ export default function App() {
     const chatHistory = messages.map(m => ({
       role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
     }))
-    const result = await apiWalrusStoreChat(walletHash, chatHistory, selectedAgent.id)
-    if (result?.success) {
-      setLatestBlobId(result.blob_id)
-      setWalrusSaved(true)
-      setAutoSaveCount(prev => prev + 1)
-      console.log(`[AUTO-SAVE] Walrus blob: ${result.blob_id}`)
-    }
+    const result = await apiWalrusStoreChat(walletHash, messages, agentId)
+if (result && result.success) {
+  showToast("Saved to Walrus! Blob: " + result.blob_id.slice(0, 16), "success")
+} else {
+  showToast("Saved to database. Walrus sync pending.", "info")  // Info, not error!
+}
   }
 
   const loadMemoryAndGreet = async () => {
