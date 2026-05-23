@@ -1034,6 +1034,127 @@ function showToast(message, type = 'info') {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// TYPING ANIMATION — DOTS BOUNCING
+// ═══════════════════════════════════════════════════════════════
+function TypingAnimation({ color }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '4px',
+      padding: '12px 18px',
+      background: 'rgba(255,255,255,0.03)',
+      borderRadius: '16px 16px 16px 4px',
+      border: `2px solid ${color}33`,
+      alignSelf: 'flex-start'
+    }}>
+      {[0, 1, 2].map(i => (
+        <div key={i} style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: color,
+          animation: `typingBounce 1.4s ease-in-out ${i * 0.2}s infinite`,
+          boxShadow: `0 0 10px ${color}`
+        }} />
+      ))}
+      <span style={{
+        fontSize: '12px', color: '#a08060',
+        marginLeft: '8px', fontFamily: "'Rubik Mono One', sans-serif"
+      }}>THINKING...</span>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SOUND EFFECTS
+// ═══════════════════════════════════════════════════════════════
+function playSound(type) {
+  const sounds = {
+    send: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+    receive: 'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3',
+    immortalize: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
+    switch: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'
+  }
+  try {
+    const audio = new Audio(sounds[type])
+    audio.volume = 0.2
+    audio.play().catch(() => {})
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TX HISTORY LIST — For Verification Panel
+// ═══════════════════════════════════════════════════════════════
+function TxHistoryList({ walletHash }) {
+  const [txs, setTxs] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/move/objects/${walletHash}`)
+        if (res.ok) {
+          const data = await res.json()
+          setTxs(data.objects || [])
+        }
+      } catch (e) {
+        console.error('[TxHistory] Load failed:', e)
+      }
+      setLoading(false)
+    }
+    load()
+  }, [walletHash])
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '20px', color: '#a08060', fontSize: '12px' }}>
+      Loading chain history...
+    </div>
+  )
+
+  if (txs.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '20px', color: '#666', fontSize: '12px' }}>
+      No on-chain transactions yet.<br/>
+      <span style={{ color: '#a08060' }}>Immortalize a conversation to see it here.</span>
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
+      {txs.map((tx, i) => (
+        <div key={i} style={{
+          padding: '12px', background: 'rgba(255,255,255,0.02)',
+          borderRadius: '8px', border: '2px solid rgba(46,196,182,0.15)',
+          display: 'flex', flexDirection: 'column', gap: '6px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
+              TX #{txs.length - i}
+            </span>
+            <span style={{ fontSize: '10px', color: '#a08060' }}>
+              {tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : 'Unknown'}
+            </span>
+          </div>
+          <div style={{ fontSize: '10px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            {tx.tx_digest?.slice(0, 20)}...{tx.tx_digest?.slice(-6)}
+          </div>
+          {tx.object_id && (
+            <div style={{ fontSize: '10px', color: '#2ec4b6', fontFamily: 'monospace' }}>
+              Object: {tx.object_id.slice(0, 16)}...{tx.object_id.slice(-6)}
+            </div>
+          )}
+          {tx.agent_id && (
+            <div style={{ fontSize: '10px', color: '#ff2a6d' }}>
+              Agent: {tx.agent_id}
+            </div>
+          )}
+          <a href={`https://suiscan.xyz/mainnet/tx/${tx.tx_digest}`} target="_blank" rel="noopener"
+            style={{ fontSize: '10px', color: '#ff2a6d', textDecoration: 'none', fontFamily: "'Rubik Mono One', sans-serif" }}>
+            View on SuiScan →
+          </a>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN APP — PUNK REDESIGN (ALL FEATURES INTACT)
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
@@ -1060,10 +1181,19 @@ export default function App() {
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
   const [showVerificationPanel, setShowVerificationPanel] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
   const userName = memory?.user_name || ''
+
+  // Mobile detection
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Check API
   useEffect(() => {
@@ -1240,6 +1370,7 @@ export default function App() {
     if (!input.trim() || isLoading) return
     const userMsg = input.trim()
     setInput('')
+    playSound('send')
     setIsLoading(true)
 
     const newMessages = [...messages, {
@@ -1297,6 +1428,7 @@ export default function App() {
       response = generateFallbackResponse(selectedAgent.id, userMsg, memory?.user_name || extractedName, memory?.visit_count || 1)
     }
 
+    playSound('receive')
     setMessages(prev => [...prev, {
       role: 'agent', content: response, agent: selectedAgent.id, timestamp: Date.now()
     }])
@@ -1381,6 +1513,7 @@ export default function App() {
         setWalrusSaved(true)
         setSaveStatus('Saved!')
         const explorerUrl = `${SUI_EXPLORER}/tx/${result.digest}`
+        playSound('immortalize')
         alert(`💾 Chat saved to Walrus + Move contract!\n\nBlob ID: ${blobId}\nObject ID: ${objectId?.slice(0, 16)}...\nTx: ${result.digest.slice(0, 20)}...\n\nView on SuiScan: ${explorerUrl}`)
       }
     } catch (e) {
@@ -1401,8 +1534,21 @@ export default function App() {
   return (
     <div style={{
       width: '100vw', height: '100vh', background: RIOT_DARK,
-      display: 'flex', fontFamily: "'Inter', sans-serif", overflow: 'hidden'
+      display: 'flex', fontFamily: "'Inter', sans-serif", overflow: 'hidden',
+      position: 'relative'
     }}>
+      {/* Mobile Sidebar Toggle */}
+      {isMobile && (
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
+          position: 'fixed', top: '10px', left: '10px', zIndex: 999,
+          padding: '8px', background: 'rgba(255,42,109,0.8)',
+          border: 'none', borderRadius: '8px', color: '#fff',
+          cursor: 'pointer', fontSize: '18px',
+          boxShadow: '0 0 15px rgba(255,42,109,0.5)'
+        }}>
+          {sidebarOpen ? '✕' : '☰'}
+        </button>
+      )}
       {/* Name Ask Modal */}
       {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
 
@@ -1426,10 +1572,15 @@ export default function App() {
 
       {/* LEFT SIDEBAR — PUNK STYLED */}
       <div style={{
-        width: '280px',
+        width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
         background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
         borderRight: '2px solid rgba(255,42,109,0.3)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden'
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        transition: 'width 0.3s ease',
+        position: isMobile ? 'fixed' : 'relative',
+        zIndex: isMobile ? 998 : 'auto',
+        height: '100vh',
+        left: 0, top: 0
       }}>
         {/* Header */}
         <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,42,109,0.4)' }}>
@@ -1598,7 +1749,9 @@ export default function App() {
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
-        position: 'relative'
+        position: 'relative',
+        marginLeft: isMobile ? '0px' : '0px',
+        width: isMobile ? '100%' : 'auto'
       }}>
         {/* Chat Header */}
         <div style={{
@@ -1800,21 +1953,8 @@ export default function App() {
             </div>
           ))}
 
-          {/* Loading Indicator */}
-          {isLoading && (
-            <div style={{
-              alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '12px 18px', background: 'rgba(255,255,255,0.03)',
-              borderRadius: '16px 16px 16px 4px', border: `2px solid ${selectedAgent.color}33`
-            }}>
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                background: selectedAgent.color, animation: 'pulse 1s infinite',
-                boxShadow: `0 0 10px ${selectedAgent.color}`
-              }} />
-              <span style={{ fontSize: '12px', color: '#a08060', fontFamily: "'Rubik Mono One', sans-serif" }}>{selectedAgent.id} is thinking...</span>
-            </div>
-          )}
+          {/* Loading Indicator — Typing Animation */}
+          {isLoading && <TypingAnimation color={selectedAgent.color} />}
 
           <div ref={messagesEndRef} />
         </div>
@@ -2021,6 +2161,19 @@ export default function App() {
             <Shield size={16} /> VERIFICATION
           </h3>
 
+          {/* Transaction History */}
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{
+              fontSize: '12px', color: '#a08060', margin: '0 0 12px 0',
+              textTransform: 'uppercase', letterSpacing: '2px',
+              fontFamily: "'Rubik Mono One', sans-serif"
+            }}>
+              <Clock size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              TX HISTORY
+            </h4>
+            <TxHistoryList walletHash={walletHash} />
+          </div>
+
           <div style={{
             padding: '15px', background: 'rgba(46,196,182,0.05)', borderRadius: '10px',
             border: '2px solid rgba(46,196,182,0.15)', marginBottom: '20px'
@@ -2109,6 +2262,17 @@ export default function App() {
         ::-webkit-scrollbar-track { background: #0d0a07; }
         ::-webkit-scrollbar-thumb { background: #ff2a6d44; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #ff2a6d88; }
+        /* Typing animation */
+        @keyframes typingBounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-6px); }
+        }
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+          .chat-header { padding: 15px !important; }
+          .chat-messages { padding: 15px !important; }
+          .chat-input { padding: 15px !important; }
+        }
       `}</style>
     </div>
   )
