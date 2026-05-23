@@ -1301,7 +1301,7 @@ export default function App() {
       const summary = messages.slice(-3).map(m => m.content).join(' | ').slice(0, 200)
 
       tx.moveCall({
-        target: `0xf001e78f7fb10bbc09e2d738f5d956c31ee6bdc2aebf78542b3e61b5fb9ea5db::memory::store_memory`,
+        target: `0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474::memory::store_memory`,
         arguments: [
           tx.pure(walletAddr),
           tx.pure(agentIdStr),
