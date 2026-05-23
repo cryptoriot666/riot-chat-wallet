@@ -1065,7 +1065,7 @@ export default function App() {
     const chatHistory = messages.map(m => ({
       role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
     }))
-    const result = await apiWalrusStoreChat(walletHash, messages, agentId)
+    const result = await apiWalrusStoreChat(walletHash, messages, selectedAgent?.id || 'J4')
 if (result && result.success) {
   showToast("Saved to Walrus! Blob: " + result.blob_id.slice(0, 16), "success")
 } else {
