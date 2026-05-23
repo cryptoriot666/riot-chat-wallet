@@ -4,16 +4,19 @@ import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, Alert
 import { TransactionBlock } from '@mysten/sui.js/transactions'
 
 // ═══════════════════════════════════════════════════════════════
-// CONFIG
+// CONFIG — PUNK PALETTE
 // ═══════════════════════════════════════════════════════════════
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
 const RIOT_PINK = '#ff2a6d'
-const RIOT_DARK = '#0a0a0f'
+const RIOT_ORANGE = '#ff6b35'
+const RIOT_WARM = '#1a1209'
+const RIOT_DARK = '#0d0a07'
+const RIOT_GOLD = '#ffb703'
+const RIOT_GREEN = '#2ec4b6'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
 
-// ═══════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
 // MEMWAL API CLIENT (via backend - no npm dependency)
 // ═══════════════════════════════════════════════════════════════
@@ -77,6 +80,7 @@ async function getMemWalStatus() {
     return { ready: false };
   }
 }
+
 const AGENTS = [
   { id: 'ARCHITECT', name: 'J1 — The Architect', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00ff88', img: '/assets/J1.jpg' },
   { id: 'ENFORCER', name: 'J2 — The Enforcer', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#ff0044', img: '/assets/J2.jpg' },
@@ -219,8 +223,8 @@ async function apiWalrusStoreChat(walletHash, chatHistory, agentId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ wallet_hash: walletHash, chat_history: chatHistory, agent_id: agentId })
     })
-    const data = await res.json()  // Always parse JSON
-    return data  // Return {success: true/false, ...}
+    const data = await res.json()
+    return data
   } catch (e) { 
     return { success: false, fallback: 'db_only', error: e.message } 
   }
@@ -234,9 +238,6 @@ async function apiWalrusLoadChat(walletHash) {
   } catch (e) { return null }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PROFILE API FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
 async function apiGetProfile(walletHash) {
   try {
     const res = await fetch(`${API_BASE}/api/profile/get/${walletHash}`)
@@ -268,7 +269,6 @@ async function apiCreateProfile(walletHash, walletAddress, userName) {
     return await res.json()
   } catch (e) { return null }
 }
-
 
 async function apiGasEstimate(messageCount) {
   try {
@@ -315,7 +315,7 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// NAME ASK MODAL
+// NAME ASK MODAL — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function NameAskModal({ onSubmit, agentName }) {
   const [name, setName] = useState('')
@@ -323,22 +323,24 @@ function NameAskModal({ onSubmit, agentName }) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.95)', display: 'flex',
+      background: 'rgba(13,10,7,0.95)', display: 'flex',
       alignItems: 'center', justifyContent: 'center', zIndex: 1000
     }}>
       <div style={{
-        background: 'linear-gradient(135deg, #0f0f1a, #1a1a2e)',
+        background: 'linear-gradient(135deg, #1a1209, #2a1a0a)',
         padding: '40px', borderRadius: '16px',
-        border: '2px solid rgba(255,42,109,0.5)',
+        border: '3px solid rgba(255,42,109,0.6)',
         maxWidth: '420px', width: '90%', textAlign: 'center',
-        boxShadow: '0 0 40px rgba(255,42,109,0.2)'
+        boxShadow: '0 0 40px rgba(255,42,109,0.2), inset 0 0 60px rgba(255,107,53,0.05)'
       }}>
-        <Zap size={40} color={RIOT_PINK} style={{ marginBottom: '15px' }} />
+        <Zap size={40} color={RIOT_PINK} style={{ marginBottom: '15px', filter: 'drop-shadow(0 0 10px rgba(255,42,109,0.5))' }} />
         <h2 style={{
-          fontFamily: "'Orbitron', monospace", fontSize: '20px',
-          color: '#fff', margin: '0 0 10px 0'
+          fontFamily: "'Rubik Glitch', cursive", fontSize: '24px',
+          color: '#fff', margin: '0 0 10px 0',
+          textShadow: '0 0 20px rgba(255,42,109,0.5)',
+          letterSpacing: '2px'
         }}>⚡ FIRST CONTACT</h2>
-        <p style={{ color: '#888', fontSize: '13px', marginBottom: '25px', lineHeight: '1.6' }}>
+        <p style={{ color: '#a08060', fontSize: '13px', marginBottom: '25px', lineHeight: '1.6', fontFamily: "'Inter', sans-serif" }}>
           New soul detected in the RIOT network.<br/>
           {agentName} wants to know what to call you.
         </p>
@@ -348,11 +350,11 @@ function NameAskModal({ onSubmit, agentName }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter your name..."
           style={{
-            width: '100%', padding: '14px', background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,42,109,0.3)', color: '#fff',
+            width: '100%', padding: '14px', background: 'rgba(255,255,255,0.03)',
+            border: '2px solid rgba(255,42,109,0.3)', color: '#fff',
             borderRadius: '10px', fontSize: '16px', textAlign: 'center',
-            fontFamily: "'Rajdhani', sans-serif", marginBottom: '20px',
-            outline: 'none'
+            fontFamily: "'Permanent Marker', cursive", marginBottom: '20px',
+            outline: 'none', letterSpacing: '1px'
           }}
           onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.8)'}
           onBlur={e => e.target.style.borderColor = 'rgba(255,42,109,0.3)'}
@@ -363,11 +365,13 @@ function NameAskModal({ onSubmit, agentName }) {
           onClick={() => name.trim() && onSubmit(name.trim())}
           style={{
             width: '100%', padding: '14px',
-            background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
+            background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
             border: 'none', color: '#fff', borderRadius: '10px',
-            cursor: 'pointer', fontFamily: "'Orbitron', monospace",
-            fontWeight: 700, fontSize: '14px', letterSpacing: '2px',
-            textTransform: 'uppercase', opacity: name.trim() ? 1 : 0.5
+            cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+            fontSize: '13px', letterSpacing: '2px',
+            textTransform: 'uppercase', opacity: name.trim() ? 1 : 0.5,
+            boxShadow: name.trim() ? '0 0 20px rgba(255,42,109,0.4)' : 'none',
+            transition: 'all 0.3s'
           }}
           disabled={!name.trim()}
         >
@@ -379,7 +383,7 @@ function NameAskModal({ onSubmit, agentName }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PROFILE SETTINGS PANEL
+// PROFILE SETTINGS PANEL — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
   const [form, setForm] = useState({
@@ -423,50 +427,50 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 
   const inputStyle = {
     width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
-    borderRadius: '8px', fontSize: '13px', fontFamily: "'Rajdhani', sans-serif",
-    outline: 'none', marginBottom: '12px'
+    border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
+    borderRadius: '8px', fontSize: '13px', fontFamily: "'Inter', sans-serif",
+    outline: 'none', marginBottom: '12px', transition: 'all 0.2s'
   }
 
   const labelStyle = {
-    display: 'block', color: '#888', fontSize: '11px',
-    marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px'
+    display: 'block', color: '#a08060', fontSize: '11px',
+    marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '2px',
+    fontFamily: "'Rubik Mono One', sans-serif"
   }
 
   return (
     <div style={{
       position: 'fixed', top: 0, right: 0, width: '380px', height: '100vh',
-      background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
-      borderLeft: '1px solid rgba(255,42,109,0.3)',
+      background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+      borderLeft: '2px solid rgba(255,42,109,0.3)',
       padding: '25px', overflowY: 'auto', zIndex: 100,
-      boxShadow: '-10px 0 30px rgba(0,0,0,0.5)'
+      boxShadow: '-10px 0 30px rgba(0,0,0,0.8)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
         <h2 style={{
-          fontFamily: "'Orbitron', monospace", fontSize: '16px',
-          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px'
+          fontFamily: "'Rubik Glitch', cursive", fontSize: '18px',
+          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px',
+          textShadow: '0 0 10px rgba(255,42,109,0.4)'
         }}>
           <Edit3 size={18} /> PROFILE SETTINGS
         </h2>
         <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '5px'
+          background: 'none', border: 'none', color: '#a08060', cursor: 'pointer', padding: '5px'
         }}>
           <X size={20} />
         </button>
       </div>
 
-      {/* Profile Preview */}
       {profile?.profile_pic && (
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <img src={profile.profile_pic} alt="Profile" style={{
             width: '80px', height: '80px', borderRadius: '50%',
             border: '3px solid rgba(255,42,109,0.5)',
-            objectFit: 'cover'
+            objectFit: 'cover', boxShadow: '0 0 20px rgba(255,42,109,0.3)'
           }} onError={e => e.target.style.display = 'none'} />
         </div>
       )}
 
-      {/* Bio */}
       <div style={{ marginBottom: '15px' }}>
         <label style={labelStyle}>
           <FileText size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -476,15 +480,14 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
           value={form.bio}
           onChange={e => handleChange('bio', e.target.value)}
           placeholder="Who you are in the RIOT..."
-          style={{...inputStyle, minHeight: '80px', resize: 'vertical'}}
+          style={{...inputStyle, minHeight: '80px', resize: 'vertical', fontFamily: "'Permanent Marker', cursive", fontSize: '14px'}}
           maxLength={500}
         />
-        <div style={{ textAlign: 'right', fontSize: '10px', color: '#555' }}>
+        <div style={{ textAlign: 'right', fontSize: '10px', color: '#a08060' }}>
           {form.bio.length}/500
         </div>
       </div>
 
-      {/* Profile Pic */}
       <div style={{ marginBottom: '15px' }}>
         <label style={labelStyle}>
           <ImageIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -499,15 +502,15 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
         />
       </div>
 
-      {/* Social Links */}
       <div style={{
         padding: '15px', background: 'rgba(255,255,255,0.02)',
-        borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)',
+        borderRadius: '10px', border: '2px solid rgba(255,255,255,0.05)',
         marginBottom: '15px'
       }}>
         <h4 style={{
-          fontSize: '12px', color: '#888', margin: '0 0 15px 0',
-          textTransform: 'uppercase', letterSpacing: '1px'
+          fontSize: '12px', color: '#a08060', margin: '0 0 15px 0',
+          textTransform: 'uppercase', letterSpacing: '2px',
+          fontFamily: "'Rubik Mono One', sans-serif"
         }}>
           <LinkIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Social Links
@@ -533,17 +536,18 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
         ))}
       </div>
 
-      {/* Save Button */}
       <button 
         onClick={handleSave} 
         disabled={saving}
         style={{
           width: '100%', padding: '14px',
-          background: saving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00ff88, #00cc6a)',
-          border: 'none', color: '#0a0a0f', borderRadius: '10px',
+          background: saving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #2ec4b6, #1a9a8a)',
+          border: 'none', color: '#0d0a07', borderRadius: '10px',
           cursor: saving ? 'wait' : 'pointer', fontWeight: 700,
-          fontSize: '14px', fontFamily: "'Orbitron', monospace",
-          letterSpacing: '1px', opacity: saving ? 0.6 : 1
+          fontSize: '14px', fontFamily: "'Rubik Mono One', sans-serif",
+          letterSpacing: '1px', opacity: saving ? 0.6 : 1,
+          boxShadow: saving ? 'none' : '0 0 20px rgba(46,196,182,0.3)',
+          transition: 'all 0.3s'
         }}
       >
         {saving ? '💾 SAVING...' : saved ? '✅ SAVED!' : '💾 SAVE PROFILE'}
@@ -553,7 +557,7 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MEMORY SEARCH PANEL (MemWal Semantic Search)
+// MEMORY SEARCH PANEL (MemWal Semantic Search) — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function MemorySearchPanel({ walletAddress, onClose }) {
   const [query, setQuery] = useState('')
@@ -582,43 +586,43 @@ function MemorySearchPanel({ walletAddress, onClose }) {
   return (
     <div style={{
       position: 'fixed', top: 0, right: 0, width: '420px', height: '100vh',
-      background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
-      borderLeft: '1px solid rgba(255,42,109,0.3)',
+      background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+      borderLeft: '2px solid rgba(255,42,109,0.3)',
       padding: '25px', overflowY: 'auto', zIndex: 100,
-      boxShadow: '-10px 0 30px rgba(0,0,0,0.5)'
+      boxShadow: '-10px 0 30px rgba(0,0,0,0.8)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
         <h2 style={{
-          fontFamily: "'Orbitron', monospace", fontSize: '16px',
-          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px'
+          fontFamily: "'Rubik Glitch', cursive", fontSize: '18px',
+          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px',
+          textShadow: '0 0 10px rgba(255,42,109,0.4)'
         }}>
           <Search size={18} /> MEMORY SEARCH
         </h2>
         <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '5px'
+          background: 'none', border: 'none', color: '#a08060', cursor: 'pointer', padding: '5px'
         }}>
           <X size={20} />
         </button>
       </div>
 
-      {/* Status */}
       <div style={{
         padding: '10px 12px', borderRadius: '6px', marginBottom: '20px',
-        background: memwalReady ? 'rgba(0,255,136,0.05)' : 'rgba(255,68,68,0.05)',
-        border: memwalReady ? '1px solid rgba(0,255,136,0.2)' : '1px solid rgba(255,68,68,0.2)',
+        background: memwalReady ? 'rgba(46,196,182,0.08)' : 'rgba(255,68,68,0.08)',
+        border: memwalReady ? '2px solid rgba(46,196,182,0.3)' : '2px solid rgba(255,68,68,0.3)',
         display: 'flex', alignItems: 'center', gap: '8px'
       }}>
         <div style={{
           width: '8px', height: '8px', borderRadius: '50%',
-          background: memwalReady ? '#00ff88' : '#ff4444',
-          boxShadow: memwalReady ? '0 0 8px #00ff88' : 'none'
+          background: memwalReady ? '#2ec4b6' : '#ff4444',
+          boxShadow: memwalReady ? '0 0 10px #2ec4b6' : 'none',
+          animation: memwalReady ? 'pulse 2s infinite' : 'none'
         }} />
-        <span style={{ fontSize: '12px', color: memwalReady ? '#00ff88' : '#ff4444' }}>
+        <span style={{ fontSize: '12px', color: memwalReady ? '#2ec4b6' : '#ff4444', fontWeight: 600 }}>
           {memwalReady ? '🧠 MemWal Connected — Semantic Search Active' : '⚠️ MemWal Offline — Check credentials'}
         </span>
       </div>
 
-      {/* Search Form */}
       <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <input
           type="text"
@@ -627,35 +631,35 @@ function MemorySearchPanel({ walletAddress, onClose }) {
           placeholder="Ask about your memories... (e.g., 'What about Bitcoin?')"
           style={{
             flex: 1, padding: '12px 14px', background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
-            borderRadius: '8px', fontSize: '13px', fontFamily: "'Rajdhani', sans-serif",
-            outline: 'none'
+            border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
+            borderRadius: '8px', fontSize: '13px',
+            outline: 'none', fontFamily: "'Permanent Marker', cursive"
           }}
           onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.5)'}
-          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
         />
         <button
           type="submit"
           disabled={loading || !query.trim()}
           style={{
             padding: '12px 16px',
-            background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
+            background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
             border: 'none', color: '#fff', borderRadius: '8px',
             cursor: loading ? 'wait' : 'pointer', fontSize: '12px',
-            fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+            fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+            boxShadow: loading ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
           }}
         >
           {loading ? '...' : 'Search'}
         </button>
       </form>
 
-      <div style={{ fontSize: '11px', color: '#666', marginBottom: '20px', lineHeight: '1.5' }}>
+      <div style={{ fontSize: '11px', color: '#a08060', marginBottom: '20px', lineHeight: '1.5' }}>
         <Brain size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-        Powered by MemWal vector embeddings on Walrus. Search by <strong>meaning</strong>, not keywords.
+        Powered by MemWal vector embeddings on Walrus. Search by <strong style={{color: RIOT_PINK}}>meaning</strong>, not keywords.
         <br />Example: "crypto" finds "Bitcoin" conversations too.
       </div>
 
-      {/* Results */}
       {results.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {results.map((r, i) => {
@@ -666,14 +670,15 @@ function MemorySearchPanel({ walletAddress, onClose }) {
 
             return (
               <div key={i} style={{
-                padding: '14px', background: 'rgba(255,255,255,0.03)',
-                borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)'
+                padding: '14px', background: 'rgba(255,255,255,0.02)',
+                borderRadius: '10px', border: `2px solid ${agent?.color ? agent.color + '33' : 'rgba(255,255,255,0.08)'}`
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{
                       width: '8px', height: '8px', borderRadius: '50%',
-                      background: agent?.color || '#ff0044'
+                      background: agent?.color || '#ff0044',
+                      boxShadow: `0 0 8px ${agent?.color || '#ff0044'}`
                     }} />
                     <span style={{ fontSize: '12px', color: agent?.color || '#ff0044', fontWeight: 700 }}>
                       {agent?.name || data.agent_id || 'Unknown'}
@@ -681,16 +686,16 @@ function MemorySearchPanel({ walletAddress, onClose }) {
                   </div>
                   <span style={{
                     fontSize: '11px', fontWeight: 700,
-                    color: relevance > 80 ? '#00ff88' : relevance > 50 ? '#ffaa00' : '#ff4444'
+                    color: relevance > 80 ? '#2ec4b6' : relevance > 50 ? '#ffb703' : '#ff4444'
                   }}>
                     {relevance}% match
                   </span>
                 </div>
 
-                <div style={{ fontSize: '12px', color: '#bbb', lineHeight: '1.6', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', color: '#d0b090', lineHeight: '1.6', marginBottom: '8px' }}>
                   {data.messages?.slice(-2).map((m, mi) => (
                     <div key={mi} style={{ marginBottom: '6px' }}>
-                      <span style={{ color: m.role === 'user' ? '#ff2a6d' : '#888', fontWeight: 600 }}>
+                      <span style={{ color: m.role === 'user' ? '#ff2a6d' : '#a08060', fontWeight: 600 }}>
                         {m.role === 'user' ? 'You' : agent?.name || 'Agent'}:
                       </span>
                       <span style={{ marginLeft: '6px' }}>
@@ -700,7 +705,7 @@ function MemorySearchPanel({ walletAddress, onClose }) {
                   )) || <span style={{ color: '#666' }}>{r.text?.slice(0, 150)}...</span>}
                 </div>
 
-                <div style={{ fontSize: '10px', color: '#555', display: 'flex', gap: '12px' }}>
+                <div style={{ fontSize: '10px', color: '#a08060', display: 'flex', gap: '12px' }}>
                   {data.timestamp && (
                     <span>{new Date(data.timestamp).toLocaleString()}</span>
                   )}
@@ -740,7 +745,7 @@ function MemorySearchPanel({ walletAddress, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MEMWAL BADGE COMPONENT
+// MEMWAL BADGE COMPONENT — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function MemWalBadge({ count }) {
   const [ready, setReady] = useState(false)
@@ -756,16 +761,18 @@ function MemWalBadge({ count }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '6px',
-      padding: '4px 10px', borderRadius: '4px',
-      background: ready ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,68,0.08)',
-      border: ready ? '1px solid rgba(0,255,136,0.2)' : '1px solid rgba(255,68,68,0.2)'
+      padding: '6px 12px', borderRadius: '6px',
+      background: ready ? 'rgba(46,196,182,0.1)' : 'rgba(255,68,68,0.1)',
+      border: ready ? '2px solid rgba(46,196,182,0.3)' : '2px solid rgba(255,68,68,0.3)',
+      boxShadow: ready ? '0 0 10px rgba(46,196,182,0.1)' : 'none'
     }}>
       <div style={{
         width: '6px', height: '6px', borderRadius: '50%',
-        background: ready ? '#00ff88' : '#ff4444',
-        boxShadow: ready ? '0 0 6px #00ff88' : 'none'
+        background: ready ? '#2ec4b6' : '#ff4444',
+        boxShadow: ready ? '0 0 8px #2ec4b6' : 'none',
+        animation: ready ? 'pulse 2s infinite' : 'none'
       }} />
-      <span style={{ fontSize: '11px', color: ready ? '#00ff88' : '#ff4444', fontWeight: 600 }}>
+      <span style={{ fontSize: '11px', color: ready ? '#2ec4b6' : '#ff4444', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
         {ready ? `🧠 MEMWAL ON${count > 0 ? ` • ${count} saved` : ''}` : '⚠️ MEMWAL OFF'}
       </span>
     </div>
@@ -773,7 +780,7 @@ function MemWalBadge({ count }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP — COMPLETE VERSION WITH ALL FEATURES + MEMWAL INTEGRATION
+// ON-CHAIN BADGE — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function OnChainBadge({ objectId, txDigest, timestamp }) {
   const [hovered, setHovered] = useState(false)
@@ -786,10 +793,12 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '4px',
-        background: 'linear-gradient(135deg, #00d4aa 0%, #00a884 100%)',
-        color: '#000', padding: '2px 8px', borderRadius: '12px',
+        background: 'linear-gradient(135deg, #ffb703 0%, #ff6b35 100%)',
+        color: '#0d0a07', padding: '2px 8px', borderRadius: '12px',
         fontSize: '10px', fontWeight: 700, cursor: 'pointer',
-        position: 'relative', marginLeft: '8px'
+        position: 'relative', marginLeft: '8px',
+        boxShadow: '0 0 10px rgba(255,183,3,0.3)',
+        fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '1px'
       }}
     >
       <CheckCircle size={10} />
@@ -797,31 +806,31 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
       {hovered && (objectId || txDigest) && (
         <div style={{
           position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-          background: '#1a1a2e', border: '1px solid #00d4aa', borderRadius: '8px',
+          background: '#1a1209', border: '2px solid #ffb703', borderRadius: '8px',
           padding: '12px', minWidth: '280px', zIndex: 1000,
           boxShadow: '0 10px 40px rgba(0,0,0,0.5)', marginBottom: '8px'
         }}>
-          <div style={{ color: '#00d4aa', fontWeight: 700, marginBottom: '8px', fontSize: '12px' }}>
+          <div style={{ color: '#ffb703', fontWeight: 700, marginBottom: '8px', fontSize: '12px', fontFamily: "'Rubik Mono One', sans-serif" }}>
             Verified on Sui Mainnet
           </div>
           {objectId && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', margin: '4px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#a08060', margin: '4px 0' }}>
               <span>Object:</span>
-              <a href={suiscanUrl} target="_blank" rel="noopener" style={{ color: '#ff0055' }}>
+              <a href={suiscanUrl} target="_blank" rel="noopener" style={{ color: '#ff2a6d' }}>
                 {objectId.slice(0, 12)}...{objectId.slice(-6)}
               </a>
             </div>
           )}
           {txDigest && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', margin: '4px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#a08060', margin: '4px 0' }}>
               <span>Tx:</span>
-              <a href={txUrl} target="_blank" rel="noopener" style={{ color: '#ff0055' }}>
+              <a href={txUrl} target="_blank" rel="noopener" style={{ color: '#ff2a6d' }}>
                 {txDigest.slice(0, 12)}...{txDigest.slice(-6)}
               </a>
             </div>
           )}
           {timestamp && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#aaa', margin: '4px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#a08060', margin: '4px 0' }}>
               <span>Time:</span>
               <span>{new Date(timestamp).toLocaleString()}</span>
             </div>
@@ -832,7 +841,9 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
   )
 }
 
-
+// ═══════════════════════════════════════════════════════════════
+// IMMORTALIZE BUTTON — PUNK STYLED
+// ═══════════════════════════════════════════════════════════════
 function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
   const { address, signAndExecuteTransactionBlock } = wallet || {}
   const [showGas, setShowGas] = useState(false)
@@ -866,15 +877,15 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
       const messageContents = messages.filter(m => m.role === 'user' || m.role === 'agent').map(m => m.content).slice(-10)
       const summary = messageContents.join(' | ').slice(0, 200)
 
-tx.moveCall({
-  target: `${PACKAGE_ID}::memory::store_memory`,
-  arguments: [
-    tx.pure(walletAddr),
-    tx.pure(agentIdStr),
-    tx.pure(messageContents),
-    tx.pure(summary),
-  ]
-})
+      tx.moveCall({
+        target: `${PACKAGE_ID}::memory::store_memory`,
+        arguments: [
+          tx.pure(walletAddr),
+          tx.pure(agentIdStr),
+          tx.pure(messageContents),
+          tx.pure(summary),
+        ]
+      })
 
       const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
 
@@ -920,14 +931,16 @@ tx.moveCall({
           onClick={handleShowGas}
           disabled={userMessages.length < 2}
           style={{
-            background: 'linear-gradient(135deg, #ff0055 0%, #ff00aa 100%)',
+            background: 'linear-gradient(135deg, #ff2a6d 0%, #ff6b35 100%)',
             color: '#fff', border: 'none', padding: '8px 16px',
             borderRadius: '6px', fontWeight: 700, fontSize: '11px',
             cursor: userMessages.length < 2 ? 'not-allowed' : 'pointer',
             textTransform: 'uppercase', letterSpacing: '1px',
             opacity: userMessages.length < 2 ? 0.5 : 1,
             display: 'flex', alignItems: 'center', gap: '6px',
-            fontFamily: "'Rajdhani', sans-serif"
+            fontFamily: "'Rubik Mono One', sans-serif",
+            boxShadow: userMessages.length >= 2 ? '0 0 15px rgba(255,42,109,0.4)' : 'none',
+            transition: 'all 0.3s'
           }}
         >
           <Flame size={12} />
@@ -935,28 +948,32 @@ tx.moveCall({
         </button>
       ) : (
         <div style={{
-          background: '#1a0a1a', border: '1px solid #ff5500', borderRadius: '8px',
-          padding: '12px', textAlign: 'center', minWidth: '200px'
+          background: '#1a0a0a', border: '2px solid #ff6b35', borderRadius: '8px',
+          padding: '12px', textAlign: 'center', minWidth: '200px',
+          boxShadow: '0 0 20px rgba(255,107,53,0.2)'
         }}>
-          <div style={{ color: '#ff5500', fontSize: '11px', marginBottom: '6px' }}>⛽ GAS ESTIMATE</div>
-          <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginBottom: '4px' }}>
+          <div style={{ color: '#ff6b35', fontSize: '11px', marginBottom: '6px', fontFamily: "'Rubik Mono One', sans-serif" }}>⛽ GAS ESTIMATE</div>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginBottom: '4px', fontFamily: "'Rubik Glitch', cursive" }}>
             {gasEstimate?.estimated_gas_sui?.toFixed(4) || '0.0230'} SUI
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', fontSize: '10px', color: '#888', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', fontSize: '10px', color: '#a08060', marginBottom: '10px' }}>
             <span>Base: {gasEstimate?.breakdown?.base_sui?.toFixed(4) || '0.0080'}</span>
             <span>+ {userMessages.length} × {gasEstimate?.breakdown?.per_message_sui?.toFixed(4) || '0.0030'}</span>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button onClick={() => setShowGas(false)} style={{
               flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.2)', color: '#888',
-              borderRadius: '4px', cursor: 'pointer', fontSize: '10px'
+              border: '2px solid rgba(255,255,255,0.2)', color: '#a08060',
+              borderRadius: '4px', cursor: 'pointer', fontSize: '10px',
+              fontFamily: "'Rubik Mono One', sans-serif"
             }}>CANCEL</button>
             <button onClick={handleImmortalize} style={{
               flex: 1, padding: '8px',
-              background: 'linear-gradient(135deg, #ff0055 0%, #ff5500 100%)',
+              background: 'linear-gradient(135deg, #ff2a6d 0%, #ff6b35 100%)',
               border: 'none', color: '#fff', borderRadius: '4px',
-              cursor: 'pointer', fontWeight: 700, fontSize: '10px'
+              cursor: 'pointer', fontWeight: 700, fontSize: '10px',
+              fontFamily: "'Rubik Mono One', sans-serif",
+              boxShadow: '0 0 15px rgba(255,42,109,0.3)'
             }}>APPROVE</button>
           </div>
         </div>
@@ -965,12 +982,12 @@ tx.moveCall({
       {immortalizing && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.9)', display: 'flex',
+          background: 'rgba(13,10,7,0.95)', display: 'flex',
           alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '48px', animation: 'blockPulse 1s ease infinite' }}>⛓️</div>
-            <div style={{ color: '#ff0055', fontSize: '14px', marginTop: '16px', animation: 'textPulse 1.5s ease infinite' }}>
+            <div style={{ color: '#ff2a6d', fontSize: '14px', marginTop: '16px', animation: 'textPulse 1.5s ease infinite', fontFamily: "'Rubik Glitch', cursive" }}>
               Writing to Sui Mainnet...
             </div>
           </div>
@@ -980,7 +997,45 @@ tx.moveCall({
   )
 }
 
+// ═══════════════════════════════════════════════════════════════
+// TOAST SYSTEM
+// ═══════════════════════════════════════════════════════════════
+let toastTimer = null
+function showToast(message, type = 'info') {
+  const existing = document.getElementById('riot-toast')
+  if (existing) existing.remove()
 
+  const toast = document.createElement('div')
+  toast.id = 'riot-toast'
+  const colors = {
+    success: { bg: 'rgba(46,196,182,0.15)', border: '#2ec4b6', text: '#2ec4b6' },
+    error: { bg: 'rgba(255,68,68,0.15)', border: '#ff4444', text: '#ff4444' },
+    info: { bg: 'rgba(255,183,3,0.15)', border: '#ffb703', text: '#ffb703' }
+  }
+  const c = colors[type] || colors.info
+
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 99999;
+    padding: 14px 20px; border-radius: 10px;
+    background: ${c.bg}; border: 2px solid ${c.border};
+    color: ${c.text}; font-family: 'Rubik Mono One', sans-serif;
+    font-size: 12px; letter-spacing: 1px;
+    box-shadow: 0 0 20px ${c.border}44;
+    animation: toastSlide 0.3s ease;
+  `
+  toast.textContent = message
+  document.body.appendChild(toast)
+
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toast.style.animation = 'toastSlideOut 0.3s ease'
+    setTimeout(() => toast.remove(), 300)
+  }, 3000)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN APP — PUNK REDESIGN (ALL FEATURES INTACT)
+// ═══════════════════════════════════════════════════════════════
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
@@ -1039,7 +1094,6 @@ export default function App() {
     if (!connected || !walletHash || messages.length === 0) return
 
     const timer = setTimeout(async () => {
-      // Try MemWal first
       const result = await memwalSaveMemory(account?.address, messages, selectedAgent.id, {
         agent_name: selectedAgent.name,
         wallet_hash: walletHash
@@ -1049,7 +1103,6 @@ export default function App() {
         setMemwalSaveCount(c => c + 1)
         console.log(`[MemWal] Auto-saved: ${result.blob_id?.slice(0, 16)}`)
       } else {
-        // Fallback to API
         const chatHistory = messages.map(m => ({
           role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
         }))
@@ -1066,11 +1119,11 @@ export default function App() {
       role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || selectedAgent.id
     }))
     const result = await apiWalrusStoreChat(walletHash, messages, selectedAgent?.id || 'J4')
-if (result && result.success) {
-  showToast("Saved to Walrus! Blob: " + result.blob_id.slice(0, 16), "success")
-} else {
-  showToast("Saved to database. Walrus sync pending.", "info")  // Info, not error!
-}
+    if (result && result.success) {
+      showToast("Saved to Walrus! Blob: " + result.blob_id.slice(0, 16), "success")
+    } else {
+      showToast("Saved to database. Walrus sync pending.", "info")
+    }
   }
 
   const loadMemoryAndGreet = async () => {
@@ -1105,13 +1158,11 @@ if (result && result.success) {
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
       if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
 
-      // Load full profile settings
       const profileData = await apiGetProfile(walletHash)
       if (profileData?.success && profileData.exists) {
         setProfile(profileData.profile)
       }
 
-      // Auto-ask name if new user or no name
       if (!data.user_name && !showNameAsk) {
         setShowNameAsk(true)
       }
@@ -1127,11 +1178,7 @@ if (result && result.success) {
 
   const handleNameSubmit = async (name) => {
     setShowNameAsk(false)
-
-    // Create/update profile with name
     await apiCreateProfile(walletHash, account?.address, name)
-
-    // Save to memory too
     await apiSaveMemory(walletHash, {
       user_name: name,
       summary: `User introduced as ${name}`,
@@ -1139,8 +1186,6 @@ if (result && result.success) {
       last_agent: selectedAgent.id,
       last_visit: new Date().toISOString()
     })
-
-    // Reload everything
     await loadMemoryAndGreet()
   }
 
@@ -1356,7 +1401,7 @@ if (result && result.success) {
   return (
     <div style={{
       width: '100vw', height: '100vh', background: RIOT_DARK,
-      display: 'flex', fontFamily: "'Rajdhani', sans-serif", overflow: 'hidden'
+      display: 'flex', fontFamily: "'Inter', sans-serif", overflow: 'hidden'
     }}>
       {/* Name Ask Modal */}
       {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
@@ -1379,62 +1424,65 @@ if (result && result.success) {
         />
       )}
 
-      {/* LEFT SIDEBAR */}
+      {/* LEFT SIDEBAR — PUNK STYLED */}
       <div style={{
         width: '280px',
-        background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
-        borderRight: '1px solid rgba(255,42,109,0.2)',
+        background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+        borderRight: '2px solid rgba(255,42,109,0.3)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden'
       }}>
         {/* Header */}
-        <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,42,109,0.3)' }}>
+        <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,42,109,0.4)' }}>
           <h1 style={{
-            fontFamily: "'Orbitron', monospace", fontSize: '24px', fontWeight: 900,
-            color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '2px', margin: 0,
-            textShadow: '0 0 20px rgba(255,42,109,0.5)'
+            fontFamily: "'Rubik Glitch', cursive", fontSize: '26px', fontWeight: 900,
+            color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '3px', margin: 0,
+            textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
           }}>$RIOT</h1>
-          <p style={{ fontSize: '11px', color: '#666', marginTop: '4px', letterSpacing: '1px' }}>
+          <p style={{ fontSize: '11px', color: '#a08060', marginTop: '6px', letterSpacing: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>
             PUNK AGENTS WITH MEMORY
           </p>
         </div>
 
         {/* Wallet */}
-        <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ padding: '15px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
           {connected ? (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 10px #00ff88' }} />
-                <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: 600 }}>CONNECTED</span>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 10px #2ec4b6', animation: 'pulse 2s infinite' }} />
+                <span style={{ fontSize: '12px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>CONNECTED</span>
               </div>
-              <div style={{ fontSize: '11px', color: '#888', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: '11px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                 <button onClick={() => setShowProfileSettings(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
                   background: 'rgba(255,42,109,0.15)',
-                  border: '1px solid rgba(255,42,109,0.4)',
+                  border: '2px solid rgba(255,42,109,0.4)',
                   color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
                 }}>
                   <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                   PROFILE
                 </button>
                 <button onClick={() => setShowMemWalSearch(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(0,255,136,0.08)',
-                  border: '1px solid rgba(0,255,136,0.3)',
-                  color: '#00ff88', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+                  background: 'rgba(46,196,182,0.08)',
+                  border: '2px solid rgba(46,196,182,0.3)',
+                  color: '#2ec4b6', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
                 }}>
                   <Search size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                   SEARCH
                 </button>
                 <button onClick={disconnect} style={{
                   padding: '6px 10px', fontSize: '10px',
-                  background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#888', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+                  background: 'transparent', border: '2px solid rgba(255,255,255,0.15)',
+                  color: '#a08060', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
                 }}>DISCONNECT</button>
               </div>
             </div>
@@ -1442,14 +1490,15 @@ if (result && result.success) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff4444', boxShadow: '0 0 10px #ff4444' }} />
-                <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 600 }}>DISCONNECTED</span>
+                <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>DISCONNECTED</span>
               </div>
               <ConnectButton style={{
                 width: '100%', padding: '8px', fontSize: '12px',
-                background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
+                background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
                 border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer',
-                fontFamily: "'Orbitron', monospace", fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '1px'
+                fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '1px',
+                boxShadow: '0 0 15px rgba(255,42,109,0.3)'
               }}>CONNECT WALLET</ConnectButton>
             </div>
           )}
@@ -1457,7 +1506,7 @@ if (result && result.success) {
 
         {/* MemWal Badge */}
         {connected && (
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ padding: '10px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
             <MemWalBadge count={memwalSaveCount} />
           </div>
         )}
@@ -1465,14 +1514,15 @@ if (result && result.success) {
         {/* API Status */}
         <div style={{
           padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px',
-          fontSize: '11px', color: apiStatus === 'online' ? '#00ff88' : '#ff4444'
+          fontSize: '11px', color: apiStatus === 'online' ? '#2ec4b6' : '#ff4444',
+          fontFamily: "'Rubik Mono One', sans-serif"
         }}>
           {apiStatus === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />}
           API: {apiStatus === 'online' ? 'ONLINE' : 'OFFLINE'}
-          {apiStatus === 'offline' && <span style={{ color: '#666', marginLeft: '4px' }}>(fallback mode)</span>}
+          {apiStatus === 'offline' && <span style={{ color: '#a08060', marginLeft: '4px' }}>(fallback mode)</span>}
         </div>
 
-        {/* Agent List */}
+        {/* Agent List — PUNK STYLED */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
@@ -1480,27 +1530,29 @@ if (result && result.success) {
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '10px', marginBottom: '6px', borderRadius: '8px',
+                padding: '10px', marginBottom: '6px', borderRadius: '10px',
                 cursor: 'pointer',
-                background: isSelected ? 'rgba(255,42,109,0.15)' : 'transparent',
-                border: isSelected ? '1px solid rgba(255,42,109,0.4)' : '1px solid transparent',
-                transition: 'all 0.2s'
+                background: isSelected ? `${agent.color}15` : 'transparent',
+                border: isSelected ? `2px solid ${agent.color}66` : '2px solid transparent',
+                transition: 'all 0.2s',
+                boxShadow: isSelected ? `0 0 15px ${agent.color}22` : 'none'
               }}>
                 <img src={agent.img} alt={agent.id} style={{
                   width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover',
                   border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
-                  boxShadow: isSelected ? `0 0 10px ${agent.color}44` : 'none'
+                  boxShadow: isSelected ? `0 0 12px ${agent.color}55` : 'none'
                 }} onError={(e) => { e.target.style.display = 'none' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: '13px', fontWeight: 600,
-                    color: isSelected ? '#fff' : '#aaa',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                    color: isSelected ? '#fff' : '#c0a080',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    textShadow: isSelected ? `0 0 8px ${agent.color}44` : 'none'
                   }}>{agent.name}</div>
-                  <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{agent.trait}</div>
+                  <div style={{ fontSize: '10px', color: '#a08060', marginTop: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>{agent.trait}</div>
                 </div>
-                {isSelected && <ChevronRight size={14} color={RIOT_PINK} />}
-                {isVisited && !isSelected && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00ff88' }} />}
+                {isSelected && <ChevronRight size={14} color={agent.color} />}
+                {isVisited && !isSelected && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 6px #2ec4b6' }} />}
               </div>
             )
           })}
@@ -1508,15 +1560,17 @@ if (result && result.success) {
 
         {/* Memory Panel Toggle */}
         {connected && memory && (
-          <div style={{ padding: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ padding: '15px', borderTop: '2px solid rgba(255,255,255,0.06)' }}>
             <button onClick={() => setShowVerificationPanel(!showVerificationPanel)} style={{
               width: '100%', padding: '8px',
-              background: 'rgba(0,255,136,0.1)',
-              border: '1px solid rgba(0,255,136,0.3)',
-              color: '#00ff88', borderRadius: '6px', cursor: 'pointer',
-              fontSize: '11px', fontFamily: "'Rajdhani', sans-serif",
+              background: 'rgba(46,196,182,0.1)',
+              border: '2px solid rgba(46,196,182,0.3)',
+              color: '#2ec4b6', borderRadius: '6px', cursor: 'pointer',
+              fontSize: '11px', fontFamily: "'Rubik Mono One', sans-serif",
               fontWeight: 600, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: '6px', marginBottom: '8px'
+              justifyContent: 'center', gap: '6px', marginBottom: '8px',
+              transition: 'all 0.2s',
+              boxShadow: '0 0 10px rgba(46,196,182,0.1)'
             }}>
               <Shield size={12} />
               {showVerificationPanel ? 'HIDE VERIFICATION' : 'BLOCKCHAIN VERIFY'}
@@ -1525,11 +1579,13 @@ if (result && result.success) {
             <button onClick={() => setShowMemoryPanel(!showMemoryPanel)} style={{
               width: '100%', padding: '8px',
               background: 'rgba(255,42,109,0.1)',
-              border: '1px solid rgba(255,42,109,0.3)',
+              border: '2px solid rgba(255,42,109,0.3)',
               color: RIOT_PINK, borderRadius: '6px', cursor: 'pointer',
-              fontSize: '11px', fontFamily: "'Rajdhani', sans-serif",
+              fontSize: '11px', fontFamily: "'Rubik Mono One', sans-serif",
               fontWeight: 600, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: '6px'
+              justifyContent: 'center', gap: '6px',
+              transition: 'all 0.2s',
+              boxShadow: '0 0 10px rgba(255,42,109,0.1)'
             }}>
               <Brain size={12} />
               {showMemoryPanel ? 'HIDE MEMORY' : 'SHOW MEMORY'}
@@ -1538,30 +1594,31 @@ if (result && result.success) {
         )}
       </div>
 
-      {/* CENTER: CHAT */}
+      {/* CENTER: CHAT — PUNK STYLED */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
-        background: 'linear-gradient(135deg, #0a0a0f 0%, #12121f 50%, #0a0a0f 100%)',
+        background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
         position: 'relative'
       }}>
-        {/* Header */}
+        {/* Chat Header */}
         <div style={{
           padding: '20px 30px',
-          borderBottom: '1px solid rgba(255,42,109,0.2)',
+          borderBottom: '2px solid rgba(255,42,109,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <img src={selectedAgent.img} alt={selectedAgent.id} style={{
               width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
-              border: `2px solid ${selectedAgent.color}66`,
-              boxShadow: `0 0 15px ${selectedAgent.color}33`
+              border: `2px solid ${selectedAgent.color}88`,
+              boxShadow: `0 0 20px ${selectedAgent.color}44`
             }} onError={(e) => { e.target.style.display = 'none' }} />
             <div>
               <h2 style={{
                 fontSize: '18px', fontWeight: 700, color: '#fff',
-                margin: 0, fontFamily: "'Orbitron', monospace"
+                margin: 0, fontFamily: "'Rubik Glitch', cursive",
+                textShadow: `0 0 10px ${selectedAgent.color}44`
               }}>{selectedAgent.name}</h2>
-              <p style={{ fontSize: '12px', color: '#888', margin: '4px 0 0 0' }}>{selectedAgent.desc}</p>
+              <p style={{ fontSize: '12px', color: '#a08060', margin: '4px 0 0 0' }}>{selectedAgent.desc}</p>
             </div>
           </div>
 
@@ -1571,57 +1628,60 @@ if (result && result.success) {
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '8px 16px',
-                background: 'rgba(0,255,136,0.08)',
-                border: '1px solid rgba(0,255,136,0.2)',
-                borderRadius: '8px', fontSize: '11px'
+                background: 'rgba(46,196,182,0.08)',
+                border: '2px solid rgba(46,196,182,0.2)',
+                borderRadius: '8px', fontSize: '11px',
+                fontFamily: "'Rubik Mono One', sans-serif",
+                boxShadow: '0 0 10px rgba(46,196,182,0.1)'
               }}>
-                <Database size={12} color="#00ff88" />
-                <span style={{ color: '#00ff88' }}>Memory: {memory.visit_count || 1} sessions</span>
-                <span style={{ color: '#666' }}>|</span>
-                <span style={{ color: '#aaa' }}>Agents: {visitedAgents.size}/25</span>
+                <Database size={12} color="#2ec4b6" />
+                <span style={{ color: '#2ec4b6' }}>Memory: {memory.visit_count || 1} sessions</span>
+                <span style={{ color: '#a08060' }}>|</span>
+                <span style={{ color: '#c0a080' }}>Agents: {visitedAgents.size}/25</span>
                 {memory.user_name && (
                   <>
-                    <span style={{ color: '#666' }}>|</span>
+                    <span style={{ color: '#a08060' }}>|</span>
                     <User size={12} color="#ff2a6d" />
                     <span style={{ color: RIOT_PINK }}>{memory.user_name}</span>
                   </>
                 )}
                 {walrusSaved && (
                   <>
-                    <span style={{ color: '#666' }}>|</span>
-                    <Cloud size={12} color="#00ff88" />
-                    <span style={{ color: '#00ff88' }}>WALRUS</span>
+                    <span style={{ color: '#a08060' }}>|</span>
+                    <Cloud size={12} color="#2ec4b6" />
+                    <span style={{ color: '#2ec4b6' }}>WALRUS</span>
                   </>
                 )}
                 {autoSaveCount > 0 && (
                   <>
-                    <span style={{ color: '#666' }}>|</span>
+                    <span style={{ color: '#a08060' }}>|</span>
                     <span style={{ color: '#00b4d8' }}>Auto: {autoSaveCount}x</span>
                   </>
                 )}
               </div>
             )}
 
-            {/* WALRUS SAVE BUTTON */}
+            {/* WALRUS SAVE + IMMORTALIZE BUTTONS */}
             {connected && messages.length >= 2 && (
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={handleWalrusSave} disabled={isSaving} style={{
                   padding: '8px 16px',
-                  background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #d62828)',
+                  background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
                   border: 'none', color: '#fff', borderRadius: '6px',
                   cursor: isSaving ? 'wait' : 'pointer', fontSize: '11px',
-                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
+                  boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)',
+                  transition: 'all 0.2s'
                 }}>
                   <Save size={12} />
                   {isSaving ? saveStatus || 'Saving...' : 'SAVE TO WALRUS'}
                 </button>
 
                 <ImmortalizeButton 
-  messages={messages}
-  wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
-  agentId={selectedAgent.id}
+                  messages={messages}
+                  wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
+                  agentId={selectedAgent.id}
                   onImmortalized={(data) => {
                     setMoveObjectId(data.object_id)
                     setLatestBlobId(data.blob_id)
@@ -1641,7 +1701,7 @@ if (result && result.success) {
           </div>
         </div>
 
-        {/* Messages */}
+        {/* Messages — PUNK STYLED BUBBLES */}
         <div style={{
           flex: 1, overflowY: 'auto', padding: '20px 30px',
           display: 'flex', flexDirection: 'column', gap: '16px'
@@ -1652,23 +1712,25 @@ if (result && result.success) {
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: '20px'
             }}>
-              <Lock size={48} color="#333" />
+              <Lock size={48} color="#3a3020" />
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{
-                  fontSize: '20px', color: '#666', margin: '0 0 10px 0',
-                  fontFamily: "'Orbitron', monospace"
+                  fontSize: '22px', color: '#a08060', margin: '0 0 10px 0',
+                  fontFamily: "'Rubik Glitch', cursive",
+                  textShadow: '0 0 10px rgba(255,42,109,0.3)'
                 }}>ACCESS DENIED</h3>
-                <p style={{ fontSize: '14px', color: '#555', maxWidth: '400px' }}>
+                <p style={{ fontSize: '14px', color: '#8a7050', maxWidth: '400px' }}>
                   Connect your Sui wallet to access the punk agents.<br />
                   Your memory will be stored on Walrus.
                 </p>
               </div>
               <ConnectButton style={{
                 padding: '12px 30px', fontSize: '14px',
-                background: 'linear-gradient(135deg, #ff2a6d, #d62828)',
+                background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
                 border: 'none', color: '#fff', borderRadius: '8px',
-                cursor: 'pointer', fontFamily: "'Orbitron', monospace",
-                fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px'
+                cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+                fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px',
+                boxShadow: '0 0 20px rgba(255,42,109,0.4)'
               }}>UNLOCK ACCESS</ConnectButton>
             </div>
           )}
@@ -1679,13 +1741,14 @@ if (result && result.success) {
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: '20px'
             }}>
-              <Zap size={48} color={RIOT_PINK} />
+              <Zap size={48} color={RIOT_PINK} style={{ filter: 'drop-shadow(0 0 15px rgba(255,42,109,0.5))' }} />
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{
-                  fontSize: '20px', color: '#aaa', margin: '0 0 10px 0',
-                  fontFamily: "'Orbitron', monospace"
+                  fontSize: '22px', color: '#c0a080', margin: '0 0 10px 0',
+                  fontFamily: "'Rubik Glitch', cursive",
+                  textShadow: '0 0 10px rgba(255,42,109,0.3)'
                 }}>AGENT READY</h3>
-                <p style={{ fontSize: '14px', color: '#666', maxWidth: '400px' }}>
+                <p style={{ fontSize: '14px', color: '#a08060', maxWidth: '400px' }}>
                   {selectedAgent.name} is online.<br />
                   Start the conversation.
                 </p>
@@ -1693,7 +1756,7 @@ if (result && result.success) {
             </div>
           )}
 
-          {/* Chat Messages */}
+          {/* Chat Messages — PUNK BUBBLES */}
           {messages.map((msg, idx) => (
             <div key={idx} style={{
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -1703,12 +1766,16 @@ if (result && result.success) {
                 padding: '12px 18px',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background: msg.role === 'user'
-                  ? 'linear-gradient(135deg, rgba(255,42,109,0.2), rgba(214,40,40,0.1))'
-                  : 'rgba(255,255,255,0.05)',
+                  ? 'linear-gradient(135deg, rgba(255,42,109,0.2), rgba(255,107,53,0.1))'
+                  : 'rgba(255,255,255,0.04)',
                 border: msg.role === 'user'
-                  ? '1px solid rgba(255,42,109,0.3)'
-                  : '1px solid rgba(255,255,255,0.08)',
-                color: '#e0e0e0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word'
+                  ? '2px solid rgba(255,42,109,0.4)'
+                  : `2px solid ${selectedAgent.color}33`,
+                color: '#e0d0c0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word',
+                boxShadow: msg.role === 'user' 
+                  ? '0 0 15px rgba(255,42,109,0.15)' 
+                  : `0 0 15px ${selectedAgent.color}11`,
+                fontFamily: "'Inter', sans-serif"
               }}>{msg.content}
                 {msg.onChain && (
                   <OnChainBadge 
@@ -1719,9 +1786,10 @@ if (result && result.success) {
                 )}
               </div>
               <div style={{
-                fontSize: '10px', color: '#555',
+                fontSize: '10px', color: '#8a7050',
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                display: 'flex', alignItems: 'center', gap: '4px'
+                display: 'flex', alignItems: 'center', gap: '4px',
+                fontFamily: "'Rubik Mono One', sans-serif"
               }}>
                 <Clock size={10} />
                 {new Date(msg.timestamp).toLocaleTimeString()}
@@ -1737,23 +1805,24 @@ if (result && result.success) {
             <div style={{
               alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '12px',
               padding: '12px 18px', background: 'rgba(255,255,255,0.03)',
-              borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(255,255,255,0.05)'
+              borderRadius: '16px 16px 16px 4px', border: `2px solid ${selectedAgent.color}33`
             }}>
               <div style={{
                 width: '8px', height: '8px', borderRadius: '50%',
-                background: selectedAgent.color, animation: 'pulse 1s infinite'
+                background: selectedAgent.color, animation: 'pulse 1s infinite',
+                boxShadow: `0 0 10px ${selectedAgent.color}`
               }} />
-              <span style={{ fontSize: '12px', color: '#888' }}>{selectedAgent.id} is thinking...</span>
+              <span style={{ fontSize: '12px', color: '#a08060', fontFamily: "'Rubik Mono One', sans-serif" }}>{selectedAgent.id} is thinking...</span>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Input — PUNK STYLED */}
         <div style={{
           padding: '20px 30px',
-          borderTop: '1px solid rgba(255,42,109,0.2)',
+          borderTop: '2px solid rgba(255,42,109,0.2)',
           display: 'flex', gap: '12px', alignItems: 'flex-end'
         }}>
           <div style={{ flex: 1, position: 'relative' }}>
@@ -1766,88 +1835,93 @@ if (result && result.success) {
               style={{
                 width: '100%', padding: '14px 18px',
                 background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '2px solid rgba(255,255,255,0.1)',
                 borderRadius: '12px', color: '#fff', fontSize: '14px',
-                fontFamily: "'Rajdhani', sans-serif",
+                fontFamily: "'Permanent Marker', cursive",
                 outline: 'none', transition: 'all 0.2s',
-                cursor: connected ? 'text' : 'not-allowed'
+                cursor: connected ? 'text' : 'not-allowed',
+                letterSpacing: '0.5px'
               }}
-              onFocus={e => { if (connected) e.target.style.borderColor = 'rgba(255,42,109,0.5)' }}
+              onFocus={e => { if (connected) e.target.style.borderColor = 'rgba(255,42,109,0.6)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             />
           </div>
           <button onClick={handleSend} disabled={!connected || !input.trim() || isLoading} style={{
             padding: '14px 20px',
             background: connected && input.trim()
-              ? 'linear-gradient(135deg, #ff2a6d, #d62828)'
+              ? 'linear-gradient(135deg, #ff2a6d, #ff6b35)'
               : 'rgba(255,255,255,0.05)',
             border: 'none', borderRadius: '12px', color: '#fff',
             cursor: connected && input.trim() ? 'pointer' : 'not-allowed',
             fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px',
-            fontFamily: "'Rajdhani', sans-serif", fontWeight: 600
+            fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+            boxShadow: connected && input.trim() ? '0 0 20px rgba(255,42,109,0.4)' : 'none',
+            transition: 'all 0.2s'
           }}>
             <Send size={16} />
           </button>
         </div>
       </div>
 
-      {/* RIGHT: MEMORY PANEL */}
+      {/* RIGHT: MEMORY PANEL — PUNK STYLED */}
       {showMemoryPanel && connected && memory && (
         <div style={{
           width: '300px',
-          background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
-          borderLeft: '1px solid rgba(255,42,109,0.2)',
+          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+          borderLeft: '2px solid rgba(255,42,109,0.2)',
           padding: '20px', overflowY: 'auto'
         }}>
           <h3 style={{
-            fontFamily: "'Orbitron', monospace", fontSize: '14px',
+            fontFamily: "'Rubik Glitch', cursive", fontSize: '16px',
             color: RIOT_PINK, margin: '0 0 20px 0',
-            display: 'flex', alignItems: 'center', gap: '8px'
+            display: 'flex', alignItems: 'center', gap: '8px',
+            textShadow: '0 0 10px rgba(255,42,109,0.4)'
           }}>
             <Brain size={16} /> MEMORY ARCHIVE
           </h3>
 
           {/* Profile */}
           <div style={{
-            padding: '15px', background: 'rgba(255,255,255,0.03)',
-            borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)',
+            padding: '15px', background: 'rgba(255,255,255,0.02)',
+            borderRadius: '10px', border: '2px solid rgba(255,255,255,0.06)',
             marginBottom: '20px'
           }}>
             <h4 style={{
-              fontSize: '12px', color: '#888', margin: '0 0 10px 0',
-              textTransform: 'uppercase', letterSpacing: '1px'
+              fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
+              textTransform: 'uppercase', letterSpacing: '2px',
+              fontFamily: "'Rubik Mono One', sans-serif"
             }}>User Profile</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <User size={12} color="#666" />
-                <span style={{ fontSize: '12px', color: '#aaa' }}>
-                  Name: {memory.user_name ? <span style={{color: RIOT_PINK, fontWeight: 600}}>{memory.user_name}</span> : <span style={{ color: '#555' }}>Not set</span>}
+                <User size={12} color="#a08060" />
+                <span style={{ fontSize: '12px', color: '#c0a080' }}>
+                  Name: {memory.user_name ? <span style={{color: RIOT_PINK, fontWeight: 600}}>{memory.user_name}</span> : <span style={{ color: '#8a7050' }}>Not set</span>}
                 </span>
               </div>
               {profile?.bio && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <FileText size={12} color="#666" />
-                  <span style={{ fontSize: '11px', color: '#888', lineHeight: '1.4' }}>{profile.bio}</span>
+                  <FileText size={12} color="#a08060" />
+                  <span style={{ fontSize: '11px', color: '#a08060', lineHeight: '1.4' }}>{profile.bio}</span>
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Hash size={12} color="#666" />
-                <span style={{ fontSize: '12px', color: '#aaa', fontFamily: 'monospace' }}>ID: {walletHash}</span>
+                <Hash size={12} color="#a08060" />
+                <span style={{ fontSize: '12px', color: '#c0a080', fontFamily: 'monospace' }}>ID: {walletHash}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={12} color="#666" />
-                <span style={{ fontSize: '12px', color: '#aaa' }}>Sessions: {memory.visit_count || 1}</span>
+                <Clock size={12} color="#a08060" />
+                <span style={{ fontSize: '12px', color: '#c0a080' }}>Sessions: {memory.visit_count || 1}</span>
               </div>
               {latestBlobId && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Cloud size={12} color="#00ff88" />
-                  <span style={{ fontSize: '10px', color: '#00ff88', fontFamily: 'monospace' }}>Blob: {latestBlobId.slice(0, 16)}...</span>
+                  <Cloud size={12} color="#2ec4b6" />
+                  <span style={{ fontSize: '10px', color: '#2ec4b6', fontFamily: 'monospace' }}>Blob: {latestBlobId.slice(0, 16)}...</span>
                 </div>
               )}
               {/* Social Links */}
               {profile?.social && Object.values(profile.social).some(v => v) && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>
-                  {profile.social.twitter && <span style={{fontSize: '10px', color: '#00ff88'}}>🐦 {profile.social.twitter}</span>}
+                  {profile.social.twitter && <span style={{fontSize: '10px', color: '#2ec4b6'}}>🐦 {profile.social.twitter}</span>}
                   {profile.social.discord && <span style={{fontSize: '10px', color: '#5865F2'}}>💬 {profile.social.discord}</span>}
                   {profile.social.telegram && <span style={{fontSize: '10px', color: '#0088cc'}}>✈️ {profile.social.telegram}</span>}
                   {profile.social.instagram && <span style={{fontSize: '10px', color: '#E1306C'}}>📷 {profile.social.instagram}</span>}
@@ -1859,13 +1933,14 @@ if (result && result.success) {
 
           {/* Visited Agents */}
           <div style={{
-            padding: '15px', background: 'rgba(255,255,255,0.03)',
-            borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)',
+            padding: '15px', background: 'rgba(255,255,255,0.02)',
+            borderRadius: '10px', border: '2px solid rgba(255,255,255,0.06)',
             marginBottom: '20px'
           }}>
             <h4 style={{
-              fontSize: '12px', color: '#888', margin: '0 0 10px 0',
-              textTransform: 'uppercase', letterSpacing: '1px'
+              fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
+              textTransform: 'uppercase', letterSpacing: '2px',
+              fontFamily: "'Rubik Mono One', sans-serif"
             }}>Visited Agents ({visitedAgents.size}/25)</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
@@ -1874,8 +1949,9 @@ if (result && result.success) {
                   <div key={agent.id} style={{
                     padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
                     background: visited ? `${agent.color}22` : 'rgba(255,255,255,0.03)',
-                    color: visited ? agent.color : '#555',
-                    border: visited ? `1px solid ${agent.color}44` : '1px solid rgba(255,255,255,0.05)'
+                    color: visited ? agent.color : '#8a7050',
+                    border: visited ? `2px solid ${agent.color}44` : '2px solid rgba(255,255,255,0.05)',
+                    boxShadow: visited ? `0 0 8px ${agent.color}22` : 'none'
                   }}>{agent.id}</div>
                 )
               })}
@@ -1884,14 +1960,15 @@ if (result && result.success) {
 
           {/* Session Summary */}
           <div style={{
-            padding: '15px', background: 'rgba(255,255,255,0.03)',
-            borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)'
+            padding: '15px', background: 'rgba(255,255,255,0.02)',
+            borderRadius: '10px', border: '2px solid rgba(255,255,255,0.06)'
           }}>
             <h4 style={{
-              fontSize: '12px', color: '#888', margin: '0 0 10px 0',
-              textTransform: 'uppercase', letterSpacing: '1px'
+              fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
+              textTransform: 'uppercase', letterSpacing: '2px',
+              fontFamily: "'Rubik Mono One', sans-serif"
             }}>Session Summary</h4>
-            <p style={{ fontSize: '11px', color: '#777', lineHeight: '1.6', wordBreak: 'break-word' }}>
+            <p style={{ fontSize: '11px', color: '#907050', lineHeight: '1.6', wordBreak: 'break-word' }}>
               {memory.summary || 'No summary yet. Start chatting to build your memory.'}
             </p>
           </div>
@@ -1899,22 +1976,22 @@ if (result && result.success) {
           {/* On-Chain Status */}
           <div style={{
             marginTop: '20px', padding: '12px',
-            background: 'rgba(0,255,136,0.05)',
+            background: 'rgba(46,196,182,0.05)',
             borderRadius: '8px',
-            border: '1px solid rgba(0,255,136,0.15)',
+            border: '2px solid rgba(46,196,182,0.15)',
             display: 'flex', flexDirection: 'column', gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Shield size={12} color="#00ff88" />
-              <span style={{ fontSize: '11px', color: '#00ff88', fontWeight: 600 }}>
+              <Shield size={12} color="#2ec4b6" />
+              <span style={{ fontSize: '11px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
                 Move Contract: Active
               </span>
             </div>
-            <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            <div style={{ fontSize: '10px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
               Package: 0x1674e28b68c5928f60f39...
             </div>
             {moveObjectId && (
-              <div style={{ fontSize: '10px', color: '#00ff88', fontFamily: 'monospace' }}>
+              <div style={{ fontSize: '10px', color: '#2ec4b6', fontFamily: 'monospace' }}>
                 Object: {moveObjectId.slice(0, 20)}...
               </div>
             )}
@@ -1927,57 +2004,60 @@ if (result && result.success) {
         </div>
       )}
 
-      {/* RIGHT: VERIFICATION PANEL */}
+      {/* RIGHT: VERIFICATION PANEL — PUNK STYLED */}
       {showVerificationPanel && connected && (
         <div style={{
           width: '300px',
-          background: 'linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%)',
-          borderLeft: '1px solid rgba(0,255,136,0.2)',
+          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+          borderLeft: '2px solid rgba(46,196,182,0.2)',
           padding: '20px', overflowY: 'auto'
         }}>
           <h3 style={{
-            fontFamily: "'Orbitron', monospace", fontSize: '14px',
-            color: '#00ff88', margin: '0 0 20px 0',
-            display: 'flex', alignItems: 'center', gap: '8px'
+            fontFamily: "'Rubik Glitch', cursive", fontSize: '16px',
+            color: '#2ec4b6', margin: '0 0 20px 0',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            textShadow: '0 0 10px rgba(46,196,182,0.4)'
           }}>
             <Shield size={16} /> VERIFICATION
           </h3>
 
           <div style={{
-            padding: '15px', background: 'rgba(0,255,136,0.05)', borderRadius: '10px',
-            border: '1px solid rgba(0,255,136,0.15)', marginBottom: '20px'
+            padding: '15px', background: 'rgba(46,196,182,0.05)', borderRadius: '10px',
+            border: '2px solid rgba(46,196,182,0.15)', marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: 600 }}>Immortalized</span>
-              <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: 700 }}>
+              <span style={{ fontSize: '12px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>Immortalized</span>
+              <span style={{ fontSize: '12px', color: '#2ec4b6', fontWeight: 700 }}>
                 {onChainMessages.length}/{messages.length}
               </span>
             </div>
             <div style={{
-              height: '8px', background: '#1a1a2e', borderRadius: '4px', overflow: 'hidden', position: 'relative'
+              height: '8px', background: '#1a1209', borderRadius: '4px', overflow: 'hidden', position: 'relative'
             }}>
               <div style={{
                 height: '100%', width: `${messages.length > 0 ? Math.round((onChainMessages.length / messages.length) * 100) : 0}%`,
-                background: 'linear-gradient(90deg, #ff0055 0%, #ff5500 100%)',
-                transition: 'width 0.5s ease', borderRadius: '4px'
+                background: 'linear-gradient(90deg, #ff2a6d 0%, #ff6b35 100%)',
+                transition: 'width 0.5s ease', borderRadius: '4px',
+                boxShadow: '0 0 10px rgba(255,42,109,0.3)'
               }} />
             </div>
-            <div style={{ textAlign: 'center', fontSize: '10px', color: '#888', marginTop: '4px' }}>
+            <div style={{ textAlign: 'center', fontSize: '10px', color: '#a08060', marginTop: '4px', fontFamily: "'Rubik Mono One', sans-serif" }}>
               {messages.length > 0 ? Math.round((onChainMessages.length / messages.length) * 100) : 0}% On-Chain
             </div>
           </div>
 
           {moveObjectId && (
             <div style={{
-              padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px'
+              padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px',
+              border: '2px solid rgba(255,255,255,0.06)', marginBottom: '12px'
             }}>
-              <div style={{ fontSize: '11px', color: '#00ff88', marginBottom: '4px' }}>Latest Object</div>
-              <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: '11px', color: '#2ec4b6', marginBottom: '4px', fontFamily: "'Rubik Mono One', sans-serif" }}>Latest Object</div>
+              <div style={{ fontSize: '10px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {moveObjectId}
               </div>
               <a href={`https://suiscan.xyz/mainnet/object/${moveObjectId}`} target="_blank" style={{
-                fontSize: '10px', color: '#ff0055', textDecoration: 'none', marginTop: '4px', display: 'inline-block'
+                fontSize: '10px', color: '#ff2a6d', textDecoration: 'none', marginTop: '4px', display: 'inline-block',
+                fontFamily: "'Rubik Mono One', sans-serif"
               }}>
                 View on SuiScan →
               </a>
@@ -1986,11 +2066,11 @@ if (result && result.success) {
 
           {latestBlobId && (
             <div style={{
-              padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.08)'
+              padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px',
+              border: '2px solid rgba(255,255,255,0.06)'
             }}>
-              <div style={{ fontSize: '11px', color: '#00b4d8', marginBottom: '4px' }}>Walrus Blob</div>
-              <div style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: '11px', color: '#00b4d8', marginBottom: '4px', fontFamily: "'Rubik Mono One', sans-serif" }}>Walrus Blob</div>
+              <div style={{ fontSize: '10px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {latestBlobId}
               </div>
             </div>
@@ -1998,7 +2078,7 @@ if (result && result.success) {
         </div>
       )}
 
-      {/* CSS Animations */}
+      {/* CSS Animations + Toast Animations */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
@@ -2016,6 +2096,19 @@ if (result && result.success) {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
+        @keyframes toastSlide {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toastSlideOut {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0d0a07; }
+        ::-webkit-scrollbar-thumb { background: #ff2a6d44; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff2a6d88; }
       `}</style>
     </div>
   )
