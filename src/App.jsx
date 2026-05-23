@@ -862,7 +862,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
     setImmortalizing(true)
     try {
       const chatHistory = messages.map(m => ({
-        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || currentAgentId
+        role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
       }))
 
       const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, agentId)
@@ -881,7 +881,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
         target: `${PACKAGE_ID}::memory::store_memory`,
         arguments: [
           tx.pure(walletAddr),
-          tx.pure(currentAgentId),
+          tx.pure(agentId),
           tx.pure(messageContents),
           tx.pure(summary),
         ]
@@ -1225,7 +1225,7 @@ export default function App() {
 
     const timer = setTimeout(async () => {
       const memwalAgentId = selectedAgent?.id || 'J4'
-      const result = await memwalSaveMemory(account?.address, messages, memwalAgentId, {
+const result = await memwalSaveMemory(account?.address, messages, memwalAgentId, {
         agent_name: selectedAgent.name,
         wallet_hash: walletHash
       })
@@ -1234,11 +1234,11 @@ export default function App() {
         setMemwalSaveCount(c => c + 1)
         console.log(`[MemWal] Auto-saved: ${result.blob_id?.slice(0, 16)}`)
       } else {
-        const fallbackAgentId = selectedAgent?.id || 'J4'
-        const chatHistory = messages.map(m => ({
-          role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || fallbackAgentId
-        }))
-        await apiWalrusStoreChat(walletHash, chatHistory, fallbackAgentId)
+        const agentId = selectedAgent?.id || 'J4'
+const chatHistory = messages.map(m => ({
+  role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
+}))
+await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       }
     }, 3000)
 
@@ -1251,7 +1251,7 @@ export default function App() {
     const chatHistory = messages.map(m => ({
       role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
     }))
-    const result = await apiWalrusStoreChat(walletHash, chatHistory, agentId)
+    const result = await apiWalrusStoreChat(walletHash, messages, agentId)
   }
 
   const loadMemoryAndGreet = async () => {
@@ -1465,7 +1465,7 @@ export default function App() {
     setSaveStatus('Storing to Walrus + Move contract...')
 
     try {
-      const storeResult = await apiWalrusStoreChat(walletHash, messages.map(m => ({role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || currentAgentId})), currentAgentId)
+      const storeResult = await apiWalrusStoreChat(walletHash, messages, currentAgentId)
       if (!storeResult || !storeResult.success) {
         console.log('Walrus unavailable, continuing with Move contract')
       }
