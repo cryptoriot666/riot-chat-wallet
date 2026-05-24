@@ -957,19 +957,290 @@ function TatumDashboard({ wallet }) {
         />
       </div>
 
-      {/* TX History Chart */}
-      {history.length > 0 && (
-        <div style={{marginBottom: '24px'}}>
-          <h4 style={{
+      function TatumDashboardPanel({ wallet }) {
+  const [stats, setStats] = useState(null)
+  const [history, setHistory] = useState([])
+  const [feed, setFeed] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'history' | 'feed'
+
+  useEffect(() => {
+    loadDashboard()
+    const interval = setInterval(loadDashboard, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true)
+      const [statsRes, historyRes, feedRes] = await Promise.all([
+        fetch(`${API_BASE}/api/tatum/dashboard`),
+        fetch(`${API_BASE}/api/tatum/tx-history?days=7`),
+        fetch(`${API_BASE}/api/tatum/live-feed?limit=10`)
+      ])
+
+      const statsData = await statsRes.json()
+      const historyData = await historyRes.json()
+      const feedData = await feedRes.json()
+
+      if (statsData.success) setStats(statsData.stats)
+      if (historyData.success) setHistory(historyData.history)
+      if (feedData.success) setFeed(feedData.feed)
+    } catch (e) {
+      console.error('Dashboard load error:', e)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{
+      background: 'rgba(13, 8, 5, 0.95)',
+      borderRadius: '12px',
+      border: '1px solid rgba(255, 42, 109, 0.2)',
+      padding: '16px',
+      marginTop: '16px'
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px'
+      }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#ff2a6d',
+            boxShadow: '0 0 8px #ff2a6d',
+            animation: 'pulse 2s infinite'
+          }}></div>
+          <span style={{
             fontFamily: 'Rubik Mono One, sans-serif',
             fontSize: '11px',
             letterSpacing: '2px',
-            color: '#a08060',
-            marginBottom: '12px'
-          }}>7-DAY TX HISTORY</h4>
-          <TXHistoryChart data={history} />
+            color: '#ff2a6d'
+          }}>TATUM ANALYTICS</span>
         </div>
+        <span style={{
+          fontSize: '9px',
+          color: '#a08060',
+          fontFamily: 'JetBrains Mono, monospace'
+        }}>{stats?.rpc_provider || 'Sui Mainnet'}</span>
+      </div>
+
+      {/* Tab Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: '4px',
+        marginBottom: '16px'
+      }}>
+        {[
+          {id: 'overview', label: 'OVERVIEW'},
+          {id: 'history', label: '7-DAY'},
+          {id: 'feed', label: 'LIVE'}
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              flex: 1,
+              padding: '6px 8px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '9px',
+              fontFamily: 'Rubik Mono One, sans-serif',
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              background: activeTab === tab.id ? 'rgba(255, 42, 109, 0.3)' : 'rgba(255,255,255,0.05)',
+              color: activeTab === tab.id ? '#ff2a6d' : '#a08060',
+              transition: 'all 0.2s'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{textAlign: 'center', padding: '20px', color: '#a08060', fontSize: '12px'}}>
+          Loading...
+        </div>
+      ) : (
+        <>
+          {/* OVERVIEW TAB */}
+          {activeTab === 'overview' && (
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+              <DashboardStat 
+                label="TOTAL TX" 
+                value={stats?.total_transactions || 0} 
+                color="#ff2a6d"
+              />
+              <DashboardStat 
+                label="USERS" 
+                value={stats?.unique_users || 0} 
+                color="#2ec4b6"
+              />
+              <DashboardStat 
+                label="AGENTS" 
+                value={stats?.active_agents || 0} 
+                color="#ffb703"
+              />
+              <DashboardStat 
+                label="DATA" 
+                value={`${stats?.total_data_mb || 0}MB`} 
+                color="#9d4edd"
+              />
+            </div>
+          )}
+
+          {/* 7-DAY HISTORY TAB */}
+          {activeTab === 'history' && (
+            <div>
+              {history.length > 0 ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  gap: '6px',
+                  height: '100px',
+                  padding: '10px 4px'
+                }}>
+                  {history.map((day, i) => {
+                    const maxTx = Math.max(...history.map(d => d.transactions), 1)
+                    const height = (day.transactions / maxTx) * 100
+                    return (
+                      <div key={i} style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <span style={{
+                          fontSize: '10px',
+                          color: '#ff2a6d',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontWeight: 'bold'
+                        }}>{day.transactions}</span>
+                        <div style={{
+                          width: '100%',
+                          height: `${Math.max(height, 4)}%`,
+                          background: 'linear-gradient(to top, #ff2a6d, #ff6b35)',
+                          borderRadius: '3px 3px 0 0',
+                          minHeight: '4px'
+                        }}></div>
+                        <span style={{
+                          fontSize: '8px',
+                          color: '#666',
+                          fontFamily: 'JetBrains Mono, monospace'
+                        }}>
+                          {day.date.slice(5)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div style={{textAlign: 'center', padding: '20px', color: '#a08060', fontSize: '11px'}}>
+                  No data yet
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LIVE FEED TAB */}
+          {activeTab === 'feed' && (
+            <div style={{
+              maxHeight: '200px',
+              overflowY: 'auto'
+            }}>
+              {feed.length > 0 ? (
+                feed.map((tx, i) => (
+                  <div key={i} style={{
+                    padding: '8px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '10px'
+                    }}>
+                      <span style={{color: '#ff2a6d'}}>●</span>
+                      <span style={{color: '#a08060', fontFamily: 'JetBrains Mono, monospace'}}>
+                        {tx.wallet_hash}
+                      </span>
+                      {tx.has_tx ? (
+                        <a 
+                          href={tx.suiscan_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: '#2ec4b6',
+                            textDecoration: 'none',
+                            fontFamily: 'JetBrains Mono, monospace',
+                            fontSize: '9px'
+                          }}
+                        >
+                          {tx.tx_digest_short}
+                        </a>
+                      ) : (
+                        <span style={{color: '#666', fontSize: '9px'}}>pending</span>
+                      )}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      fontSize: '9px',
+                      color: '#666'
+                    }}>
+                      {tx.agent_id && <span style={{color: '#ffb703'}}>{tx.agent_id}</span>}
+                      <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{textAlign: 'center', padding: '20px', color: '#a08060', fontSize: '11px'}}>
+                  No activity yet
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
+    </div>
+  )
+}
+
+function DashboardStat({ label, value, color }) {
+  return (
+    <div style={{
+      background: 'rgba(0,0,0,0.3)',
+      borderRadius: '8px',
+      padding: '12px',
+      textAlign: 'center',
+      border: `1px solid ${color}22`
+    }}>
+      <div style={{
+        fontFamily: 'Rubik Mono One, sans-serif',
+        fontSize: '16px',
+        color: color,
+        marginBottom: '4px'
+      }}>{value}</div>
+      <div style={{
+        fontSize: '8px',
+        letterSpacing: '1px',
+        color: '#a08060',
+        fontFamily: 'Rubik Mono One, sans-serif'
+      }}>{label}</div>
+    </div>
+  )
+}
+
 
       {/* Live Feed */}
       <div>
