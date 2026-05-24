@@ -18,6 +18,31 @@ from flask_cors import CORS
 import requests
 import pg8000
 
+# ===== TATUM RPC INTEGRATION =====
+TATUM_API_KEY = os.environ.get('TATUM_API_KEY', '')
+TATUM_RPC_URL = os.environ.get('TATUM_RPC_URL', 'https://sui-mainnet.gateway.tatum.io')
+
+# Use Tatum RPC if API key is available
+SUI_RPC_URL = TATUM_RPC_URL if TATUM_API_KEY else os.environ.get('SUI_RPC_URL', 'https://fullnode.mainnet.sui.io:443')
+
+TATUM_HEADERS = {
+    'Content-Type': 'application/json',
+    'x-api-key': TATUM_API_KEY
+} if TATUM_API_KEY else {'Content-Type': 'application/json'}
+
+def get_sui_balance_tatum(address):
+    try:
+        payload = {
+            "jsonrpc": "2.0", "id": 1,
+            "method": "suix_getBalance",
+            "params": [address, "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI"]
+        }
+        response = requests.post(SUI_RPC_URL, json=payload, headers=TATUM_HEADERS, timeout=10)
+        return response.json().get('result') if response.status_code == 200 else None
+    except Exception as e:
+        print(f"Tatum error: {e}")
+        return None
+
 app = Flask(__name__)
 CORS(app, origins=["*"])
 
