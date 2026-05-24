@@ -841,6 +841,257 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
   )
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// TATUM ANALYTICS DASHBOARD COMPONENT
+// ═══════════════════════════════════════════════════════════════
+
+function TatumDashboard({ wallet }) {
+  const [stats, setStats] = useState(null)
+  const [history, setHistory] = useState([])
+  const [feed, setFeed] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadDashboard()
+    const interval = setInterval(loadDashboard, 30000) // Refresh every 30s
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadDashboard = async () => {
+    try {
+      const [statsRes, historyRes, feedRes] = await Promise.all([
+        fetch(`${API_BASE}/api/tatum/dashboard`),
+        fetch(`${API_BASE}/api/tatum/tx-history?days=7`),
+        fetch(`${API_BASE}/api/tatum/live-feed?limit=10`)
+      ])
+
+      const statsData = await statsRes.json()
+      const historyData = await historyRes.json()
+      const feedData = await feedRes.json()
+
+      if (statsData.success) setStats(statsData.stats)
+      if (historyData.success) setHistory(historyData.history)
+      if (feedData.success) setFeed(feedData.feed)
+    } catch (e) {
+      console.error('Dashboard load error:', e)
+    }
+    setLoading(false)
+  }
+
+  if (loading) {
+    return (
+      <div style={{padding: '40px', textAlign: 'center', color: '#a08060'}}>
+        <div style={{fontSize: '24px', marginBottom: '10px'}}>⏳</div>
+        <div>Loading dashboard...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #0d0805, #1a1209)',
+      borderRadius: '16px',
+      border: '1px solid rgba(255,42,109,0.2)',
+      padding: '24px',
+      margin: '20px 0'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        marginBottom: '20px'
+      }}>
+        <div style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          background: '#ff2a6d',
+          boxShadow: '0 0 10px #ff2a6d',
+          animation: 'pulse 2s infinite'
+        }}></div>
+        <h3 style={{
+          fontFamily: 'Rubik Mono One, sans-serif',
+          fontSize: '14px',
+          letterSpacing: '3px',
+          color: '#ff2a6d',
+          margin: 0
+        }}>TATUM ANALYTICS</h3>
+        <span style={{
+          fontSize: '10px',
+          color: '#a08060',
+          fontFamily: 'JetBrains Mono, monospace'
+        }}>LIVE</span>
+      </div>
+
+      {/* Stat Cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: '12px',
+        marginBottom: '24px'
+      }}>
+        <StatCard 
+          label="TOTAL TX" 
+          value={stats?.total_transactions || 0} 
+          color="#ff2a6d"
+          icon="⛓️"
+        />
+        <StatCard 
+          label="UNIQUE USERS" 
+          value={stats?.unique_users || 0} 
+          color="#2ec4b6"
+          icon="👤"
+        />
+        <StatCard 
+          label="ACTIVE AGENTS" 
+          value={stats?.active_agents || 0} 
+          color="#ffb703"
+          icon="🤖"
+        />
+        <StatCard 
+          label="DATA STORED" 
+          value={`${stats?.total_data_mb || 0} MB`} 
+          color="#9d4edd"
+          icon="💾"
+        />
+      </div>
+
+      {/* TX History Chart */}
+      {history.length > 0 && (
+        <div style={{marginBottom: '24px'}}>
+          <h4 style={{
+            fontFamily: 'Rubik Mono One, sans-serif',
+            fontSize: '11px',
+            letterSpacing: '2px',
+            color: '#a08060',
+            marginBottom: '12px'
+          }}>7-DAY TX HISTORY</h4>
+          <TXHistoryChart data={history} />
+        </div>
+      )}
+
+      {/* Live Feed */}
+      <div>
+        <h4 style={{
+          fontFamily: 'Rubik Mono One, sans-serif',
+          fontSize: '11px',
+          letterSpacing: '2px',
+          color: '#a08060',
+          marginBottom: '12px'
+        }}>LIVE FEED</h4>
+        <div style={{
+          maxHeight: '200px',
+          overflowY: 'auto',
+          borderRadius: '8px',
+          background: 'rgba(0,0,0,0.3)'
+        }}>
+          {feed.map((tx, i) => (
+            <div key={i} style={{
+              padding: '10px 12px',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              fontSize: '11px',
+              fontFamily: 'JetBrains Mono, monospace'
+            }}>
+              <span style={{color: '#ff2a6d'}}>●</span>
+              <span style={{color: '#a08060', minWidth: '60px'}}>{tx.wallet_hash}</span>
+              <a 
+                href={tx.suiscan_url} 
+                target="_blank"
+                style={{
+                  color: '#2ec4b6',
+                  textDecoration: 'none',
+                  flex: 1
+                }}
+              >
+                {tx.tx_digest_short}
+              </a>
+              <span style={{color: '#ffb703'}}>{tx.agent_id}</span>
+              <span style={{color: '#666', fontSize: '10px'}}>
+                {new Date(tx.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, color, icon }) {
+  return (
+    <div style={{
+      background: 'rgba(0,0,0,0.3)',
+      borderRadius: '12px',
+      padding: '16px',
+      border: `1px solid ${color}33`,
+      textAlign: 'center'
+    }}>
+      <div style={{fontSize: '20px', marginBottom: '6px'}}>{icon}</div>
+      <div style={{
+        fontFamily: 'Rubik Mono One, sans-serif',
+        fontSize: '18px',
+        color: color,
+        marginBottom: '4px'
+      }}>{value}</div>
+      <div style={{
+        fontSize: '9px',
+        letterSpacing: '2px',
+        color: '#a08060',
+        fontFamily: 'Rubik Mono One, sans-serif'
+      }}>{label}</div>
+    </div>
+  )
+}
+
+function TXHistoryChart({ data }) {
+  const maxTx = Math.max(...data.map(d => d.transactions), 1)
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: '8px',
+      height: '80px',
+      padding: '10px',
+      background: 'rgba(0,0,0,0.2)',
+      borderRadius: '8px'
+    }}>
+      {data.map((day, i) => {
+        const height = (day.transactions / maxTx) * 100
+        return (
+          <div key={i} style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <div style={{
+              width: '100%',
+              height: `${height}%`,
+              background: 'linear-gradient(to top, #ff2a6d, #ff6b35)',
+              borderRadius: '4px 4px 0 0',
+              minHeight: '4px'
+            }}></div>
+            <span style={{
+              fontSize: '9px',
+              color: '#666',
+              fontFamily: 'JetBrains Mono, monospace'
+            }}>
+              {day.date.slice(5)}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+
 // ═══════════════════════════════════════════════════════════════
 // IMMORTALIZE BUTTON — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════

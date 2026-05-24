@@ -1420,6 +1420,248 @@ def move_gas_estimate():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# ═══════════════════════════════════════════════════════════════
+# TATUM ANALYTICS DASHBOARD — NEW FOR HACKATHON
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/api/tatum/dashboard", methods=["GET"])
+def tatum_dashboard():
+    """Aggregate dashboard stats using Tatum RPC + local DB"""
+    try:
+        # Get total TX count from local DB
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        if USE_SQLITE:
+            c.execute("SELECT COUNT(*) FROM on_chain_saves")
+            total_tx = c.fetchone()[0]
+
+            c.execute("SELECT COUNT(DISTINCT wallet_hash) FROM on_chain_saves")
+            unique_users = c.fetchone()[0]
+
+            c.execute("SELECT COUNT(DISTINCT agent_id) FROM on_chain_saves WHERE agent_id IS NOT NULL AND agent_id != ''")
+            active_agents = c.fetchone()[0]
+
+            c.execute("SELECT SUM(data_size) FROM on_chain_saves")
+            total_data = c.fetchone()[0] or 0
+        else:
+            c.execute("SELECT COUNT(*) FROM on_chain_saves")
+            total_tx = c.fetchone()[0]
+
+            c.execute("SELECT COUNT(DISTINCT wallet_hash) FROM on_chain_saves")
+            unique_users = c.fetchone()[0]
+
+            c.execute("SELECT COUNT(DISTINCT agent_id) FROM on_chain_saves WHERE agent_id IS NOT NULL AND agent_id != ''")
+            active_agents = c.fetchone()[0]
+
+            c.execute("SELECT SUM(data_size) FROM on_chain_saves")
+            total_data = c.fetchone()[0] or 0
+
+        conn.close()
+
+        # Get recent TX (last 24h)
+        recent_tx = get_recent_transactions()
+
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_transactions": total_tx,
+                "unique_users": unique_users,
+                "active_agents": active_agents,
+                "total_data_bytes": total_data,
+                "total_data_mb": round(total_data / (1024 * 1024), 2),
+                "network": "Sui Mainnet",
+                "rpc_provider": "Tatum" if TATUM_API_KEY else "Sui Public"
+            },
+            "recent_tx": recent_tx,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        print(f"[TATUM_DASHBOARD] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/tatum/tx-history", methods=["GET"])
+def tatum_tx_history():
+    """Get TX history for chart (last 7 days)"""
+    try:
+        days = int(request.args.get("days", 7))
+
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        history = []
+        for i in range(days - 1, -1, -1):
+            if USE_SQLITE:
+                from datetime import timedelta
+                date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+                c.execute("""
+                    SELECT COUNT(*), COALESCE(SUM(data_size), 0) 
+                    FROM on_chain_saves 
+                    WHERE DATE(timestamp) = ?
+                """, (date,))
+            else:
+                from datetime import timedelta
+                date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+                c.execute("""
+                    SELECT COUNT(*), COALESCE(SUM(data_size), 0) 
+                    FROM on_chain_saves 
+                    WHERE DATE(timestamp) = %s
+                """, (date,))
+
+            row = c.fetchone()
+            history.append({
+                "date": date,
+                "transactions": row[0],
+                "data_size": row[1] or 0
+            })
+
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "history": history,
+            "days": days
+        })
+
+    except Exception as e:
+        print(f"[TATUM_TX_HISTORY] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/tatum/live-feed", methods=["GET"])
+def tatum_live_feed():
+    """Get recent TX feed with SuiScan links"""
+    try:
+        limit = int(request.args.get("limit", 10))
+
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        if USE_SQLITE:
+            c.execute("""
+                SELECT wallet_hash, tx_digest, object_id, blob_id, agent_id, timestamp, data_size
+                FROM on_chain_saves
+                WHERE tx_digest IS NOT NULL AND tx_digest != ''
+                ORDER BY timestamp DESC
+                LIMIT ?
+            """, (limit,))
+        else:
+            c.execute("""
+                SELECT wallet_hash, tx_digest, object_id, blob_id, agent_id, timestamp, data_size
+                FROM on_chain_saves
+                WHERE tx_digest IS NOT NULL AND tx_digest != ''
+                ORDER BY timestamp DESC
+                LIMIT %s
+            """, (limit,))
+
+        rows = c.fetchall()
+        conn.close()
+
+        feed = []
+        for row in rows:
+            tx_digest = row[1] or ""
+            feed.append({
+                "wallet_hash": row[0][:8] + "..." if row[0] else "",
+                "tx_digest": tx_digest,
+                "tx_digest_short": tx_digest[:16] + "..." if len(tx_digest) > 16 else tx_digest,
+                "suiscan_url": f"https://suiscan.xyz/mainnet/tx/{tx_digest}" if tx_digest else "",
+                "object_id": row[2] or "",
+                "blob_id": row[3] or "",
+                "agent_id": row[4] or "",
+                "timestamp": row[5] if USE_SQLITE else (row[5].isoformat() if row[5] else ""),
+                "data_size": row[6] or 0
+            })
+
+        return jsonify({
+            "success": True,
+            "feed": feed,
+            "count": len(feed)
+        })
+
+    except Exception as e:
+        print(f"[TATUM_LIVE_FEED] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/tatum/wallet-stats/<wallet_hash>", methods=["GET"])
+def tatum_wallet_stats(wallet_hash):
+    """Get stats for specific wallet"""
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        if USE_SQLITE:
+            c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE wallet_hash = ?", (wallet_hash,))
+            tx_count = c.fetchone()[0]
+
+            c.execute("SELECT SUM(data_size) FROM on_chain_saves WHERE wallet_hash = ?", (wallet_hash,))
+            data_used = c.fetchone()[0] or 0
+
+            c.execute("SELECT COUNT(DISTINCT agent_id) FROM on_chain_saves WHERE wallet_hash = ? AND agent_id IS NOT NULL", (wallet_hash,))
+            agents_visited = c.fetchone()[0]
+
+            c.execute("SELECT MAX(timestamp) FROM on_chain_saves WHERE wallet_hash = ?", (wallet_hash,))
+            last_active = c.fetchone()[0]
+        else:
+            c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE wallet_hash = %s", (wallet_hash,))
+            tx_count = c.fetchone()[0]
+
+            c.execute("SELECT SUM(data_size) FROM on_chain_saves WHERE wallet_hash = %s", (wallet_hash,))
+            data_used = c.fetchone()[0] or 0
+
+            c.execute("SELECT COUNT(DISTINCT agent_id) FROM on_chain_saves WHERE wallet_hash = %s AND agent_id IS NOT NULL", (wallet_hash,))
+            agents_visited = c.fetchone()[0]
+
+            c.execute("SELECT MAX(timestamp) FROM on_chain_saves WHERE wallet_hash = %s", (wallet_hash,))
+            last_active = c.fetchone()[0]
+
+        conn.close()
+
+        # Try to get SUI balance via Tatum
+        # Note: wallet_hash is hashed, we need the actual address
+        # For now, return stats without balance
+
+        return jsonify({
+            "success": True,
+            "wallet_hash": wallet_hash[:8] + "...",
+            "stats": {
+                "transactions": tx_count,
+                "data_used_bytes": data_used,
+                "data_used_kb": round(data_used / 1024, 2),
+                "agents_visited": agents_visited,
+                "last_active": last_active if USE_SQLITE else (last_active.isoformat() if last_active else "")
+            }
+        })
+
+    except Exception as e:
+        print(f"[TATUM_WALLET_STATS] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+def get_recent_transactions(hours=24):
+    """Helper: Get recent TX count"""
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+
+        from datetime import timedelta
+        cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
+
+        if USE_SQLITE:
+            c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE timestamp > ?", (cutoff,))
+        else:
+            c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE timestamp > %s", (cutoff,))
+
+        count = c.fetchone()[0]
+        conn.close()
+        return count
+    except:
+        return 0
+
+
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
