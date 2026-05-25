@@ -1546,6 +1546,7 @@ export default function App() {
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
   const [showVerificationPanel, setShowVerificationPanel] = useState(false)
+  const [showTatumPanel, setShowTatumPanel] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const messagesEndRef = useRef(null)
@@ -2058,12 +2059,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
                   width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover',
                   border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
                   boxShadow: isSelected ? `0 0 12px ${agent.color}55` : 'none'
-                }} onError={(e) => { 
-                  const agent = AGENTS.find(a => a.id === e.target.alt);
-                  const color = agent?.color || '#ff2a6d';
-                  const initial = agent?.name?.split('—')[1]?.trim()?.[0] || '?';
-                  e.target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="${color}22" stroke="${color}" stroke-width="2"/><text x="20" y="26" font-size="18" fill="${color}" text-anchor="middle" font-family="monospace">${initial}</text></svg>`)}`;
-                }} />
+                }} onError={(e) => { e.target.style.display = 'none' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: '13px', fontWeight: 600,
@@ -2096,6 +2092,21 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
             }}>
               <Shield size={12} />
               {showVerificationPanel ? 'HIDE VERIFICATION' : 'BLOCKCHAIN VERIFY'}
+            </button>
+
+            <button onClick={() => setShowTatumPanel(!showTatumPanel)} style={{
+              width: '100%', padding: '8px',
+              background: showTatumPanel ? 'rgba(255,42,109,0.2)' : 'rgba(255,183,3,0.1)',
+              border: '2px solid rgba(255,183,3,0.3)',
+              color: '#ffb703', borderRadius: '6px', cursor: 'pointer',
+              fontSize: '11px', fontFamily: "'Rubik Mono One', sans-serif",
+              fontWeight: 600, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: '6px', marginBottom: '8px',
+              transition: 'all 0.2s',
+              boxShadow: '0 0 10px rgba(255,183,3,0.1)'
+            }}>
+              <Eye size={12} />
+              {showTatumPanel ? 'HIDE TATUM DASH' : 'TATUM ANALYTICS'}
             </button>
 
             <button onClick={() => setShowMemoryPanel(!showMemoryPanel)} style={{
@@ -2135,12 +2146,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
               width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
               border: `2px solid ${selectedAgent.color}88`,
               boxShadow: `0 0 20px ${selectedAgent.color}44`
-            }} onError={(e) => { 
-                  const agent = AGENTS.find(a => a.id === e.target.alt);
-                  const color = agent?.color || '#ff2a6d';
-                  const initial = agent?.name?.split('—')[1]?.trim()?.[0] || '?';
-                  e.target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="${color}22" stroke="${color}" stroke-width="2"/><text x="20" y="26" font-size="18" fill="${color}" text-anchor="middle" font-family="monospace">${initial}</text></svg>`)}`;
-                }} />
+            }} onError={(e) => { e.target.style.display = 'none' }} />
             <div>
               <h2 style={{
                 fontSize: '18px', fontWeight: 700, color: '#fff',
@@ -2604,6 +2610,20 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
               </div>
             </div>
           )}
+        </div>
+      )}
+
+
+      {/* RIGHT: TATUM DASHBOARD PANEL */}
+      {showTatumPanel && connected && (
+        <div style={{
+          width: '320px',
+          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+          borderLeft: '2px solid rgba(255,183,3,0.2)',
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column'
+        }}>
+          <TatumDashboardPanel wallet={{address: account?.address}} />
         </div>
       )}
 
