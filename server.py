@@ -1356,14 +1356,14 @@ def move_get_objects(wallet_hash):
             c.execute("""
                 SELECT tx_digest, object_id, blob_id, agent_id, timestamp
                 FROM on_chain_saves
-                WHERE wallet_hash = ? AND object_id IS NOT NULL AND object_id != ''
+                WHERE wallet_hash = ? AND tx_digest IS NOT NULL AND tx_digest != ''
                 ORDER BY timestamp DESC
             """, (wallet_hash,))
         else:
             c.execute("""
                 SELECT tx_digest, object_id, blob_id, agent_id, timestamp
                 FROM on_chain_saves
-                WHERE wallet_hash = %s AND object_id IS NOT NULL AND object_id != ''
+                WHERE wallet_hash = %s AND tx_digest IS NOT NULL AND tx_digest != ''
                 ORDER BY timestamp DESC
             """, (wallet_hash,))
 

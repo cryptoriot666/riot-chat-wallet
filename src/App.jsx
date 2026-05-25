@@ -2058,7 +2058,12 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
                   width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover',
                   border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
                   boxShadow: isSelected ? `0 0 12px ${agent.color}55` : 'none'
-                }} onError={(e) => { e.target.style.display = 'none' }} />
+                }} onError={(e) => { 
+                  const agent = AGENTS.find(a => a.id === e.target.alt);
+                  const color = agent?.color || '#ff2a6d';
+                  const initial = agent?.name?.split('—')[1]?.trim()?.[0] || '?';
+                  e.target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="${color}22" stroke="${color}" stroke-width="2"/><text x="20" y="26" font-size="18" fill="${color}" text-anchor="middle" font-family="monospace">${initial}</text></svg>`)}`;
+                }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: '13px', fontWeight: 600,
@@ -2130,7 +2135,12 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
               width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
               border: `2px solid ${selectedAgent.color}88`,
               boxShadow: `0 0 20px ${selectedAgent.color}44`
-            }} onError={(e) => { e.target.style.display = 'none' }} />
+            }} onError={(e) => { 
+                  const agent = AGENTS.find(a => a.id === e.target.alt);
+                  const color = agent?.color || '#ff2a6d';
+                  const initial = agent?.name?.split('—')[1]?.trim()?.[0] || '?';
+                  e.target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="${color}22" stroke="${color}" stroke-width="2"/><text x="20" y="26" font-size="18" fill="${color}" text-anchor="middle" font-family="monospace">${initial}</text></svg>`)}`;
+                }} />
             <div>
               <h2 style={{
                 fontSize: '18px', fontWeight: 700, color: '#fff',
