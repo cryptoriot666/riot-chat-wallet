@@ -1546,7 +1546,7 @@ export default function App() {
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
   const [showVerificationPanel, setShowVerificationPanel] = useState(false)
-  const [showTatumPanel, setShowTatumPanel] = useState(false)
+  const [verifyTab, setVerifyTab] = useState('tx')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const messagesEndRef = useRef(null)
@@ -2094,21 +2094,6 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
               {showVerificationPanel ? 'HIDE VERIFICATION' : 'BLOCKCHAIN VERIFY'}
             </button>
 
-            <button onClick={() => setShowTatumPanel(!showTatumPanel)} style={{
-              width: '100%', padding: '8px',
-              background: showTatumPanel ? 'rgba(255,42,109,0.2)' : 'rgba(255,183,3,0.1)',
-              border: '2px solid rgba(255,183,3,0.3)',
-              color: '#ffb703', borderRadius: '6px', cursor: 'pointer',
-              fontSize: '11px', fontFamily: "'Rubik Mono One', sans-serif",
-              fontWeight: 600, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: '6px', marginBottom: '8px',
-              transition: 'all 0.2s',
-              boxShadow: '0 0 10px rgba(255,183,3,0.1)'
-            }}>
-              <Eye size={12} />
-              {showTatumPanel ? 'HIDE TATUM DASH' : 'TATUM ANALYTICS'}
-            </button>
-
             <button onClick={() => setShowMemoryPanel(!showMemoryPanel)} style={{
               width: '100%', padding: '8px',
               background: 'rgba(255,42,109,0.1)',
@@ -2534,27 +2519,57 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
           borderLeft: '2px solid rgba(46,196,182,0.2)',
           padding: '20px', overflowY: 'auto'
         }}>
-          <h3 style={{
-            fontFamily: "'Rubik Glitch', cursive", fontSize: '16px',
-            color: '#2ec4b6', margin: '0 0 20px 0',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            textShadow: '0 0 10px rgba(46,196,182,0.4)'
-          }}>
-            <Shield size={16} /> VERIFICATION
-          </h3>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px'}}>
+            <h3 style={{
+              fontFamily: "'Rubik Glitch', cursive", fontSize: '16px',
+              color: '#2ec4b6', margin: 0,
+              display: 'flex', alignItems: 'center', gap: '8px',
+              textShadow: '0 0 10px rgba(46,196,182,0.4)'
+            }}>
+              <Shield size={16} /> VERIFICATION
+            </h3>
+            <div style={{display: 'flex', gap: '4px'}}>
+              <button 
+                onClick={() => setVerifyTab('tx')}
+                style={{
+                  padding: '4px 10px', fontSize: '10px', borderRadius: '4px', border: 'none',
+                  cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+                  background: verifyTab === 'tx' ? 'rgba(46,196,182,0.3)' : 'rgba(255,255,255,0.05)',
+                  color: verifyTab === 'tx' ? '#2ec4b6' : '#a08060'
+                }}
+              >TX HISTORY</button>
+              <button 
+                onClick={() => setVerifyTab('tatum')}
+                style={{
+                  padding: '4px 10px', fontSize: '10px', borderRadius: '4px', border: 'none',
+                  cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+                  background: verifyTab === 'tatum' ? 'rgba(255,183,3,0.3)' : 'rgba(255,255,255,0.05)',
+                  color: verifyTab === 'tatum' ? '#ffb703' : '#a08060'
+                }}
+              >TATUM</button>
+            </div>
+          </div>
 
           {/* Transaction History */}
-          <div style={{ marginBottom: '20px' }}>
-            <h4 style={{
-              fontSize: '12px', color: '#a08060', margin: '0 0 12px 0',
-              textTransform: 'uppercase', letterSpacing: '2px',
-              fontFamily: "'Rubik Mono One', sans-serif"
-            }}>
-              <Clock size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-              TX HISTORY
-            </h4>
-            <TxHistoryList walletHash={walletHash} />
-          </div>
+          {verifyTab === 'tx' && (
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{
+                fontSize: '12px', color: '#a08060', margin: '0 0 12px 0',
+                textTransform: 'uppercase', letterSpacing: '2px',
+                fontFamily: "'Rubik Mono One', sans-serif"
+              }}>
+                <Clock size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                TX HISTORY
+              </h4>
+              <TxHistoryList walletHash={walletHash} />
+            </div>
+          )}
+
+          {verifyTab === 'tatum' && (
+            <div style={{ marginBottom: '20px' }}>
+              <TatumDashboardPanel wallet={{address: account?.address}} />
+            </div>
+          )}
 
           <div style={{
             padding: '15px', background: 'rgba(46,196,182,0.05)', borderRadius: '10px',
@@ -2610,20 +2625,6 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
               </div>
             </div>
           )}
-        </div>
-      )}
-
-
-      {/* RIGHT: TATUM DASHBOARD PANEL */}
-      {showTatumPanel && connected && (
-        <div style={{
-          width: '320px',
-          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
-          borderLeft: '2px solid rgba(255,183,3,0.2)',
-          padding: '20px', overflowY: 'auto',
-          display: 'flex', flexDirection: 'column'
-        }}>
-          <TatumDashboardPanel wallet={{address: account?.address}} />
         </div>
       )}
 
