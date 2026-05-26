@@ -16,10 +16,6 @@ const RIOT_GREEN = '#2ec4b6'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
-
-// ═══════════════════════════════════════════════════════════════
-// WALRUS MAINNET CONFIG & FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
 const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
 const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
 const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
@@ -412,94 +408,6 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 // ═══════════════════════════════════════════════════════════════
 // NAME ASK MODAL — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// WALRUS SAVE MODAL — Cost Estimate & Confirm
-// ═══════════════════════════════════════════════════════════════
-function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status }) {
-  if (!isOpen) return null
-
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(13,10,7,0.95)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div style={{
-        background: 'linear-gradient(135deg, #1a1209, #2a1a0a)',
-        padding: '40px', borderRadius: '16px',
-        border: '3px solid rgba(255,42,109,0.6)',
-        maxWidth: '420px', width: '90%', textAlign: 'center',
-        boxShadow: '0 0 40px rgba(255,42,109,0.2)'
-      }}>
-        <Wallet size={40} color={RIOT_PINK} style={{ marginBottom: '15px', filter: 'drop-shadow(0 0 10px rgba(255,42,109,0.5))' }} />
-        <h2 style={{
-          fontFamily: "'Rubik Glitch', cursive", fontSize: '24px',
-          color: '#fff', margin: '0 0 10px 0',
-          textShadow: '0 0 20px rgba(255,42,109,0.5)',
-          letterSpacing: '2px'
-        }}>💾 SAVE TO WALRUS</h2>
-
-        {progress ? (
-          <div>
-            <div style={{
-              width: '100%', height: '8px', background: '#1a1209',
-              borderRadius: '4px', overflow: 'hidden', marginBottom: '20px'
-            }}>
-              <div style={{
-                height: '100%', width: '100%',
-                background: 'linear-gradient(90deg, #ff2a6d, #ff6b35)',
-                animation: 'pulse 1.5s infinite',
-                borderRadius: '4px'
-              }} />
-            </div>
-            <p style={{ color: '#a08060', fontSize: '14px', fontFamily: "'Rubik Mono One', sans-serif" }}>
-              {status}
-            </p>
-          </div>
-        ) : (
-          <>
-            <p style={{ color: '#a08060', fontSize: '13px', marginBottom: '20px', lineHeight: '1.6' }}>
-              Store this chat permanently on Walrus decentralized storage.
-            </p>
-            <div style={{
-              padding: '15px', background: 'rgba(255,183,3,0.1)',
-              borderRadius: '8px', border: '2px solid rgba(255,183,3,0.3)',
-              marginBottom: '20px'
-            }}>
-              <div style={{ fontSize: '12px', color: RIOT_GOLD, fontFamily: "'Rubik Mono One', sans-serif" }}>
-                ESTIMATED COST
-              </div>
-              <div style={{ fontSize: '24px', color: '#fff', fontWeight: 700, margin: '8px 0' }}>
-                {cost?.toFixed(4)} SUI
-              </div>
-              <div style={{ fontSize: '11px', color: '#a08060' }}>
-                Paid by Walrus publisher (sponsored storage)
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={onClose} style={{
-                flex: 1, padding: '12px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '2px solid rgba(255,255,255,0.2)', color: '#a08060',
-                borderRadius: '8px', cursor: 'pointer', fontSize: '12px',
-                fontFamily: "'Rubik Mono One', sans-serif"
-              }}>CANCEL</button>
-              <button onClick={onConfirm} style={{
-                flex: 1, padding: '12px',
-                background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-                border: 'none', color: '#fff', borderRadius: '8px',
-                cursor: 'pointer', fontWeight: 700, fontSize: '12px',
-                fontFamily: "'Rubik Mono One', sans-serif",
-                boxShadow: '0 0 20px rgba(255,42,109,0.4)'
-              }}>CONFIRM</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function NameAskModal({ onSubmit, agentName }) {
   const [name, setName] = useState('')
 
@@ -1699,6 +1607,9 @@ function TxHistoryList({ walletHash }) {
         </div>
       ))}
     </div>
+    
+        
+
   )
 }
 
@@ -1735,7 +1646,92 @@ function SessionSummary({ summary }) {
     </div>
   )
 }
+// ═══════════════════════════════════════════════════════════════
+// WALRUS SAVE MODAL — Cost Estimate & Confirm
+// ═══════════════════════════════════════════════════════════════
+function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status }) {
+  if (!isOpen) return null
 
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(13,10,7,0.95)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1209, #2a1a0a)',
+        padding: '40px', borderRadius: '16px',
+        border: '3px solid rgba(255,42,109,0.6)',
+        maxWidth: '420px', width: '90%', textAlign: 'center',
+        boxShadow: '0 0 40px rgba(255,42,109,0.2)'
+      }}>
+        <Save size={40} color={RIOT_PINK} style={{ marginBottom: '15px' }} />
+        <h2 style={{
+          fontFamily: "'Rubik Glitch', cursive", fontSize: '24px',
+          color: '#fff', margin: '0 0 10px 0',
+          textShadow: '0 0 20px rgba(255,42,109,0.5)'
+        }}>💾 SAVE TO WALRUS</h2>
+
+        {progress ? (
+          <div>
+            <div style={{
+              width: '100%', height: '8px', background: '#1a1209',
+              borderRadius: '4px', overflow: 'hidden', marginBottom: '20px'
+            }}>
+              <div style={{
+                height: '100%', width: '100%',
+                background: 'linear-gradient(90deg, #ff2a6d, #ff6b35)',
+                animation: 'pulse 1.5s infinite',
+                borderRadius: '4px'
+              }} />
+            </div>
+            <p style={{ color: '#a08060', fontSize: '14px', fontFamily: "'Rubik Mono One', sans-serif" }}>
+              {status}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p style={{ color: '#a08060', fontSize: '13px', marginBottom: '20px' }}>
+              Store this chat permanently on Walrus decentralized storage.
+            </p>
+            <div style={{
+              padding: '15px', background: 'rgba(255,183,3,0.1)',
+              borderRadius: '8px', border: '2px solid rgba(255,183,3,0.3)',
+              marginBottom: '20px'
+            }}>
+              <div style={{ fontSize: '12px', color: RIOT_GOLD, fontFamily: "'Rubik Mono One', sans-serif" }}>
+                ESTIMATED COST
+              </div>
+              <div style={{ fontSize: '24px', color: '#fff', fontWeight: 700, margin: '8px 0' }}>
+                {cost?.toFixed(4)} SUI
+              </div>
+              <div style={{ fontSize: '11px', color: '#a08060' }}>
+                Paid by Walrus publisher (sponsored storage)
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={onClose} style={{
+                flex: 1, padding: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '2px solid rgba(255,255,255,0.2)', color: '#a08060',
+                borderRadius: '8px', cursor: 'pointer', fontSize: '12px',
+                fontFamily: "'Rubik Mono One', sans-serif"
+              }}>CANCEL</button>
+              <button onClick={onConfirm} style={{
+                flex: 1, padding: '12px',
+                background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
+                border: 'none', color: '#fff', borderRadius: '8px',
+                cursor: 'pointer', fontWeight: 700, fontSize: '12px',
+                fontFamily: "'Rubik Mono One', sans-serif",
+                boxShadow: '0 0 20px rgba(255,42,109,0.4)'
+              }}>CONFIRM</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 // ═══════════════════════════════════════════════════════════════
 // MAIN APP — PUNK REDESIGN (ALL FEATURES INTACT)
 // ═══════════════════════════════════════════════════════════════
@@ -1763,13 +1759,11 @@ export default function App() {
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
   const [showVerificationPanel, setShowVerificationPanel] = useState(false)
-  // Walrus storage states
-  const [showWalrusModal, setShowWalrusModal] = useState(false)
+    const [showWalrusModal, setShowWalrusModal] = useState(false)
   const [walrusCost, setWalrusCost] = useState(0)
   const [walrusProgress, setWalrusProgress] = useState(false)
   const [walrusStatus, setWalrusStatus] = useState('')
   const [walrusHistory, setWalrusHistory] = useState([])
-
   const [verifyTab, setVerifyTab] = useState('tx')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -2044,7 +2038,10 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }
   }
 
-  // WALRUS + MOVE CONTRACT SAVE — Real on-chain memory object
+
+  // ═══════════════════════════════════════════════════════════════
+  // WALRUS SAVE — FRONTEND DIRECT (Real Storage)
+  // ═══════════════════════════════════════════════════════════════
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
@@ -2163,8 +2160,10 @@ Verify: ${result.url}`)
           {sidebarOpen ? '✕' : '☰'}
         </button>
       )}
-      {/* Name Ask Modal */}
-            {/* Walrus Save Modal */}
+
+
+
+      {/* Walrus Save Modal */}
       <WalrusSaveModal 
         isOpen={showWalrusModal}
         onClose={() => setShowWalrusModal(false)}
@@ -2174,7 +2173,9 @@ Verify: ${result.url}`)
         status={walrusStatus}
       />
 
-{showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
+      
+      {/* Name Ask Modal */}
+      {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
 
       {/* Profile Settings Panel */}
       {showProfileSettings && connected && (
@@ -2284,6 +2285,7 @@ Verify: ${result.url}`)
           <div style={{ padding: '10px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
             <MemWalBadge count={memwalSaveCount} />
           </div>
+        )}
 
         {/* Walrus History */}
         {walrusHistory.length > 0 && (
@@ -2304,8 +2306,6 @@ Verify: ${result.url}`)
               </div>
             ))}
           </div>
-        )}
-
         )}
 
         {/* API Status */}
@@ -2839,36 +2839,6 @@ Verify: ${result.url}`)
               </h4>
               <TxHistoryList walletHash={walletHash} />
             </div>
-
-          {/* Walrus Blobs */}
-          <div style={{ marginBottom: '20px' }}>
-            <h4 style={{ fontSize: '12px', color: '#a08060', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '12px' }}>
-              <Cloud size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-              WALRUS BLOBS
-            </h4>
-            {walrusHistory.length > 0 ? walrusHistory.map((item, i) => (
-              <div key={i} style={{
-                padding: '10px', background: 'rgba(255,255,255,0.02)',
-                borderRadius: '8px', border: '1px solid rgba(0,180,216,0.2)',
-                marginBottom: '8px'
-              }}>
-                <div style={{ fontSize: '10px', color: '#00b4d8', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                  {item.blob_id}
-                </div>
-                <div style={{ fontSize: '10px', color: '#a08060', marginTop: '4px' }}>
-                  {item.cost_sui?.toFixed(6)} SUI • {item.is_new ? 'New' : 'Existing'}
-                </div>
-                <a href={item.url} target="_blank" rel="noopener" style={{
-                  fontSize: '10px', color: '#ff2a6d', textDecoration: 'none'
-                }}>
-                  Verify on Aggregator →
-                </a>
-              </div>
-            )) : (
-              <div style={{ fontSize: '11px', color: '#666' }}>No Walrus saves yet.</div>
-            )}
-          </div>
-
           )}
 
           {verifyTab === 'tatum' && (
