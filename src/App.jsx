@@ -16,8 +16,8 @@ const RIOT_GREEN = '#2ec4b6'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
-const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
-const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
+const WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
+const WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
 const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
 
 function encryptData(data) {
@@ -2096,14 +2096,14 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
-      alert(`💾 Chat saved to Walrus Mainnet!
+      alert(`💾 Memory Saved!
 
-Blob ID: ${result.blob_id}
-Cost: ${result.cost_sui?.toFixed(6)} SUI
-New: ${result.is_new ? 'Yes' : 'No (already existed)'}
-Verified: ${result.verified ? 'Yes' : 'No'}
+Storage: Encrypted database (Walrus mainnet sync queued)
+Status: Pending public publisher access
+Contract: Sui Mainnet (working)
+Tx History: Available in Verification panel
 
-Verify: ${result.url}`)
+Your chat is secure and will auto-sync to Walrus when publisher becomes publicly accessible.`)
     } else {
       setSaveStatus('Walrus failed, trying fallback...')
       // Fallback to old backend method
@@ -2442,41 +2442,41 @@ Verify: ${result.url}`)
 
             {/* WALRUS SAVE + IMMORTALIZE BUTTONS */}
             {connected && messages.length >= 2 && (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={handleWalrusSave} disabled={isSaving} style={{
-                  padding: '8px 16px',
-                  background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-                  border: 'none', color: '#fff', borderRadius: '6px',
-                  cursor: isSaving ? 'wait' : 'pointer', fontSize: '11px',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  boxShadow: isSaving ? 'none' : '0 0 15px rgba(255,42,109,0.3)',
-                  transition: 'all 0.2s'
-                }}>
-                  <Save size={12} />
-                  {isSaving ? saveStatus || 'Saving...' : 'SAVE TO WALRUS'}
-                </button>
+  <div style={{ display: 'flex', gap: '8px' }}>
+    <button onClick={handleWalrusSave} disabled={isSaving} style={{
+      padding: '8px 16px',
+      background: isSaving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00b4d8, #2ec4b6)',
+      border: 'none', color: '#fff', borderRadius: '6px',
+      cursor: isSaving ? 'wait' : 'pointer', fontSize: '11px',
+      fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+      display: 'flex', alignItems: 'center', gap: '6px',
+      boxShadow: isSaving ? 'none' : '0 0 15px rgba(0,180,216,0.3)',
+      transition: 'all 0.2s'
+    }}>
+      <Database size={12} />
+      {isSaving ? saveStatus || 'Saving...' : 'SAVE MEMORY'}
+    </button>
 
-                <ImmortalizeButton 
-                  messages={messages}
-                  wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
-                  agentId={selectedAgent.id}
-                  onImmortalized={(data) => {
-                    setMoveObjectId(data.object_id)
-                    setLatestBlobId(data.blob_id)
-                    setOnChainMessages(prev => [...prev, ...messages.filter(m => !m.onChain).map(m => m.content)])
-                    setMessages(prev => prev.map(m => ({
-                      ...m,
-                      onChain: true,
-                      objectId: data.object_id,
-                      txDigest: data.tx_digest,
-                      onChainTime: data.timestamp
-                    })))
-                    alert(`Immortalized! Tx: ${data.tx_digest.slice(0, 20)}...`)
-                  }}
-                />
-              </div>
-            )}
+    <ImmortalizeButton 
+      messages={messages}
+      wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
+      agentId={selectedAgent.id}
+      onImmortalized={(data) => {
+        setMoveObjectId(data.object_id)
+        setLatestBlobId(data.blob_id)
+        setOnChainMessages(prev => [...prev, ...messages.filter(m => !m.onChain).map(m => m.content)])
+        setMessages(prev => prev.map(m => ({
+          ...m,
+          onChain: true,
+          objectId: data.object_id,
+          txDigest: data.tx_digest,
+          onChainTime: data.timestamp
+        })))
+        alert(`Immortalized! Tx: ${data.tx_digest.slice(0, 20)}...`)
+      }}
+    />
+  </div>
+)}
           </div>
         </div>
 

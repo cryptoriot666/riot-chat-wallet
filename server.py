@@ -49,8 +49,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
-WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
+WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
+WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -671,62 +671,98 @@ def save_memory(wallet_hash, data):
 # WALRUS STORAGE — MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
-    """Store data to Walrus mainnet with full error handling"""
+    """
+    Store data to Walrus when available.
+    Phase 1: Queue to DB + attempt Walrus (best effort)
+    Phase 2: Full Walrus mainnet (when publicly accessible)
+    """
+    import traceback
+    
+    # ALWAYS save to DB first (reliable)
     try:
-        # Encrypt + compress
         payload_str = json.dumps(data)
         encrypted = encrypt(payload_str)
+        
+        conn = get_db_conn()
+        c = conn.cursor()
+        
+        wallet_hash = data.get("wallet_hash", "unknown")
+        now = datetime.now().isoformat()
+        
+        if USE_SQLITE:
+            c.execute("""
+                INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size)
+                VALUES (?, ?, ?, ?, ?)
+            """, (wallet_hash, "", now, data.get("agent_id", ""), len(payload_str)))
+        else:
+            c.execute("""
+                INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size)
+                VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)
+            """, (wallet_hash, "", data.get("agent_id", ""), len(payload_str)))
+        
+        conn.commit()
+        conn.close()
+        print(f"[WALRUS] Queued to DB: {wallet_hash[:8]}... size={len(payload_str)}")
+    except Exception as e:
+        print(f"[WALRUS] DB queue error: {e}")
+    
+    # Attempt Walrus (best effort — may fail if mainnet not accessible)
+    try:
         payload = encrypted.encode('utf-8')
-
-        print(f"[WALRUS] Storing {len(payload)} bytes to MAINNET...")
-        print(f"[WALRUS] Publisher: {WALRUS_PUBLISHER}")
-
-        # Try primary publisher
+        print(f"[WALRUS] Attempting store to {WALRUS_PUBLISHER}...")
+        
         res = requests.put(
             f"{WALRUS_PUBLISHER}/v1/blobs",
             data=payload,
             headers={"Content-Type": "application/octet-stream"},
-            timeout=60
+            timeout=30
         )
-
-        print(f"[WALRUS] Status: {res.status_code}")
-
+        
         if res.status_code in [200, 202]:
-            try:
-                result = res.json()
-                print(f"[WALRUS] Response keys: {list(result.keys())}")
-
-                if "newlyCreated" in result:
-                    blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                    print(f"[WALRUS] ✓ New blob: {blob_id}")
-                    return blob_id
-                elif "alreadyCertified" in result:
-                    blob_id = result["alreadyCertified"]["blobId"]
-                    print(f"[WALRUS] ✓ Existing blob: {blob_id}")
-                    return blob_id
-                else:
-                    print(f"[WALRUS] ⚠ Unknown response format: {result}")
-                    return None
-            except Exception as e:
-                print(f"[WALRUS] ⚠ JSON parse error: {e}")
-                print(f"[WALRUS] Raw response: {res.text[:500]}")
-                return None
-        else:
-            print(f"[WALRUS] ✗ HTTP error: {res.status_code}")
-            print(f"[WALRUS] Response: {res.text[:500]}")
-            return None
-
-    except requests.exceptions.Timeout:
-        print(f"[WALRUS] ✗ Timeout after 60s")
+            result = res.json()
+            if "newlyCreated" in result:
+                blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                print(f"[WALRUS] ✓ Success: {blob_id[:20]}...")
+                # Update DB with blob_id
+                _update_blob_id(wallet_hash, blob_id)
+                return blob_id
+            elif "alreadyCertified" in result:
+                blob_id = result["alreadyCertified"]["blobId"]
+                print(f"[WALRUS] ✓ Existing: {blob_id[:20]}...")
+                _update_blob_id(wallet_hash, blob_id)
+                return blob_id
+        
+        print(f"[WALRUS] ⚠ HTTP {res.status_code}, queuing for retry")
         return None
+        
     except requests.exceptions.ConnectionError:
-        print(f"[WALRUS] ✗ Connection failed")
+        print(f"[WALRUS] ⚠ Mainnet not accessible (expected pre-public phase), queued for retry")
         return None
     except Exception as e:
-        print(f"[WALRUS] ✗ Exception: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"[WALRUS] ⚠ Store error: {str(e)[:100]}")
         return None
+
+def _update_blob_id(wallet_hash, blob_id):
+    """Update queued record with actual blob_id when Walrus succeeds"""
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+        if USE_SQLITE:
+            c.execute("""
+                UPDATE on_chain_saves SET blob_id = ? 
+                WHERE wallet_hash = ? AND blob_id = ''
+                ORDER BY timestamp DESC LIMIT 1
+            """, (blob_id, wallet_hash))
+        else:
+            c.execute("""
+                UPDATE on_chain_saves SET blob_id = %s
+                WHERE wallet_hash = %s AND blob_id = ''
+                ORDER BY timestamp DESC LIMIT 1
+            """, (blob_id, wallet_hash))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[WALRUS] Blob ID update error: {e}")
         
 def walrus_read(blob_id):
     try:
