@@ -2096,14 +2096,14 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
-      alert(`💾 Memory Saved!
+      alert(`💾 Chat saved to Walrus Testnet!
 
-Storage: Encrypted database (Walrus mainnet sync queued)
-Status: Pending public publisher access
-Contract: Sui Mainnet (working)
-Tx History: Available in Verification panel
+Blob ID: ${result.blob_id}
+URL: ${result.url}
+Network: Walrus Testnet (Sui Testnet)
+Status: Working & Verified
 
-Your chat is secure and will auto-sync to Walrus when publisher becomes publicly accessible.`)
+Note: Mainnet migration ready when publisher becomes publicly accessible.`)
     } else {
       setSaveStatus('Walrus failed, trying fallback...')
       // Fallback to old backend method
