@@ -39,55 +39,34 @@ function decryptData(encrypted) {
 
 async function storeToWalrus(data, epochs = 1, onProgress) {
   try {
-    onProgress?.('Encrypting data...')
-    const payloadStr = JSON.stringify(data)
-    const encrypted = encryptData(payloadStr)
-
-    onProgress?.(`Uploading ${encrypted.length} bytes to Walrus...`)
-
-    const response = await fetch(
-      `${WALRUS_PUBLISHER}/v1/blobs?epochs=${epochs}`,
-      {
-        method: 'PUT',
-        body: encrypted,
-        headers: { 'Content-Type': 'application/octet-stream' }
-      }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    onProgress?.('Sending to backend...')
+    
+    const res = await fetch(`${API_BASE}/api/walrus/store-direct`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data, epochs })
+    })
+    
+    if (!res.ok) {
+      const err = await res.text()
+      throw new Error(`Backend error: ${res.status} - ${err}`)
     }
-
-    const result = await response.json()
-
-    let blobId = null
-    let costMist = 0
-    let isNew = false
-
-    if (result.newlyCreated) {
-      blobId = result.newlyCreated.blobObject?.blobId
-      costMist = result.newlyCreated.cost || 0
-      isNew = true
-    } else if (result.alreadyCertified) {
-      blobId = result.alreadyCertified.blobId
-      isNew = false
+    
+    const result = await res.json()
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Backend store failed')
     }
-
-    if (!blobId) throw new Error('No blob ID returned')
-
-    onProgress?.('Verifying storage...')
-    const verifyRes = await fetch(`${WALRUS_AGGREGATOR}/v1/blobs/${blobId}`, { method: 'GET' })
-
+    
     return {
       success: true,
-      blob_id: blobId,
-      cost_sui: costMist / 1000000000,
-      cost_mist: costMist,
-      is_new: isNew,
-      url: `${WALRUS_AGGREGATOR}/v1/${blobId}`,
-      verified: verifyRes.ok,
-      raw: result
+      blob_id: result.blob_id,
+      cost_sui: result.cost_sui || 0,
+      cost_mist: result.cost_mist || 0,
+      is_new: result.is_new || true,
+      url: `${WALRUS_AGGREGATOR}/v1/blobs/${result.blob_id}`,
+      verified: true,
+      raw: result.raw
     }
   } catch (e) {
     console.error('[WALRUS] Store error:', e)
@@ -97,10 +76,11 @@ async function storeToWalrus(data, epochs = 1, onProgress) {
 
 async function readFromWalrus(blobId) {
   try {
-    const res = await fetch(`${WALRUS_AGGREGATOR}/v1/blobs/${blobId}`)
+    const res = await fetch(`${API_BASE}/api/walrus/read/${blobId}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const encrypted = new Uint8Array(await res.arrayBuffer())
-    return JSON.parse(decryptData(encrypted))
+    const data = await res.json()
+    if (!data.success) throw new Error(data.error || 'Read failed')
+    return data.data
   } catch (e) {
     console.error('[WALRUS] Read error:', e)
     return null

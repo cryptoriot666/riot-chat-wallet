@@ -49,8 +49,8 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
-WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
+WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
+WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -731,7 +731,7 @@ def walrus_store(data):
 def walrus_read(blob_id):
     try:
         print(f"[WALRUS] Reading {blob_id}...")
-        res = requests.get(f"{WALRUS_AGGREGATOR}/v1/{blob_id}", timeout=60)
+        res = requests.get(f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}", timeout=60)
 
         if res.status_code == 200:
             encrypted_data = res.content.decode('utf-8')
@@ -1137,6 +1137,101 @@ def walrus_save():
     return jsonify({"success": True, "tx_digest": tx_digest, "blob_id": blob_id, "indexed": True})
 
 
+@app.route("/api/walrus/store-direct", methods=["POST"])
+def walrus_store_direct():
+    """Frontend proxy to Walrus — handles DNS/CORS issues"""
+    try:
+        data = request.get_json()
+        payload_data = data.get("data")
+        epochs = data.get("epochs", 1)
+
+        if not payload_data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        # Encrypt + compress
+        payload_str = json.dumps(payload_data)
+        encrypted = encrypt(payload_str)
+        payload_bytes = encrypted.encode("utf-8")
+
+        # Upload to Walrus via backend (bypass frontend DNS issues)
+        res = requests.put(
+            f"{WALRUS_PUBLISHER}/v1/blobs?epochs={epochs}",
+            data=payload_bytes,
+            headers={"Content-Type": "application/octet-stream"},
+            timeout=60
+        )
+
+        if res.status_code not in [200, 202]:
+            return jsonify({
+                "success": False,
+                "error": f"Walrus HTTP {res.status_code}: {res.text[:200]}"
+            }), 500
+
+        result = res.json()
+
+        blob_id = None
+        cost_mist = 0
+        is_new = False
+
+        if "newlyCreated" in result:
+            blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+            cost_mist = result["newlyCreated"].get("cost", 0)
+            is_new = True
+        elif "alreadyCertified" in result:
+            blob_id = result["alreadyCertified"]["blobId"]
+            is_new = False
+
+        if not blob_id:
+            return jsonify({"success": False, "error": "No blob ID returned"}), 500
+
+        return jsonify({
+            "success": True,
+            "blob_id": blob_id,
+            "cost_sui": cost_mist / 1000000000,
+            "cost_mist": cost_mist,
+            "is_new": is_new,
+            "url": f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}",
+            "raw": result
+        })
+
+    except Exception as e:
+        print(f"[WALRUS_DIRECT] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/walrus/read/<blob_id>", methods=["GET"])
+def walrus_read_direct(blob_id):
+    """Read blob from Walrus via backend"""
+    try:
+        res = requests.get(
+            f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}",
+            timeout=60
+        )
+
+        if res.status_code != 200:
+            return jsonify({
+                "success": False,
+                "error": f"Walrus HTTP {res.status_code}"
+            }), 500
+
+        encrypted_data = res.content.decode("utf-8")
+        decrypted = decrypt(encrypted_data)
+
+        if not decrypted:
+            return jsonify({"success": False, "error": "Decryption failed"}), 500
+
+        data = json.loads(decrypted)
+
+        return jsonify({
+            "success": True,
+            "data": data
+        })
+
+    except Exception as e:
+        print(f"[WALRUS_READ_DIRECT] Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 # ═══════════════════════════════════════════════════════════════
 # MEMWAL INTEGRATION (via HTTP API - no npm dependency)
 # ═══════════════════════════════════════════════════════════════
