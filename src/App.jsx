@@ -16,8 +16,8 @@ const RIOT_GREEN = '#2ec4b6'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
-const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
-const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
+const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
+const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
 const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
 
 function encryptData(data) {
@@ -46,7 +46,7 @@ async function storeToWalrus(data, epochs = 1, onProgress) {
     onProgress?.(`Uploading ${encrypted.length} bytes to Walrus...`)
 
     const response = await fetch(
-      `${WALRUS_PUBLISHER}/v1/blobs?epochs=${epochs}&permanent=true`,
+      `${WALRUS_PUBLISHER}/v1/blobs?epochs=${epochs}`,
       {
         method: 'PUT',
         body: encrypted,
@@ -77,7 +77,7 @@ async function storeToWalrus(data, epochs = 1, onProgress) {
     if (!blobId) throw new Error('No blob ID returned')
 
     onProgress?.('Verifying storage...')
-    const verifyRes = await fetch(`${WALRUS_AGGREGATOR}/v1/${blobId}`, { method: 'GET' })
+    const verifyRes = await fetch(`${WALRUS_AGGREGATOR}/v1/blobs/${blobId}`, { method: 'GET' })
 
     return {
       success: true,
@@ -97,7 +97,7 @@ async function storeToWalrus(data, epochs = 1, onProgress) {
 
 async function readFromWalrus(blobId) {
   try {
-    const res = await fetch(`${WALRUS_AGGREGATOR}/v1/${blobId}`)
+    const res = await fetch(`${WALRUS_AGGREGATOR}/v1/blobs/${blobId}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const encrypted = new Uint8Array(await res.arrayBuffer())
     return JSON.parse(decryptData(encrypted))
