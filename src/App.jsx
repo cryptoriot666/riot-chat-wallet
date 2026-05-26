@@ -16,7 +16,7 @@ const RIOT_GREEN = '#2ec4b6'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
-const WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
+const WALRUS_PUBLISHER = "https://walrus-mainnet-publisher.nami.cloud/o6BuwL57oT7R6DqZNtZgfp1ixeceI5P3tK6a3gAj11Vf01CrlTXz63YsfZFKsqhCKe5c0BlGevHUwdE"
 const WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
 const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
 
