@@ -18,6 +18,101 @@ const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f818
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
 
 // ═══════════════════════════════════════════════════════════════
+// WALRUS MAINNET CONFIG & FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.mystenlabs.com"
+const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.mystenlabs.com"
+const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
+
+function encryptData(data) {
+  const payload = new TextEncoder().encode(data)
+  const encrypted = new Uint8Array(payload.length)
+  for (let i = 0; i < payload.length; i++) {
+    encrypted[i] = payload[i] ^ WALRUS_ENCRYPTION_KEY[i % WALRUS_ENCRYPTION_KEY.length]
+  }
+  return encrypted
+}
+
+function decryptData(encrypted) {
+  const decrypted = new Uint8Array(encrypted.length)
+  for (let i = 0; i < encrypted.length; i++) {
+    decrypted[i] = encrypted[i] ^ WALRUS_ENCRYPTION_KEY[i % WALRUS_ENCRYPTION_KEY.length]
+  }
+  return new TextDecoder().decode(decrypted)
+}
+
+async function storeToWalrus(data, epochs = 1, onProgress) {
+  try {
+    onProgress?.('Encrypting data...')
+    const payloadStr = JSON.stringify(data)
+    const encrypted = encryptData(payloadStr)
+
+    onProgress?.(`Uploading ${encrypted.length} bytes to Walrus...`)
+
+    const response = await fetch(
+      `${WALRUS_PUBLISHER}/v1/blobs?epochs=${epochs}&permanent=true`,
+      {
+        method: 'PUT',
+        body: encrypted,
+        headers: { 'Content-Type': 'application/octet-stream' }
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+
+    const result = await response.json()
+
+    let blobId = null
+    let costMist = 0
+    let isNew = false
+
+    if (result.newlyCreated) {
+      blobId = result.newlyCreated.blobObject?.blobId
+      costMist = result.newlyCreated.cost || 0
+      isNew = true
+    } else if (result.alreadyCertified) {
+      blobId = result.alreadyCertified.blobId
+      isNew = false
+    }
+
+    if (!blobId) throw new Error('No blob ID returned')
+
+    onProgress?.('Verifying storage...')
+    const verifyRes = await fetch(`${WALRUS_AGGREGATOR}/v1/${blobId}`, { method: 'GET' })
+
+    return {
+      success: true,
+      blob_id: blobId,
+      cost_sui: costMist / 1000000000,
+      cost_mist: costMist,
+      is_new: isNew,
+      url: `${WALRUS_AGGREGATOR}/v1/${blobId}`,
+      verified: verifyRes.ok,
+      raw: result
+    }
+  } catch (e) {
+    console.error('[WALRUS] Store error:', e)
+    return { success: false, error: e.message }
+  }
+}
+
+async function readFromWalrus(blobId) {
+  try {
+    const res = await fetch(`${WALRUS_AGGREGATOR}/v1/${blobId}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const encrypted = new Uint8Array(await res.arrayBuffer())
+    return JSON.parse(decryptData(encrypted))
+  } catch (e) {
+    console.error('[WALRUS] Read error:', e)
+    return null
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
 // MEMWAL API CLIENT (via backend - no npm dependency)
 // ═══════════════════════════════════════════════════════════════
 async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {}) {
@@ -317,6 +412,94 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 // ═══════════════════════════════════════════════════════════════
 // NAME ASK MODAL — PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// WALRUS SAVE MODAL — Cost Estimate & Confirm
+// ═══════════════════════════════════════════════════════════════
+function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status }) {
+  if (!isOpen) return null
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(13,10,7,0.95)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1209, #2a1a0a)',
+        padding: '40px', borderRadius: '16px',
+        border: '3px solid rgba(255,42,109,0.6)',
+        maxWidth: '420px', width: '90%', textAlign: 'center',
+        boxShadow: '0 0 40px rgba(255,42,109,0.2)'
+      }}>
+        <Wallet size={40} color={RIOT_PINK} style={{ marginBottom: '15px', filter: 'drop-shadow(0 0 10px rgba(255,42,109,0.5))' }} />
+        <h2 style={{
+          fontFamily: "'Rubik Glitch', cursive", fontSize: '24px',
+          color: '#fff', margin: '0 0 10px 0',
+          textShadow: '0 0 20px rgba(255,42,109,0.5)',
+          letterSpacing: '2px'
+        }}>💾 SAVE TO WALRUS</h2>
+
+        {progress ? (
+          <div>
+            <div style={{
+              width: '100%', height: '8px', background: '#1a1209',
+              borderRadius: '4px', overflow: 'hidden', marginBottom: '20px'
+            }}>
+              <div style={{
+                height: '100%', width: '100%',
+                background: 'linear-gradient(90deg, #ff2a6d, #ff6b35)',
+                animation: 'pulse 1.5s infinite',
+                borderRadius: '4px'
+              }} />
+            </div>
+            <p style={{ color: '#a08060', fontSize: '14px', fontFamily: "'Rubik Mono One', sans-serif" }}>
+              {status}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p style={{ color: '#a08060', fontSize: '13px', marginBottom: '20px', lineHeight: '1.6' }}>
+              Store this chat permanently on Walrus decentralized storage.
+            </p>
+            <div style={{
+              padding: '15px', background: 'rgba(255,183,3,0.1)',
+              borderRadius: '8px', border: '2px solid rgba(255,183,3,0.3)',
+              marginBottom: '20px'
+            }}>
+              <div style={{ fontSize: '12px', color: RIOT_GOLD, fontFamily: "'Rubik Mono One', sans-serif" }}>
+                ESTIMATED COST
+              </div>
+              <div style={{ fontSize: '24px', color: '#fff', fontWeight: 700, margin: '8px 0' }}>
+                {cost?.toFixed(4)} SUI
+              </div>
+              <div style={{ fontSize: '11px', color: '#a08060' }}>
+                Paid by Walrus publisher (sponsored storage)
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={onClose} style={{
+                flex: 1, padding: '12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '2px solid rgba(255,255,255,0.2)', color: '#a08060',
+                borderRadius: '8px', cursor: 'pointer', fontSize: '12px',
+                fontFamily: "'Rubik Mono One', sans-serif"
+              }}>CANCEL</button>
+              <button onClick={onConfirm} style={{
+                flex: 1, padding: '12px',
+                background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
+                border: 'none', color: '#fff', borderRadius: '8px',
+                cursor: 'pointer', fontWeight: 700, fontSize: '12px',
+                fontFamily: "'Rubik Mono One', sans-serif",
+                boxShadow: '0 0 20px rgba(255,42,109,0.4)'
+              }}>CONFIRM</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function NameAskModal({ onSubmit, agentName }) {
   const [name, setName] = useState('')
 
@@ -1580,6 +1763,13 @@ export default function App() {
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
   const [showVerificationPanel, setShowVerificationPanel] = useState(false)
+  // Walrus storage states
+  const [showWalrusModal, setShowWalrusModal] = useState(false)
+  const [walrusCost, setWalrusCost] = useState(0)
+  const [walrusProgress, setWalrusProgress] = useState(false)
+  const [walrusStatus, setWalrusStatus] = useState('')
+  const [walrusHistory, setWalrusHistory] = useState([])
+
   const [verifyTab, setVerifyTab] = useState('tx')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -1858,78 +2048,101 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
-    // Defensive: ensure we have a valid agent ID
     const currentAgentId = selectedAgent?.id || 'J4'
 
+    // Step 1: Estimate cost
+    const chatData = {
+      wallet_hash: walletHash,
+      chat_history: messages,
+      agent_id: currentAgentId,
+      timestamp: Date.now(),
+      version: '1.0'
+    }
+    const dataStr = JSON.stringify(chatData)
+    const estimatedCost = Math.max(Math.ceil(dataStr.length / 1024) * 0.001, 0.001)
+
+    // Step 2: Show modal for confirmation
+    setWalrusCost(estimatedCost)
+    setShowWalrusModal(true)
+  }
+
+  const confirmWalrusSave = async () => {
+    setShowWalrusModal(false)
     setIsSaving(true)
-    setSaveStatus('Storing to Walrus + Move contract...')
+    setSaveStatus('Uploading to Walrus...')
+    setWalrusProgress(true)
+    setWalrusStatus('Encrypting data...')
 
-    try {
-      const storeResult = await apiWalrusStoreChat(walletHash, messages, currentAgentId)
-      if (!storeResult || !storeResult.success) {
-        console.log('Walrus unavailable, continuing with Move contract')
-      }
-      const blobId = storeResult.blob_id
-      setLatestBlobId(blobId)
+    const currentAgentId = selectedAgent?.id || 'J4'
+    const chatData = {
+      wallet_hash: walletHash,
+      chat_history: messages,
+      agent_id: currentAgentId,
+      timestamp: Date.now(),
+      version: '1.0'
+    }
 
-      const tx = new TransactionBlock()
-      tx.setGasBudget(50000000)
+    const result = await storeToWalrus(chatData, 1, (status) => {
+      setWalrusStatus(status)
+      setSaveStatus(status)
+    })
 
-      const walletAddr = account.address
-      const agentIdStr = selectedAgent?.id || 'J4'
-      const summary = messages.slice(-3).map(m => m.content).join(' | ').slice(0, 200)
+    setWalrusProgress(false)
 
-      tx.moveCall({
-        target: `0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474::memory::store_memory`,
-        arguments: [
-          tx.pure(walletAddr),
-          tx.pure(currentAgentId),
-          tx.pure(messages.map(m => m.content).slice(-5)),
-          tx.pure(summary),
-        ]
+    if (result.success) {
+      setLatestBlobId(result.blob_id)
+      setWalrusSaved(true)
+
+      // Add to history
+      setWalrusHistory(prev => [...prev, {
+        blob_id: result.blob_id,
+        timestamp: Date.now(),
+        cost_sui: result.cost_sui,
+        cost_mist: result.cost_mist,
+        is_new: result.is_new,
+        url: result.url,
+        agent_id: currentAgentId
+      }])
+
+      // Index in backend
+      await fetch(`${API_BASE}/api/walrus/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_hash: walletHash,
+          tx_digest: '',
+          blob_id: result.blob_id,
+          agent_id: currentAgentId
+        })
       })
 
-      setSaveStatus('Waiting for wallet signature...')
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx })
+      setSaveStatus('Saved to Walrus!')
+      showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
-      if (result.digest && result.effects) {
-        const createdObjects = result.effects?.created || []
-        const memoryObject = createdObjects.find(obj => obj.owner === walletAddr)
-        const objectId = memoryObject?.reference?.objectId || ''
-        setMoveObjectId(objectId)
+      alert(`💾 Chat saved to Walrus Mainnet!
 
-        await fetch(`${API_BASE}/api/move/tx-index`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet_hash: walletHash,
-            tx_digest: result.digest,
-            blob_id: blobId,
-            object_id: objectId,
-            agent_id: agentIdStr,
-            package_id: PACKAGE_ID
-          })
-        })
+Blob ID: ${result.blob_id}
+Cost: ${result.cost_sui?.toFixed(6)} SUI
+New: ${result.is_new ? 'Yes' : 'No (already existed)'}
+Verified: ${result.verified ? 'Yes' : 'No'}
 
-        setWalrusSaved(true)
-        setSaveStatus('Saved!')
-        const explorerUrl = `${SUI_EXPLORER}/tx/${result.digest}`
-        playSound('immortalize')
-        alert(`💾 Chat saved to Walrus + Move contract!\n\nBlob ID: ${blobId}\nObject ID: ${objectId?.slice(0, 16)}...\nTx: ${result.digest.slice(0, 20)}...\n\nView on SuiScan: ${explorerUrl}`)
-      }
-    } catch (e) {
-      console.error('Save error:', e)
-      setSaveStatus('Save failed')
-      if (e.message?.includes('Rejected') || e.message?.includes('cancelled')) {
-        alert('❌ Transaction cancelled by user')
+Verify: ${result.url}`)
+    } else {
+      setSaveStatus('Walrus failed, trying fallback...')
+      // Fallback to old backend method
+      const fallback = await apiWalrusStoreChat(walletHash, messages, currentAgentId)
+      if (fallback?.success) {
+        setLatestBlobId(fallback.blob_id)
+        showToast('Saved to database (Walrus fallback)', 'info')
       } else {
-        alert('❌ Save failed. Chat still saved in database.')
+        showToast(`Save failed: ${result.error}`, 'error')
       }
-    } finally {
-      setIsSaving(false)
-      setTimeout(() => setSaveStatus(''), 3000)
     }
+
+    setIsSaving(false)
+    setTimeout(() => setSaveStatus(''), 3000)
   }
+
 
   // RENDER
   return (
@@ -1951,7 +2164,17 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
         </button>
       )}
       {/* Name Ask Modal */}
-      {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
+            {/* Walrus Save Modal */}
+      <WalrusSaveModal 
+        isOpen={showWalrusModal}
+        onClose={() => setShowWalrusModal(false)}
+        onConfirm={confirmWalrusSave}
+        cost={walrusCost}
+        progress={walrusProgress}
+        status={walrusStatus}
+      />
+
+{showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
 
       {/* Profile Settings Panel */}
       {showProfileSettings && connected && (
@@ -2061,6 +2284,28 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
           <div style={{ padding: '10px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
             <MemWalBadge count={memwalSaveCount} />
           </div>
+
+        {/* Walrus History */}
+        {walrusHistory.length > 0 && (
+          <div style={{ padding: '15px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: '11px', color: '#00b4d8', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '8px' }}>
+              <Cloud size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              WALRUS SAVES ({walrusHistory.length})
+            </div>
+            {walrusHistory.slice(-3).map((item, i) => (
+              <div key={i} style={{
+                fontSize: '10px', color: '#a08060', fontFamily: 'monospace',
+                marginBottom: '4px', wordBreak: 'break-all'
+              }}>
+                <a href={item.url} target="_blank" rel="noopener" style={{ color: '#00b4d8', textDecoration: 'none' }}>
+                  {item.blob_id.slice(0, 16)}...
+                </a>
+                <span style={{ color: '#666', marginLeft: '6px' }}>({item.cost_sui?.toFixed(4)} SUI)</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         )}
 
         {/* API Status */}
@@ -2594,6 +2839,36 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
               </h4>
               <TxHistoryList walletHash={walletHash} />
             </div>
+
+          {/* Walrus Blobs */}
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ fontSize: '12px', color: '#a08060', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '12px' }}>
+              <Cloud size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              WALRUS BLOBS
+            </h4>
+            {walrusHistory.length > 0 ? walrusHistory.map((item, i) => (
+              <div key={i} style={{
+                padding: '10px', background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px', border: '1px solid rgba(0,180,216,0.2)',
+                marginBottom: '8px'
+              }}>
+                <div style={{ fontSize: '10px', color: '#00b4d8', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  {item.blob_id}
+                </div>
+                <div style={{ fontSize: '10px', color: '#a08060', marginTop: '4px' }}>
+                  {item.cost_sui?.toFixed(6)} SUI • {item.is_new ? 'New' : 'Existing'}
+                </div>
+                <a href={item.url} target="_blank" rel="noopener" style={{
+                  fontSize: '10px', color: '#ff2a6d', textDecoration: 'none'
+                }}>
+                  Verify on Aggregator →
+                </a>
+              </div>
+            )) : (
+              <div style={{ fontSize: '11px', color: '#666' }}>No Walrus saves yet.</div>
+            )}
+          </div>
+
           )}
 
           {verifyTab === 'tatum' && (
