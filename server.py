@@ -49,7 +49,7 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://walrus-mainnet-publisher.nami.cloud/o6BuwL57oT7R6DqZNtZgfp1ixeceI5P3tK6a3gAj11Vf01CrlTXz63YsfZFKsqhCKe5c0BlGevHUwdE"
+WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
 WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
