@@ -49,8 +49,9 @@ CORS(app, origins=["*"])
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
-WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
-WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
+WALRUS_PUBLISHER_MAINNET = "https://publisher.walrus-mainnet.walrus.space"
+WALRUS_PUBLISHER_TESTNET = "https://publisher.walrus-testnet.walrus.space"
+WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
@@ -671,14 +672,9 @@ def save_memory(wallet_hash, data):
 # WALRUS STORAGE — MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
-    """
-    Store data to Walrus when available.
-    Phase 1: Queue to DB + attempt Walrus (best effort)
-    Phase 2: Full Walrus mainnet (when publicly accessible)
-    """
     import traceback
     
-    # ALWAYS save to DB first (reliable)
+    # ALWAYS save to DB first
     try:
         payload_str = json.dumps(data)
         encrypted = encrypt(payload_str)
@@ -702,45 +698,43 @@ def walrus_store(data):
         
         conn.commit()
         conn.close()
-        print(f"[WALRUS] Queued to DB: {wallet_hash[:8]}... size={len(payload_str)}")
     except Exception as e:
         print(f"[WALRUS] DB queue error: {e}")
     
-    # Attempt Walrus (best effort — may fail if mainnet not accessible)
-    try:
-        payload = encrypted.encode('utf-8')
-        print(f"[WALRUS] Attempting store to {WALRUS_PUBLISHER}...")
-        
-        res = requests.put(
-            f"{WALRUS_PUBLISHER}/v1/blobs",
-            data=payload,
-            headers={"Content-Type": "application/octet-stream"},
-            timeout=30
-        )
-        
-        if res.status_code in [200, 202]:
-            result = res.json()
-            if "newlyCreated" in result:
-                blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                print(f"[WALRUS] ✓ Success: {blob_id[:20]}...")
-                # Update DB with blob_id
-                _update_blob_id(wallet_hash, blob_id)
-                return blob_id
-            elif "alreadyCertified" in result:
-                blob_id = result["alreadyCertified"]["blobId"]
-                print(f"[WALRUS] ✓ Existing: {blob_id[:20]}...")
-                _update_blob_id(wallet_hash, blob_id)
-                return blob_id
-        
-        print(f"[WALRUS] ⚠ HTTP {res.status_code}, queuing for retry")
-        return None
-        
-    except requests.exceptions.ConnectionError:
-        print(f"[WALRUS] ⚠ Mainnet not accessible (expected pre-public phase), queued for retry")
-        return None
-    except Exception as e:
-        print(f"[WALRUS] ⚠ Store error: {str(e)[:100]}")
-        return None
+    # Try MAINNET first
+    payload = encrypted.encode('utf-8')
+    for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
+        try:
+            print(f"[WALRUS] Attempting {label}: {publisher}...")
+            res = requests.put(
+                f"{publisher}/v1/blobs",
+                data=payload,
+                headers={"Content-Type": "application/octet-stream"},
+                timeout=15
+            )
+            
+            if res.status_code in [200, 202]:
+                result = res.json()
+                if "newlyCreated" in result:
+                    blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                    print(f"[WALRUS] ✓ {label}: {blob_id[:20]}...")
+                    _update_blob_id(wallet_hash, blob_id)
+                    return blob_id
+                elif "alreadyCertified" in result:
+                    blob_id = result["alreadyCertified"]["blobId"]
+                    print(f"[WALRUS] ✓ {label} existing: {blob_id[:20]}...")
+                    _update_blob_id(wallet_hash, blob_id)
+                    return blob_id
+            
+            print(f"[WALRUS] ⚠ {label} HTTP {res.status_code}")
+            
+        except requests.exceptions.ConnectionError:
+            print(f"[WALRUS] ⚠ {label} unreachable")
+        except Exception as e:
+            print(f"[WALRUS] ⚠ {label} error: {str(e)[:80]}")
+    
+    print(f"[WALRUS] ⚠ All publishers failed, queued for retry")
+    return None
 
 def _update_blob_id(wallet_hash, blob_id):
     """Update queued record with actual blob_id when Walrus succeeds"""
@@ -1189,13 +1183,47 @@ def walrus_store_direct():
         encrypted = encrypt(payload_str)
         payload_bytes = encrypted.encode("utf-8")
 
-        # Upload to Walrus via backend (bypass frontend DNS issues)
+        # Try mainnet first, fallback testnet
+blob_id = None
+cost_mist = 0
+is_new = False
+last_error = ""
+
+for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
+    try:
         res = requests.put(
-            f"{WALRUS_PUBLISHER}/v1/blobs?epochs={epochs}",
+            f"{publisher}/v1/blobs?epochs={epochs}",
             data=payload_bytes,
             headers={"Content-Type": "application/octet-stream"},
-            timeout=60
+            timeout=30
         )
+        
+        if res.status_code in [200, 202]:
+            result = res.json()
+            if "newlyCreated" in result:
+                blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                cost_mist = result["newlyCreated"].get("cost", 0)
+                is_new = True
+                print(f"[WALRUS_DIRECT] ✓ {label}: {blob_id[:20]}...")
+                break
+            elif "alreadyCertified" in result:
+                blob_id = result["alreadyCertified"]["blobId"]
+                is_new = False
+                print(f"[WALRUS_DIRECT] ✓ {label} existing: {blob_id[:20]}...")
+                break
+        else:
+            last_error = f"{label} HTTP {res.status_code}"
+            
+    except Exception as e:
+        last_error = f"{label}: {str(e)[:80]}"
+        continue
+
+if not blob_id:
+    return jsonify({
+        "success": False,
+        "error": f"All publishers failed. Last: {last_error}",
+        "fallback": "db_only"
+    }), 200
 
         if res.status_code not in [200, 202]:
             return jsonify({
