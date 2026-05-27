@@ -2085,7 +2085,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
-      alert(`🎆 Chat saved to Walrus Mainnet via Tatum!
+      alert(`🎆 Chat saved to Walrus via Tatum!
 
 Blob ID: ${result.blob_id}
 URL: ${result.url}
