@@ -289,7 +289,7 @@ async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
 
 async function apiWalrusStoreChat(walletHash, chatHistory, agentId) {
   try {
-    const res = await fetch(`${API_BASE}/api/walrus/store-chat`, {
+    const res = await fetch(`${API_BASE}/api/walrus/store-direct`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ wallet_hash: walletHash, chat_history: chatHistory, agent_id: agentId })
