@@ -672,68 +672,43 @@ def save_memory(wallet_hash, data):
 # WALRUS STORAGE — MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
-    import traceback
+    # Encrypt data
+    payload_str = json.dumps(data)
+    encrypted = encrypt(payload_str)
     
-    # ALWAYS save to DB first
-    try:
-        payload_str = json.dumps(data)
-        encrypted = encrypt(payload_str)
-        
-        conn = get_db_conn()
-        c = conn.cursor()
-        
-        wallet_hash = data.get("wallet_hash", "unknown")
-        now = datetime.now().isoformat()
-        
-        if USE_SQLITE:
-            c.execute("""
-                INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size)
-                VALUES (?, ?, ?, ?, ?)
-            """, (wallet_hash, "", now, data.get("agent_id", ""), len(payload_str)))
-        else:
-            c.execute("""
-                INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size)
-                VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)
-            """, (wallet_hash, "", data.get("agent_id", ""), len(payload_str)))
-        
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"[WALRUS] DB queue error: {e}")
+    # Upload via Tatum Storage API
+    headers = {
+        "x-api-key": TATUM_API_KEY,
+        "Content-Type": "application/octet-stream"
+    }
     
-    # Try MAINNET first
-    payload = encrypted.encode('utf-8')
-    for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
-        try:
-            print(f"[WALRUS] Attempting {label}: {publisher}...")
-            res = requests.put(
-                f"{publisher}/v1/blobs",
-                data=payload,
-                headers={"Content-Type": "application/octet-stream"},
-                timeout=15
+    res = requests.post(
+        "https://api.tatum.io/v4/data/storage/upload",
+        data=encrypted.encode('utf-8'),
+        headers=headers,
+        timeout=60
+    )
+    
+    if res.status_code == 200:
+        result = res.json()
+        job_id = result.get("jobId")
+        blob_id = result.get("blobId")
+        
+        # Poll until CERTIFIED
+        for _ in range(20):  # Max 20 retries
+            status_res = requests.get(
+                f"https://api.tatum.io/v4/data/storage/upload/{job_id}",
+                headers={"x-api-key": TATUM_API_KEY},
+                timeout=30
             )
-            
-            if res.status_code in [200, 202]:
-                result = res.json()
-                if "newlyCreated" in result:
-                    blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                    print(f"[WALRUS] ✓ {label}: {blob_id[:20]}...")
-                    _update_blob_id(wallet_hash, blob_id)
+            if status_res.status_code == 200:
+                status = status_res.json()
+                if status.get("status") == "CERTIFIED":
                     return blob_id
-                elif "alreadyCertified" in result:
-                    blob_id = result["alreadyCertified"]["blobId"]
-                    print(f"[WALRUS] ✓ {label} existing: {blob_id[:20]}...")
-                    _update_blob_id(wallet_hash, blob_id)
-                    return blob_id
-            
-            print(f"[WALRUS] ⚠ {label} HTTP {res.status_code}")
-            
-        except requests.exceptions.ConnectionError:
-            print(f"[WALRUS] ⚠ {label} unreachable")
-        except Exception as e:
-            print(f"[WALRUS] ⚠ {label} error: {str(e)[:80]}")
+                elif status.get("status") == "FAILED":
+                    return None
+            time.sleep(2)
     
-    print(f"[WALRUS] ⚠ All publishers failed, queued for retry")
     return None
 
 def _update_blob_id(wallet_hash, blob_id):

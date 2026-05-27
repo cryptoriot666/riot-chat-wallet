@@ -16,8 +16,8 @@ const RIOT_GREEN = '#2ec4b6'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
-const WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
-const WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
+const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
+const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
 const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
 
 function encryptData(data) {
@@ -2096,14 +2096,14 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
-      alert(`💾 Chat saved to Walrus Testnet!
+      alert(`🎆 Chat saved to Walrus Mainnet via Tatum!
 
 Blob ID: ${result.blob_id}
 URL: ${result.url}
-Network: Walrus Testnet (Sui Testnet)
+Network: Walrus Mainnet (via Tatum Storage API)
 Status: Working & Verified
 
-Note: Mainnet migration ready when publisher becomes publicly accessible.`)
+Powered by Tatum RPC + Storage API`)
     } else {
       setSaveStatus('Walrus failed, trying fallback...')
       // Fallback to old backend method
