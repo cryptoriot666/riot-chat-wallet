@@ -2089,7 +2089,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
 
 Blob ID: ${result.blob_id}
 URL: ${result.url}
-Network: Walrus Mainnet (via Tatum Storage API)
+Network: Walrus via Tatum (via Tatum Storage API)
 Status: Working & Verified
 
 Powered by Tatum RPC + Storage API`)
