@@ -683,22 +683,29 @@ def walrus_store(data):
     payload_str = json.dumps(data)
     encrypted = encrypt(payload_str)
     
-    # Try Tatum Storage API first
+    # Try Tatum Storage API first (MAINNET ONLY — requires mainnet API key)
     try:
         print(f"[WALRUS] Trying Tatum Storage API...")
+        
+        # ✅ FIX: multipart/form-data dengan field name "file"
+        # Tatum docs: "Send the file as a multipart/form-data field named file"
+        files = {
+            'file': ('memory.json', encrypted.encode('utf-8'), 'application/octet-stream')
+        }
+        
         headers = {
-            "x-api-key": TATUM_API_KEY,
-            "Content-Type": "application/octet-stream"
+            "x-api-key": TATUM_API_KEY  # Mainnet key! Jangan set Content-Type manual
         }
         
         res = requests.post(
             "https://api.tatum.io/v4/data/storage/upload",
-            data=encrypted.encode('utf-8'),
+            files=files,  # ← requests auto-set Content-Type: multipart/form-data
             headers=headers,
             timeout=60
         )
         
         print(f"[WALRUS] Tatum response: {res.status_code}")
+        print(f"[WALRUS] Tatum body: {res.text[:200]}")
         
         if res.status_code == 200:
             result = res.json()
@@ -708,7 +715,7 @@ def walrus_store(data):
             print(f"[WALRUS] Tatum jobId: {job_id}, blobId: {blob_id}")
             
             # Poll until CERTIFIED
-            for i in range(30):  # Max 30 retries, 90 seconds total
+            for i in range(30):  # Max 30 retries, ~90 seconds total
                 status_res = requests.get(
                     f"https://api.tatum.io/v4/data/storage/upload/{job_id}",
                     headers={"x-api-key": TATUM_API_KEY},
@@ -726,18 +733,21 @@ def walrus_store(data):
                     elif current_status == "FAILED":
                         error_msg = status.get("errorMessage", "Unknown error")
                         print(f"[WALRUS] ✗ Tatum FAILED: {error_msg}")
-                        break  # Exit loop, fallback to direct
+                        break  # Exit loop, fallback to direct publisher
                 
                 time.sleep(3)
             
             # If loop finishes without CERTIFIED, try fallback
-            print(f"[WALRUS] Tatum timeout, trying direct publisher...")
+            print(f"[WALRUS] Tatum not CERTIFIED, trying direct publisher...")
+            
+        else:
+            print(f"[WALRUS] Tatum upload failed: HTTP {res.status_code} — {res.text[:200]}")
             
     except Exception as e:
         print(f"[WALRUS] Tatum error: {e}")
         traceback.print_exc()
     
-    # Fallback to direct publisher
+    # Fallback to direct Walrus publisher
     return walrus_store_direct_fallback(data)
 
 
