@@ -676,45 +676,112 @@ def save_memory(wallet_hash, data):
 # WALRUS STORAGE — MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
+    import traceback
+    import time
+    
     # Encrypt data
     payload_str = json.dumps(data)
     encrypted = encrypt(payload_str)
     
-    # Upload via Tatum Storage API
-    headers = {
-        "x-api-key": TATUM_API_KEY,
-        "Content-Type": "application/octet-stream"
-    }
-    
-    res = requests.post(
-        "https://api.tatum.io/v4/data/storage/upload",
-        data=encrypted.encode('utf-8'),
-        headers=headers,
-        timeout=60
-    )
-    
-    if res.status_code == 200:
-        result = res.json()
-        job_id = result.get("jobId")
-        blob_id = result.get("blobId")
+    # Try Tatum Storage API first
+    try:
+        print(f"[WALRUS] Trying Tatum Storage API...")
+        headers = {
+            "x-api-key": TATUM_API_KEY,
+            "Content-Type": "application/octet-stream"
+        }
         
-        # Poll until CERTIFIED
-        for _ in range(20):  # Max 20 retries
-            status_res = requests.get(
-                f"https://api.tatum.io/v4/data/storage/upload/{job_id}",
-                headers={"x-api-key": TATUM_API_KEY},
-                timeout=30
-            )
-            if status_res.status_code == 200:
-                status = status_res.json()
-                if status.get("status") == "CERTIFIED":
-                    return blob_id
-                elif status.get("status") == "FAILED":
-                    return None
-            time.sleep(2)
+        res = requests.post(
+            "https://api.tatum.io/v4/data/storage/upload",
+            data=encrypted.encode('utf-8'),
+            headers=headers,
+            timeout=60
+        )
+        
+        print(f"[WALRUS] Tatum response: {res.status_code}")
+        
+        if res.status_code == 200:
+            result = res.json()
+            job_id = result.get("jobId")
+            blob_id = result.get("blobId")
+            
+            print(f"[WALRUS] Tatum jobId: {job_id}, blobId: {blob_id}")
+            
+            # Poll until CERTIFIED
+            for i in range(30):  # Max 30 retries, 90 seconds total
+                status_res = requests.get(
+                    f"https://api.tatum.io/v4/data/storage/upload/{job_id}",
+                    headers={"x-api-key": TATUM_API_KEY},
+                    timeout=30
+                )
+                
+                if status_res.status_code == 200:
+                    status = status_res.json()
+                    current_status = status.get("status")
+                    print(f"[WALRUS] Tatum status #{i}: {current_status}")
+                    
+                    if current_status == "CERTIFIED":
+                        print(f"[WALRUS] ✓ Tatum CERTIFIED: {blob_id}")
+                        return blob_id
+                    elif current_status == "FAILED":
+                        error_msg = status.get("errorMessage", "Unknown error")
+                        print(f"[WALRUS] ✗ Tatum FAILED: {error_msg}")
+                        break  # Exit loop, fallback to direct
+                
+                time.sleep(3)
+            
+            # If loop finishes without CERTIFIED, try fallback
+            print(f"[WALRUS] Tatum timeout, trying direct publisher...")
+            
+    except Exception as e:
+        print(f"[WALRUS] Tatum error: {e}")
+        traceback.print_exc()
     
-    return None
+    # Fallback to direct publisher
+    return walrus_store_direct_fallback(data)
 
+
+def walrus_store_direct_fallback(data):
+    """Fallback to direct Walrus publisher"""
+    import traceback
+    
+    try:
+        payload_str = json.dumps(data)
+        encrypted = encrypt(payload_str)
+        payload = encrypted.encode('utf-8')
+        
+        for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
+            try:
+                print(f"[WALRUS] Fallback {label}: {publisher}...")
+                res = requests.put(
+                    f"{publisher}/v1/blobs",
+                    data=payload,
+                    headers={"Content-Type": "application/octet-stream"},
+                    timeout=15
+                )
+                
+                if res.status_code in [200, 202]:
+                    result = res.json()
+                    if "newlyCreated" in result:
+                        blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                        print(f"[WALRUS] ✓ Fallback {label}: {blob_id[:20]}...")
+                        return blob_id
+                    elif "alreadyCertified" in result:
+                        blob_id = result["alreadyCertified"]["blobId"]
+                        print(f"[WALRUS] ✓ Fallback {label} existing: {blob_id[:20]}...")
+                        return blob_id
+                        
+            except Exception as e:
+                print(f"[WALRUS] Fallback {label} error: {e}")
+                continue
+        
+        print("[WALRUS] ✗ All publishers failed")
+        return None
+        
+    except Exception as e:
+        print(f"[WALRUS] Fallback fatal error: {e}")
+        return None
+            
 def _update_blob_id(wallet_hash, blob_id):
     """Update queued record with actual blob_id when Walrus succeeds"""
     try:
