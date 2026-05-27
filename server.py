@@ -1105,10 +1105,12 @@ def walrus_store_direct():
     """Frontend proxy to Walrus — handles DNS/CORS issues"""
     try:
         data = request.get_json()
+        print(f"[STORE_DIRECT] Received: {json.dumps(data, default=str)[:200]}")
         payload_data = data.get("data")
         epochs = data.get("epochs", 1)
 
         if not payload_data:
+            print("[STORE_DIRECT] ERROR: No data provided")
             return jsonify({"success": False, "error": "No data provided"}), 400
 
         # Encrypt + compress
