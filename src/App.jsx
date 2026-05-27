@@ -1301,7 +1301,13 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
         role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
       }))
 
-      const storeResult = await apiWalrusStoreChat(hashWallet(address), chatHistory, agentId)
+      const storeResult = await storeToWalrus({
+  wallet_hash: hashWallet(address),
+  chat_history: chatHistory,
+  agent_id: agentId,
+  timestamp: Date.now(),
+  version: '1.0'
+}, 1)
       const blobId = storeResult?.blob_id || ''
 
       const tx = new TransactionBlock()
