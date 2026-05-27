@@ -1044,79 +1044,79 @@ def profile_create():
 # WALRUS ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
-@app.route("/api/walrus/store-chat", methods=["POST"])
-def walrus_store_chat():
-    """Store chat to Walrus — NEVER return 500, always graceful"""
+@app.route("/api/walrus/store-direct", methods=["POST"])
+def walrus_store_direct():
+    """Frontend proxy to Walrus — handles DNS/CORS issues"""
     try:
         data = request.get_json()
+        payload_data = data.get("data")
+        epochs = data.get("epochs", 1)
 
-        if not data:
-            return jsonify({"success": False, "error": "No data", "fallback": "db_only"}), 200
+        if not payload_data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
 
-        wallet_hash = data.get("wallet_hash")
-        chat_history = data.get("chat_history", [])
-        agent_id = data.get("agent_id", "")
+        # Encrypt + compress
+        payload_str = json.dumps(payload_data)
+        encrypted = encrypt(payload_str)
+        payload_bytes = encrypted.encode("utf-8")
 
-        if not wallet_hash:
-            return jsonify({"success": False, "error": "wallet_hash required", "fallback": "db_only"}), 200
+        # Try mainnet first, fallback testnet
+        blob_id = None
+        cost_mist = 0
+        is_new = False
+        last_error = ""
 
-        print(f"[API] Walrus store request: wallet={wallet_hash[:8]}..., messages={len(chat_history)}")
-
-        payload = {
-            "wallet_hash": wallet_hash,
-            "chat_history": chat_history,
-            "agent_id": agent_id,
-            "timestamp": datetime.now().isoformat(),
-            "version": "1.0"
-        }
-
-        # Try Walrus store
-        blob_id = walrus_store(payload)
-
-        if blob_id:
-            # Success — save to DB for tracking
+        for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
             try:
-                conn = get_db_conn()
-                c = conn.cursor()
-                if USE_SQLITE:
-                    c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (?, ?, ?, ?, ?)",
-                              (wallet_hash, blob_id, datetime.now().isoformat(), agent_id, len(json.dumps(payload))))
+                res = requests.put(
+                    f"{publisher}/v1/blobs?epochs={epochs}",
+                    data=payload_bytes,
+                    headers={"Content-Type": "application/octet-stream"},
+                    timeout=30
+                )
+                
+                if res.status_code in [200, 202]:
+                    result = res.json()
+                    if "newlyCreated" in result:
+                        blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                        cost_mist = result["newlyCreated"].get("cost", 0)
+                        is_new = True
+                        print(f"[WALRUS_DIRECT] ✓ {label}: {blob_id[:20]}...")
+                        break
+                    elif "alreadyCertified" in result:
+                        blob_id = result["alreadyCertified"]["blobId"]
+                        is_new = False
+                        print(f"[WALRUS_DIRECT] ✓ {label} existing: {blob_id[:20]}...")
+                        break
                 else:
-                    c.execute("INSERT INTO on_chain_saves (wallet_hash, blob_id, timestamp, agent_id, data_size) VALUES (%s, %s, CURRENT_TIMESTAMP, %s, %s)",
-                              (wallet_hash, blob_id, agent_id, len(json.dumps(payload))))
-                conn.commit()
-                conn.close()
+                    last_error = f"{label} HTTP {res.status_code}"
+                    
             except Exception as e:
-                print(f"[API] DB tracking error (non-critical): {e}")
+                last_error = f"{label}: {str(e)[:80]}"
+                continue
 
-            print(f"[API] Walrus ✓ blob_id={blob_id[:20]}...")
+        if not blob_id:
             return jsonify({
-                "success": True, 
-                "blob_id": blob_id, 
-                "message": "Stored on Walrus MAINNET",
-                "url": f"{WALRUS_AGGREGATOR}/v1/{blob_id}"
-            })
+                "success": False,
+                "error": f"All publishers failed. Last: {last_error}",
+                "fallback": "db_only"
+            }), 200
 
-        # Walrus failed — return graceful error (NOT 500)
-        print(f"[API] Walrus unavailable, returning graceful fallback")
         return jsonify({
-            "success": False, 
-            "error": "Walrus publisher temporarily unavailable", 
-            "fallback": "db_only",
-            "message": "Chat saved to local database. Walrus sync pending."
-        }), 200  # Return 200, not 500!
+            "success": True,
+            "blob_id": blob_id,
+            "cost_sui": cost_mist / 1000000000,
+            "cost_mist": cost_mist,
+            "is_new": is_new,
+            "url": f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}",
+            "raw": result
+        })
 
     except Exception as e:
-        print(f"[API] Walrus store exception: {e}")
+        print(f"[WALRUS_DIRECT] Error: {e}")
         import traceback
         traceback.print_exc()
-        # NEVER return 500 — always graceful
-        return jsonify({
-            "success": False, 
-            "error": "Internal processing error", 
-            "fallback": "db_only",
-            "message": "Chat saved locally. Please retry later."
-        }), 200
+        return jsonify({"success": False, "error": str(e)}), 500
         
 @app.route("/api/walrus/load-chat/<wallet_hash>", methods=["GET"])
 def walrus_load_chat(wallet_hash):
