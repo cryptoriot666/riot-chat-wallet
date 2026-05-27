@@ -44,7 +44,11 @@ def get_sui_balance_tatum(address):
         return None
 
 app = Flask(__name__)
-CORS(app, origins=["*"])
+CORS(app, origins=[
+    "https://riot-chat-wallet.vercel.app",
+    "https://riot-chat-wallet-git-main-the-riot-s-projects.vercel.app",
+    "http://localhost:5173"
+], supports_credentials=True)
 
 # ═══════════════════════════════════════════════════════════════
 # CONFIG

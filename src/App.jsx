@@ -2081,18 +2081,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
         agent_id: currentAgentId
       }])
 
-      // Index in backend
-      await fetch(`${API_BASE}/api/walrus/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          wallet_hash: walletHash,
-          tx_digest: '',
-          blob_id: result.blob_id,
-          agent_id: currentAgentId
-        })
-      })
-
+      
       setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
