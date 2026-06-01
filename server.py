@@ -1105,12 +1105,10 @@ def walrus_store_direct():
     """Frontend proxy to Walrus — handles DNS/CORS issues"""
     try:
         data = request.get_json()
-        print(f"[STORE_DIRECT] Received: {json.dumps(data, default=str)[:200]}")
         payload_data = data.get("data")
         epochs = data.get("epochs", 1)
 
         if not payload_data:
-            print("[STORE_DIRECT] ERROR: No data provided")
             return jsonify({"success": False, "error": "No data provided"}), 400
 
         # Encrypt + compress
@@ -1123,6 +1121,8 @@ def walrus_store_direct():
         cost_mist = 0
         is_new = False
         last_error = ""
+        actual_network = "unknown"
+        actual_aggregator = WALRUS_AGGREGATOR  # default mainnet
 
         for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
             try:
@@ -1139,11 +1139,15 @@ def walrus_store_direct():
                         blob_id = result["newlyCreated"]["blobObject"]["blobId"]
                         cost_mist = result["newlyCreated"].get("cost", 0)
                         is_new = True
+                        actual_network = label
+                        actual_aggregator = WALRUS_AGGREGATOR if label == "mainnet" else "https://aggregator.walrus-testnet.walrus.space"
                         print(f"[WALRUS_DIRECT] ✓ {label}: {blob_id[:20]}...")
                         break
                     elif "alreadyCertified" in result:
                         blob_id = result["alreadyCertified"]["blobId"]
                         is_new = False
+                        actual_network = label
+                        actual_aggregator = WALRUS_AGGREGATOR if label == "mainnet" else "https://aggregator.walrus-testnet.walrus.space"
                         print(f"[WALRUS_DIRECT] ✓ {label} existing: {blob_id[:20]}...")
                         break
                 else:
@@ -1166,7 +1170,8 @@ def walrus_store_direct():
             "cost_sui": cost_mist / 1000000000,
             "cost_mist": cost_mist,
             "is_new": is_new,
-            "url": f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}",
+            "url": f"{actual_aggregator}/v1/blobs/{blob_id}",  # ← correct URL
+            "network": actual_network,  # ← "mainnet" atau "testnet"
             "raw": result
         })
 

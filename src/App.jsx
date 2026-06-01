@@ -74,13 +74,18 @@ async function storeToWalrus(data, epochs = 1, onProgress) {
   }
 }
 
-async function readFromWalrus(blobId) {
+async function readFromWalrus(blobId, network = 'mainnet') {
   try {
-    const res = await fetch(`${API_BASE}/api/walrus/read/${blobId}`)
+    // Try mainnet first
+    let res = await fetch(`${API_BASE}/api/walrus/read/${blobId}`)
+    
+    // Kalau backend gagal, coba testnet langsung
+    if (!res.ok && network === 'testnet') {
+      res = await fetch(`https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`)
+    }
+    
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    if (!data.success) throw new Error(data.error || 'Read failed')
-    return data.data
+    // ... rest sama
   } catch (e) {
     console.error('[WALRUS] Read error:', e)
     return null
@@ -2270,16 +2275,24 @@ Powered by Tatum RPC + Storage API`)
               WALRUS SAVES ({walrusHistory.length})
             </div>
             {walrusHistory.slice(-3).map((item, i) => (
-              <div key={i} style={{
-                fontSize: '10px', color: '#a08060', fontFamily: 'monospace',
-                marginBottom: '4px', wordBreak: 'break-all'
-              }}>
-                <a href={item.url} target="_blank" rel="noopener" style={{ color: '#00b4d8', textDecoration: 'none' }}>
-                  {item.blob_id.slice(0, 16)}...
-                </a>
-                <span style={{ color: '#666', marginLeft: '6px' }}>({item.cost_sui?.toFixed(4)} SUI)</span>
-              </div>
-            ))}
+  <div key={i} style={{
+    fontSize: '10px', color: '#a08060', fontFamily: 'monospace',
+    marginBottom: '4px', wordBreak: 'break-all'
+  }}>
+    <a href={item.url} target="_blank" rel="noopener" style={{ color: '#00b4d8', textDecoration: 'none' }}>
+      {item.blob_id.slice(0, 16)}...
+    </a>
+    <span style={{ 
+      color: item.network === 'mainnet' ? '#2ec4b6' : '#ffb703',
+      marginLeft: '6px',
+      fontSize: '9px',
+      fontFamily: "'Rubik Mono One', sans-serif"
+    }}>
+      {item.network === 'mainnet' ? '● MAINNET' : '● TESTNET'}
+    </span>
+    <span style={{ color: '#666', marginLeft: '6px' }}>({item.cost_sui?.toFixed(4)} SUI)</span>
+  </div>
+))}
           </div>
         )}
 
