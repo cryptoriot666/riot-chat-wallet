@@ -20,6 +20,7 @@ const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f818
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
 const WALRUS_PUBLISHER = "https://publisher.walrus-mainnet.walrus.space"
 const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
+const WALRUS_AGGREGATOR_TESTNET = "https://aggregator.walrus-testnet.walrus.space"
 const WALRUS_ENCRYPTION_KEY = new TextEncoder().encode('RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA')
 
 function encryptData(data) {
@@ -1754,6 +1755,7 @@ export default function App() {
   const [autoSaveCount, setAutoSaveCount] = useState(0)
   const [memwalSaveCount, setMemwalSaveCount] = useState(0)
   const [latestBlobId, setLatestBlobId] = useState('')
+  const [latestBlobNetwork, setLatestBlobNetwork] = useState('mainnet')
   const [moveObjectId, setMoveObjectId] = useState('')
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
@@ -2087,6 +2089,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
 
     if (result.success) {
       setLatestBlobId(result.blob_id)
+      setLatestBlobNetwork(result.url?.includes('testnet') ? 'testnet' : 'mainnet')
       setWalrusSaved(true)
 
       // Add to history
@@ -2681,7 +2684,7 @@ Powered by Tatum RPC + Storage API`)
                   : `0 0 12px ${selectedAgent.color}22`,
                 fontFamily: "'Inter', sans-serif",
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'visible'
               }}>
                 {/* Agent message glitch accent bar */}
                 {msg.role === 'agent' && React.createElement('div', {
@@ -3011,10 +3014,13 @@ Powered by Tatum RPC + Storage API`)
               padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px',
               border: '2px solid rgba(255,255,255,0.06)'
             }}>
-              <div style={{ fontSize: '11px', color: '#00b4d8', marginBottom: '4px', fontFamily: "'Rubik Mono One', sans-serif" }}>Walrus Blob</div>
-              <div style={{ fontSize: '10px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                {latestBlobId}
+              <div style={{ fontSize: '11px', color: '#00b4d8', marginBottom: '4px', fontFamily: "'Rubik Mono One', sans-serif" }}>
+                Walrus Blob · <span style={{ color: latestBlobNetwork === 'testnet' ? '#ff6b35' : '#2ec4b6' }}>{latestBlobNetwork.toUpperCase()}</span>
               </div>
+              <a href={`${latestBlobNetwork === 'testnet' ? WALRUS_AGGREGATOR_TESTNET : WALRUS_AGGREGATOR}/v1/blobs/${latestBlobId}`} target="_blank" rel="noopener"
+                style={{ fontSize: '10px', color: '#00b4d8', fontFamily: 'monospace', wordBreak: 'break-all', textDecoration: 'underline' }}>
+                {latestBlobId}
+              </a>
             </div>
           )}
         </div>
