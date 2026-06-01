@@ -1,0 +1,10 @@
+const fs = require('fs');
+const c = fs.readFileSync('C:/Users/nandacamp/.openclaw/workspace/riot-chat-wallet-temp/src/App.jsx', 'utf8');
+const s = c.indexOf('widgetTab');
+const e = c.indexOf('CSS Animations', s);
+const sec = c.slice(s, e);
+const o = (sec.match(/<div[^>]*>/g) || []).length;
+const l = (sec.match(/<\/div>/g) || []).length;
+console.log('divs open:', o, 'close:', l, 'net:', o - l);
+console.log('last 400:');
+console.log(sec.slice(-400));

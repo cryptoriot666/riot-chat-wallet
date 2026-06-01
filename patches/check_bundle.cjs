@@ -1,0 +1,10 @@
+const fs = require('fs');
+const f = fs.readdirSync('C:/Users/nandacamp/.openclaw/workspace/riot-chat-wallet-temp/dist/assets/').filter(x => x.match(/index-.+\.js/))[0];
+console.log('JS:', f);
+const js = fs.readFileSync('C:/Users/nandacamp/.openclaw/workspace/riot-chat-wallet-temp/dist/assets/' + f, 'utf8');
+console.log('no tasks:', js.includes('no tasks yet'));
+console.log('SEAL SAVE:', js.includes('SEAL SAVE'));
+console.log('NO SEAL:', js.includes('NO SEAL'));
+console.log('RIOT WIDGETS:', js.includes('RIOT WIDGETS'));
+console.log('SEAL ENCR:', js.includes('SEAL ENCRYPTION'));
+console.log('KB:', (js.length / 1024).toFixed(0));
