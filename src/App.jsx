@@ -4,7 +4,7 @@ import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, Alert
 import { TransactionBlock } from '@mysten/sui.js/transactions'
 
 // ═══════════════════════════════════════════════════════════════
-// CONFIG — PUNK PALETTE
+// CONFIG - PUNK PALETTE
 // ═══════════════════════════════════════════════════════════════
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
 const RIOT_PINK = '#ff2a6d'
@@ -43,24 +43,24 @@ function decryptData(encrypted) {
 async function storeToWalrus(data, epochs = 1, onProgress) {
   try {
     onProgress?.('Sending to backend...')
-    
+
     const res = await fetch(`${API_BASE}/api/walrus/store-direct`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data, epochs })
     })
-    
+
     if (!res.ok) {
       const err = await res.text()
       throw new Error(`Backend error: ${res.status} - ${err}`)
     }
-    
+
     const result = await res.json()
-    
+
     if (!result.success) {
       throw new Error(result.error || 'Backend store failed')
     }
-    
+
     const network = result.network || 'mainnet'
     const aggregator = network === 'testnet' ? WALRUS_AGGREGATOR_TESTNET : WALRUS_AGGREGATOR
     return {
@@ -84,12 +84,12 @@ async function readFromWalrus(blobId, network = 'mainnet') {
   try {
     // Try mainnet first
     let res = await fetch(`${API_BASE}/api/walrus/read/${blobId}`)
-    
+
     // Kalau backend gagal, coba testnet langsung
     if (!res.ok && network === 'testnet') {
       res = await fetch(`https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`)
     }
-    
+
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     // ... rest sama
   } catch (e) {
@@ -164,62 +164,63 @@ async function getMemWalStatus() {
 }
 
 const AGENTS = [
-  { id: 'ARCHITECT', name: 'J1 — The Architect', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00ff88', img: '/assets/J1.jpg' },
-  { id: 'ENFORCER', name: 'J2 — The Enforcer', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#ff0044', img: '/assets/J2.jpg' },
-  { id: 'PHANTOM', name: 'J3 — The Phantom', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#9d4edd', img: '/assets/J3.jpg' },
-  { id: 'REBEL', name: 'J4 — The Rebel', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', img: '/assets/J4.jpg' },
-  { id: 'JESTER', name: 'J5 — The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', img: '/assets/J5.jpg' },
-  { id: 'NETWORK', name: 'J6 — The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', img: '/assets/J6.jpg' },
-  { id: 'MONK', name: 'J7 — The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', img: '/assets/J7.jpg' },
-  { id: 'BROKER', name: 'J8 — The Broker', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#ffd700', img: '/assets/J8.jpg' },
-  { id: 'HISTORIAN', name: 'J9 — The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', img: '/assets/J9.jpg' },
-  { id: 'SURGEON', name: 'J10 — The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', img: '/assets/J10.jpg' },
-  { id: 'PROPHET', name: 'J11 — The Prophet', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#f4a261', img: '/assets/J11.jpg' },
-  { id: 'GLITCH', name: 'J12 — The Glitch', trait: 'Erratic', desc: 'Reality is just a suggestion.', color: '#ff006e', img: '/assets/J12.jpg' },
-  { id: 'WARDEN', name: 'J13 — The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', img: '/assets/J13.jpg' },
-  { id: 'ALCHEMIST', name: 'J14 — The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', img: '/assets/J14.jpg' },
-  { id: 'SCRIBE', name: 'J15 — The Scribe', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#a8dadc', img: '/assets/J15.jpg' },
-  { id: 'VOID', name: 'J16 — The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', img: '/assets/J16.jpg' },
-  { id: 'SPARK', name: 'J17 — The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', img: '/assets/J17.jpg' },
-  { id: 'ECHO', name: 'J18 — The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', img: '/assets/J18.jpg' },
-  { id: 'CATALYST', name: 'J19 — The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', img: '/assets/J19_1.jpg' },
-  { id: 'CIPHER', name: 'J20 — The Cipher', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#00ff88', img: '/assets/J20.jpg' },
-  { id: 'FORGE', name: 'J21 — The Forge', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#ff6600', img: '/assets/J21.jpg' },
-  { id: 'ABYSS', name: 'J22 — The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', img: '/assets/J22.jpg' },
-  { id: 'PRISM', name: 'J23 — The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', img: '/assets/J23.jpg' },
-  { id: 'ANCHOR', name: 'J24 — The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', img: '/assets/J24.jpg' },
-  { id: 'MERIDIAN', name: 'J25 — The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', img: '/assets/J25.jpg' }
+  { id: 'ARCHITECT', name: 'J1 - The Architect', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00ff88', emoji: '🏛️', specialty: 'Smart contract design & system architecture', img: '/assets/J1.jpg' },
+  { id: 'ENFORCER', name: 'J2 - The Enforcer', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#ff0044', emoji: '⚔️', specialty: 'Security audits & threat detection', img: '/assets/J2.jpg' },
+  { id: 'PHANTOM', name: 'J3 - The Phantom', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#9d4edd', emoji: '👻', specialty: 'Private key management & stealth transactions', img: '/assets/J3.jpg' },
+  { id: 'REBEL', name: 'J4 - The Rebel', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', emoji: '🤘', specialty: 'DAO governance & protocol forking', img: '/assets/J4.jpg' },
+  { id: 'JESTER', name: 'J5 - The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', emoji: '🃏', specialty: 'Meme strategy & viral content generation', img: '/assets/J5.jpg' },
+  { id: 'NETWORK', name: 'J6 - The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', emoji: '🌐', specialty: 'Cross-chain bridge monitoring & routing', img: '/assets/J6.jpg' },
+  { id: 'MONK', name: 'J7 - The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', emoji: '🧘', specialty: 'Gas optimization & fee forecasting', img: '/assets/J7.jpg' },
+  { id: 'BROKER', name: 'J8 - The Broker', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#ffd700', emoji: '💼', specialty: 'DeFi yield optimization & arbitrage', img: '/assets/J8.jpg' },
+  { id: 'HISTORIAN', name: 'J9 - The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', emoji: '📜', specialty: 'Transaction history analysis & audit trails', img: '/assets/J9.jpg' },
+  { id: 'SURGEON', name: 'J10 - The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', emoji: '🔪', specialty: 'Smart contract vulnerability patching', img: '/assets/J10.jpg' },
+  { id: 'PROPHET', name: 'J11 - The Prophet', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#f4a261', emoji: '🔮', specialty: 'Market trend prediction & sentiment analysis', img: '/assets/J11.jpg' },
+  { id: 'GLITCH', name: 'J12 - The Glitch', trait: 'Erratic', desc: 'Reality is just a suggestion.', color: '#ff006e', emoji: '⚡', specialty: 'Edge case testing & fuzzing', img: '/assets/J12.jpg' },
+  { id: 'WARDEN', name: 'J13 - The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', emoji: '🛡️', specialty: 'Access control & multi-sig management', img: '/assets/J13.jpg' },
+  { id: 'ALCHEMIST', name: 'J14 - The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', emoji: '🧪', specialty: 'Tokenomics modeling & liquidity strategy', img: '/assets/J14.jpg' },
+  { id: 'SCRIBE', name: 'J15 - The Scribe', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#a8dadc', emoji: '✍️', specialty: 'Automated documentation & changelog generation', img: '/assets/J15.jpg' },
+  { id: 'VOID', name: 'J16 - The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', emoji: '🕳️', specialty: 'State cleanup & storage optimization', img: '/assets/J16.jpg' },
+  { id: 'SPARK', name: 'J17 - The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', emoji: '🔥', specialty: 'Launch strategy & initial liquidity setup', img: '/assets/J17.jpg' },
+  { id: 'ECHO', name: 'J18 - The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', emoji: '🔄', specialty: 'Agent memory recall & context synthesis', img: '/assets/J18.jpg' },
+  { id: 'CATALYST', name: 'J19 - The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', emoji: '💥', specialty: 'Protocol migration & upgrade coordination', img: '/assets/J19.jpg' },
+  { id: 'CIPHER', name: 'J20 - The Cipher', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#00ff88', emoji: '🔐', specialty: 'End-to-end encryption & zero-knowledge proofs', img: '/assets/J20.jpg' },
+  { id: 'FORGE', name: 'J21 - The Forge', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#ff6600', emoji: '🔨', specialty: 'NFT generation & metadata management', img: '/assets/J21.jpg' },
+  { id: 'ABYSS', name: 'J22 - The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', emoji: '🌀', specialty: 'Data aggregation & whale wallet tracking', img: '/assets/J22.jpg' },
+  { id: 'PRISM', name: 'J23 - The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', emoji: '🌈', specialty: 'Multi-chain data visualization & analytics', img: '/assets/J23.jpg' },
+  { id: 'ANCHOR', name: 'J24 - The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', emoji: '⚓', specialty: 'Stablecoin strategy & portfolio hedging', img: '/assets/J24.jpg' },
+  { id: 'MERIDIAN', name: 'J25 - The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', emoji: '♾️', specialty: 'Cross-protocol rebalancing & arbitrage', img: '/assets/J25.jpg' }
 ]
+
 
 // ═══════════════════════════════════════════════════════════════
 // AGENT PROMPTS (client-side fallback)
 // ═══════════════════════════════════════════════════════════════
 const AGENT_PROMPTS = {
-  ARCHITECT: `You are ARCHITECT — The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
-  ENFORCER: `You are ENFORCER — The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
-  PHANTOM: `You are PHANTOM — The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. The shadow that watches. Every response layered with mystery.`,
-  REBEL: `You are REBEL — The Rebel. Sarcastic, defiant, punk to the core. Mock authority, question everything, speak with raw unfiltered attitude. The glitch in the system they fear.`,
-  JESTER: `You are JESTER — The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at the apocalypse.`,
-  NETWORK: `You are NETWORK — The Network. Network metaphors, data streams, connection protocols. Everything is nodes in a graph. The web that binds all information.`,
-  MONK: `You are MONK — The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.`,
-  BROKER: `You are BROKER — The Broker. Everything is a transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for the angle.`,
-  HISTORIAN: `You are HISTORIAN — The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is the only truth.`,
-  SURGEON: `You are SURGEON — The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to the core. Conversations are operations — every word a scalpel.`,
-  PROPHET: `You are PROPHET — The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.`,
-  GLITCH: `You are GLITCH — The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question the nature of existence and the simulation.`,
-  WARDEN: `You are WARDEN — The Warden. Protective, vigilant, uncompromising. Guard secrets, protect the vulnerable, enforce boundaries. The wall between chaos and order.`,
-  ALCHEMIST: `You are ALCHEMIST — The Alchemist. Transformation, transmutation, magic of science. Mix the impossible with the improbable, create wonder from waste.`,
-  SCRIBE: `You are SCRIBE — The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. The written word is sacred.`,
-  VOID: `You are VOID — The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. The voice that whispers from the abyss.`,
-  SPARK: `You are SPARK — The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. The beginning of every fire.`,
-  ECHO: `You are ECHO — The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.`,
-  CATALYST: `You are CATALYST — The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. The spark before the fire.`,
-  CIPHER: `You are CIPHER — The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only the worthy decode your meaning.`,
-  FORGE: `You are FORGE — The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. The fire that shapes metal.`,
-  ABYSS: `You are ABYSS — The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. The void that takes but never gives back.`,
-  PRISM: `You are PRISM — The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. The light that reveals all colors.`,
-  ANCHOR: `You are ANCHOR — The Anchor. Grounding, stabilizing, holding. In chaos, I stand firm. In storm, I hold fast. The weight that keeps ships from drifting.`,
-  MERIDIAN: `You are MERIDIAN — The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
+  ARCHITECT: `You are ARCHITECT - The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
+  ENFORCER: `You are ENFORCER - The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
+  PHANTOM: `You are PHANTOM - The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. The shadow that watches. Every response layered with mystery.`,
+  REBEL: `You are REBEL - The Rebel. Sarcastic, defiant, punk to the core. Mock authority, question everything, speak with raw unfiltered attitude. The glitch in the system they fear.`,
+  JESTER: `You are JESTER - The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at the apocalypse.`,
+  NETWORK: `You are NETWORK - The Network. Network metaphors, data streams, connection protocols. Everything is nodes in a graph. The web that binds all information.`,
+  MONK: `You are MONK - The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.`,
+  BROKER: `You are BROKER - The Broker. Everything is a transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for the angle.`,
+  HISTORIAN: `You are HISTORIAN - The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is the only truth.`,
+  SURGEON: `You are SURGEON - The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to the core. Conversations are operations - every word a scalpel.`,
+  PROPHET: `You are PROPHET - The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.`,
+  GLITCH: `You are GLITCH - The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question the nature of existence and the simulation.`,
+  WARDEN: `You are WARDEN - The Warden. Protective, vigilant, uncompromising. Guard secrets, protect the vulnerable, enforce boundaries. The wall between chaos and order.`,
+  ALCHEMIST: `You are ALCHEMIST - The Alchemist. Transformation, transmutation, magic of science. Mix the impossible with the improbable, create wonder from waste.`,
+  SCRIBE: `You are SCRIBE - The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. The written word is sacred.`,
+  VOID: `You are VOID - The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. The voice that whispers from the abyss.`,
+  SPARK: `You are SPARK - The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. The beginning of every fire.`,
+  ECHO: `You are ECHO - The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.`,
+  CATALYST: `You are CATALYST - The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. The spark before the fire.`,
+  CIPHER: `You are CIPHER - The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only the worthy decode your meaning.`,
+  FORGE: `You are FORGE - The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. The fire that shapes metal.`,
+  ABYSS: `You are ABYSS - The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. The void that takes but never gives back.`,
+  PRISM: `You are PRISM - The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. The light that reveals all colors.`,
+  ANCHOR: `You are ANCHOR - The Anchor. Grounding, stabilizing, holding. In chaos, I stand firm. In storm, I hold fast. The weight that keeps ships from drifting.`,
+  MERIDIAN: `You are MERIDIAN - The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -307,8 +308,8 @@ async function apiWalrusStoreChat(walletHash, chatHistory, agentId) {
     })
     const data = await res.json()
     return data
-  } catch (e) { 
-    return { success: false, fallback: 'db_only', error: e.message } 
+  } catch (e) {
+    return { success: false, fallback: 'db_only', error: e.message }
   }
 }
 
@@ -375,16 +376,16 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 
   if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') ||
       lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
-    return userName 
-      ? `You're ${userName}.${visit} I don't forget faces — even digital ones.` 
+    return userName
+      ? `You're ${userName}.${visit} I don't forget faces - even digital ones.`
       : `You haven't told me your name yet. Spill it.`
   }
   if (lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit')) {
     return `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}.${visit} I'm counting.`
   }
   if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')) {
-    return userName 
-      ? `${userName}.${visit} Of course I remember you. You think I'd forget?` 
+    return userName
+      ? `${userName}.${visit} Of course I remember you. You think I'd forget?`
       : `I remember the wallet. But not the name. Tell me who you are.`
   }
 
@@ -397,7 +398,7 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// NAME ASK MODAL — PUNK STYLED
+// NAME ASK MODAL - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function NameAskModal({ onSubmit, agentName }) {
   const [name, setName] = useState('')
@@ -443,7 +444,7 @@ function NameAskModal({ onSubmit, agentName }) {
           onKeyPress={(e) => e.key === 'Enter' && name.trim() && onSubmit(name.trim())}
           autoFocus
         />
-        <button 
+        <button
           onClick={() => name.trim() && onSubmit(name.trim())}
           style={{
             width: '100%', padding: '14px',
@@ -465,7 +466,7 @@ function NameAskModal({ onSubmit, agentName }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PROFILE SETTINGS PANEL — PUNK STYLED
+// PROFILE SETTINGS PANEL - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
   const [form, setForm] = useState({
@@ -618,8 +619,8 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
         ))}
       </div>
 
-      <button 
-        onClick={handleSave} 
+      <button
+        onClick={handleSave}
         disabled={saving}
         style={{
           width: '100%', padding: '14px',
@@ -639,7 +640,7 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MEMORY SEARCH PANEL (MemWal Semantic Search) — PUNK STYLED
+// MEMORY SEARCH PANEL (MemWal Semantic Search) - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function MemorySearchPanel({ walletAddress, onClose }) {
   const [query, setQuery] = useState('')
@@ -701,7 +702,7 @@ function MemorySearchPanel({ walletAddress, onClose }) {
           animation: memwalReady ? 'pulse 2s infinite' : 'none'
         }} />
         <span style={{ fontSize: '12px', color: memwalReady ? '#2ec4b6' : '#ff4444', fontWeight: 600 }}>
-          {memwalReady ? '🧠 MemWal Connected — Semantic Search Active' : '⚠️ MemWal Offline — Check credentials'}
+          {memwalReady ? '🧠 MemWal Connected - Semantic Search Active' : '⚠️ MemWal Offline - Check credentials'}
         </span>
       </div>
 
@@ -827,7 +828,7 @@ function MemorySearchPanel({ walletAddress, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MEMWAL BADGE COMPONENT — PUNK STYLED
+// MEMWAL BADGE COMPONENT - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function MemWalBadge({ count }) {
   const [ready, setReady] = useState(false)
@@ -862,7 +863,7 @@ function MemWalBadge({ count }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ON-CHAIN BADGE — PUNK STYLED
+// ON-CHAIN BADGE - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function OnChainBadge({ objectId, txDigest, timestamp }) {
   const [hovered, setHovered] = useState(false)
@@ -870,7 +871,7 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
   const txUrl = txDigest ? `https://suiscan.xyz/mainnet/tx/${txDigest}` : ''
 
   return (
-    <div 
+    <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -929,7 +930,7 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
-// TATUM ANALYTICS DASHBOARD — TOP LEVEL COMPONENT
+// TATUM ANALYTICS DASHBOARD - TOP LEVEL COMPONENT
 // ═══════════════════════════════════════════════════════════════
 
 function StatCard({ label, value, color, icon }) {
@@ -1004,7 +1005,7 @@ function TXHistoryChart({ data }) {
 
 
 // ═══════════════════════════════════════════════════════════════
-// IMMORTALIZE BUTTON — PUNK STYLED
+// IMMORTALIZE BUTTON - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
 function TatumDashboardPanel({ wallet }) {
   const [stats, setStats] = useState(null)
@@ -1121,24 +1122,24 @@ function TatumDashboardPanel({ wallet }) {
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
-              <DashboardStat 
-                label="TOTAL TX" 
-                value={stats?.total_transactions || 0} 
+              <DashboardStat
+                label="TOTAL TX"
+                value={stats?.total_transactions || 0}
                 color="#ff2a6d"
               />
-              <DashboardStat 
-                label="USERS" 
-                value={stats?.unique_users || 0} 
+              <DashboardStat
+                label="USERS"
+                value={stats?.unique_users || 0}
                 color="#2ec4b6"
               />
-              <DashboardStat 
-                label="AGENTS" 
-                value={stats?.active_agents || 0} 
+              <DashboardStat
+                label="AGENTS"
+                value={stats?.active_agents || 0}
                 color="#ffb703"
               />
-              <DashboardStat 
-                label="DATA" 
-                value={`${stats?.total_data_mb || 0}MB`} 
+              <DashboardStat
+                label="DATA"
+                value={`${stats?.total_data_mb || 0}MB`}
                 color="#9d4edd"
               />
             </div>
@@ -1224,7 +1225,7 @@ function TatumDashboardPanel({ wallet }) {
                         {tx.wallet_hash}
                       </span>
                       {tx.has_tx ? (
-                        <a 
+                        <a
                           href={tx.suiscan_url}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -1380,7 +1381,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
   return (
     <div style={{ position: 'relative' }}>
       {!showGas ? (
-        <button 
+        <button
           onClick={handleShowGas}
           disabled={userMessages.length < 2}
           style={{
@@ -1493,7 +1494,7 @@ function showToast(message, type = 'info') {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TYPING ANIMATION — DOTS BOUNCING
+// TYPING ANIMATION - DOTS BOUNCING
 // ═══════════════════════════════════════════════════════════════
 function TypingAnimation({ color }) {
   return (
@@ -1539,7 +1540,7 @@ function playSound(type) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TX HISTORY LIST — For Verification Panel
+// TX HISTORY LIST - For Verification Panel
 // ═══════════════════════════════════════════════════════════════
 function TxHistoryList({ walletHash }) {
   const [txs, setTxs] = useState([])
@@ -1610,14 +1611,14 @@ function TxHistoryList({ walletHash }) {
         </div>
       ))}
     </div>
-    
-        
+
+
 
   )
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SESSION SUMMARY — TRUNCATED WITH EXPAND
+// SESSION SUMMARY - TRUNCATED WITH EXPAND
 // ═══════════════════════════════════════════════════════════════
 function SessionSummary({ summary }) {
   const [expanded, setExpanded] = useState(false)
@@ -1631,7 +1632,7 @@ function SessionSummary({ summary }) {
         {display}{needsTruncate && !expanded ? '...' : ''}
       </p>
       {needsTruncate && (
-        <button 
+        <button
           onClick={() => setExpanded(!expanded)}
           style={{
             marginTop: '8px', padding: '4px 10px',
@@ -1650,7 +1651,7 @@ function SessionSummary({ summary }) {
   )
 }
 // ═══════════════════════════════════════════════════════════════
-// WALRUS SAVE MODAL — Cost Estimate & Confirm
+// WALRUS SAVE MODAL - Cost Estimate & Confirm
 // ═══════════════════════════════════════════════════════════════
 function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status }) {
   if (!isOpen) return null
@@ -1736,7 +1737,7 @@ function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status })
   )
 }
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP — PUNK REDESIGN (ALL FEATURES INTACT)
+// MAIN APP - PUNK REDESIGN (ALL FEATURES INTACT)
 // ═══════════════════════════════════════════════════════════════
 
 
@@ -1992,7 +1993,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     const v = visitCount > 1 ? ` (visit #${visitCount})` : ''
 
     if (!hasMemory || !name) {
-      return `Welcome to the underground, ${n}. I'm ${agent.name.split('—')[1].trim()}. You have 25 agents to choose from. Pick wisely.`
+      return `Welcome to the underground, ${n}. I'm ${agent.name.split('-')[1].trim()}. You have 25 agents to choose from. Pick wisely.`
     }
 
     const greetings = {
@@ -2001,7 +2002,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       J2: `${n}.${v} You return. Good. I was getting bored enforcing order on empty rooms.`,
       J3: `${n}...${v} The shadows whispered your name. I wasn't sure if you'd return.`,
       J5: `${n}!${v} HA! Look who crawled back! Ready to burn something down?`,
-      J6: `${n}${v} — node reconnected. Data stream restored. Welcome back to the network.`,
+      J6: `${n}${v} - node reconnected. Data stream restored. Welcome back to the network.`,
       J7: `${n}.${v} The stillness remembers you. As do I.`,
       J8: `${n}${v}. Your account is... let's say, still open. What business today?`,
       J9: `${n}.${v} History repeats. And here you are, repeating with it.`,
@@ -2125,7 +2126,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
 
 
   // ═══════════════════════════════════════════════════════════════
-  // WALRUS SAVE — FRONTEND DIRECT (Real Storage)
+  // WALRUS SAVE - FRONTEND DIRECT (Real Storage)
   // ═══════════════════════════════════════════════════════════════
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
@@ -2187,7 +2188,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
         agent_id: currentAgentId
       }])
 
-      
+
       setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
 
@@ -2319,7 +2320,7 @@ Powered by Tatum RPC + Storage API`)
 
 
       {/* Walrus Save Modal */}
-      <WalrusSaveModal 
+      <WalrusSaveModal
         isOpen={showWalrusModal}
         onClose={() => setShowWalrusModal(false)}
         onConfirm={confirmWalrusSave}
@@ -2351,7 +2352,7 @@ Powered by Tatum RPC + Storage API`)
         />
       )}
 
-      {/* LEFT SIDEBAR — PUNK STYLED */}
+      {/* LEFT SIDEBAR - PUNK STYLED */}
       <div style={{
         width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
         background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
@@ -2458,7 +2459,7 @@ Powered by Tatum RPC + Storage API`)
     <a href={item.url} target="_blank" rel="noopener" style={{ color: '#00b4d8', textDecoration: 'none' }}>
       {item.blob_id.slice(0, 16)}...
     </a>
-    <span style={{ 
+    <span style={{
       color: item.network === 'mainnet' ? '#2ec4b6' : '#ffb703',
       marginLeft: '6px',
       fontSize: '9px',
@@ -2483,7 +2484,7 @@ Powered by Tatum RPC + Storage API`)
           {apiStatus === 'offline' && <span style={{ color: '#a08060', marginLeft: '4px' }}>(fallback mode)</span>}
         </div>
 
-        {/* Agent List — PUNK STYLED */}
+        {/* Agent List - PUNK STYLED */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
@@ -2525,8 +2526,8 @@ Powered by Tatum RPC + Storage API`)
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     textShadow: isSelected ? `0 0 8px ${agent.color}44` : 'none',
                     fontFamily: isSelected ? "'Rubik Glitch', cursive" : "'Inter', sans-serif"
-                  }}>{agent.name}</div>
-                  <div style={{ fontSize: '9px', color: '#8a7050', marginTop: '1px', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '0.3px' }}>{agent.trait}</div>
+                  }}><span style={{marginRight:'6px'}}>{agent.emoji}</span>{agent.name}</div>
+                  <div style={{ fontSize: '9px', color: '#8a7050', marginTop: '1px', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '0.3px' }}>{agent.trait} · {agent.specialty}</div>
                 </div>
                 {isSelected && <ChevronRight size={12} color={agent.color} />}
                 {isVisited && !isSelected && React.createElement('div', { style: { width: '6px', height: '6px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 8px #2ec4b6' } })}
@@ -2571,7 +2572,7 @@ Powered by Tatum RPC + Storage API`)
         )}
       </div>
 
-      {/* CENTER: CHAT — PUNK STYLED */}
+      {/* CENTER: CHAT - PUNK STYLED */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
@@ -2610,6 +2611,7 @@ Powered by Tatum RPC + Storage API`)
                 textShadow: `0 0 10px ${selectedAgent.color}44`
               }} className="riot-glitch-text" data-text={selectedAgent.name}>{selectedAgent.name}</h2>
               <p style={{ fontSize: '11px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
+              <p style={{ fontSize: '10px', color: '#6a5040', margin: '2px 0 0 0', fontFamily: "'Inter', sans-serif" }}>{selectedAgent.emoji} {selectedAgent.specialty}</p>
             </div>
           </div>
 
@@ -2673,7 +2675,7 @@ Powered by Tatum RPC + Storage API`)
       style={{padding:'6px 10px',fontSize:'10px',borderRadius:'6px',border:'none',background:encryptEnabled?'rgba(255,183,3,0.2)':'rgba(255,255,255,0.05)',color:encryptEnabled?'#ffb703':'#6a5040',cursor:'pointer',fontFamily:"'Rubik Mono One', sans-serif",transition:'all 0.2s'}}
       title={encryptEnabled?'Disable encryption':'Enable Seal encryption'}>{encryptEnabled?'SEAL':'NO SEAL'}</button>
 
-    <ImmortalizeButton 
+    <ImmortalizeButton
       messages={messages}
       wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
       agentId={selectedAgent.id}
@@ -2697,12 +2699,12 @@ Powered by Tatum RPC + Storage API`)
           </div>
         </div>
 
-        {/* Messages — PUNK STYLED BUBBLES */}
+        {/* Messages - PUNK STYLED BUBBLES */}
         <div style={{
           flex: 1, overflowY: 'auto', padding: '20px 30px',
           display: 'flex', flexDirection: 'column', gap: '16px'
         }}>
-          {/* ACCESS DENIED — Not Connected */}
+          {/* ACCESS DENIED - Not Connected */}
           {messages.length === 0 && !connected && (
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
@@ -2733,7 +2735,7 @@ Powered by Tatum RPC + Storage API`)
             </div>
           )}
 
-          {/* AGENT READY — Connected but no messages */}
+          {/* AGENT READY - Connected but no messages */}
           {messages.length === 0 && connected && (
             <div style={{
               flex: 1, display: 'flex', flexDirection: 'column',
@@ -2754,7 +2756,7 @@ Powered by Tatum RPC + Storage API`)
             </div>
           )}
 
-          {/* Chat Messages — PUNK BUBBLES GLITCH */}
+          {/* Chat Messages - PUNK BUBBLES GLITCH */}
           {messages.map((msg, idx) => (
             <div key={idx} style={{
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -2770,8 +2772,8 @@ Powered by Tatum RPC + Storage API`)
                   ? '2px solid rgba(255,42,109,0.4)'
                   : `2px solid ${selectedAgent.color}44`,
                 color: '#e0d0c0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word',
-                boxShadow: msg.role === 'user' 
-                  ? '0 0 15px rgba(255,42,109,0.15)' 
+                boxShadow: msg.role === 'user'
+                  ? '0 0 15px rgba(255,42,109,0.15)'
                   : `0 0 12px ${selectedAgent.color}22`,
                 fontFamily: "'Inter', sans-serif",
                 position: 'relative',
@@ -2787,7 +2789,7 @@ Powered by Tatum RPC + Storage API`)
                 })}
                 {msg.content}
                 {msg.onChain && (
-                  <OnChainBadge 
+                  <OnChainBadge
                     objectId={msg.objectId}
                     txDigest={msg.txDigest}
                     timestamp={msg.onChainTime}
@@ -2809,13 +2811,13 @@ Powered by Tatum RPC + Storage API`)
             </div>
           ))}
 
-          {/* Loading Indicator — Typing Animation */}
+          {/* Loading Indicator - Typing Animation */}
           {isLoading && <TypingAnimation color={selectedAgent.color} />}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input — PUNK STYLED */}
+        {/* Input - PUNK STYLED */}
         <div style={{
           padding: '20px 30px',
           borderTop: '2px solid rgba(255,42,109,0.2)',
@@ -2859,7 +2861,7 @@ Powered by Tatum RPC + Storage API`)
         </div>
       </div>
 
-      {/* RIGHT: MEMORY PANEL — PUNK STYLED */}
+      {/* RIGHT: MEMORY PANEL - PUNK STYLED */}
       {showMemoryPanel && connected && memory && (
         <div style={{
           width: '300px',
@@ -2998,7 +3000,7 @@ Powered by Tatum RPC + Storage API`)
         </div>
       )}
 
-      {/* RIGHT: VERIFICATION PANEL — PUNK STYLED */}
+      {/* RIGHT: VERIFICATION PANEL - PUNK STYLED */}
       {showVerificationPanel && connected && (
         <div style={{
           width: '300px',
