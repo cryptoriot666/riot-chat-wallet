@@ -2942,49 +2942,61 @@ Powered by Tatum RPC + Storage API`)
               display: 'flex', alignItems: 'center', gap: '8px',
               textShadow: '0 0 10px rgba(46,196,182,0.4)'
             }}>
-              <Shield size={16} /> VERIFICATION
+              <Shield size={16} /> RIOT WIDGETS
             </h3>
-            <div style={{display: 'flex', gap: '4px'}}>
-              <button 
-                onClick={() => setVerifyTab('tx')}
-                style={{
-                  padding: '4px 10px', fontSize: '10px', borderRadius: '4px', border: 'none',
-                  cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
-                  background: verifyTab === 'tx' ? 'rgba(46,196,182,0.3)' : 'rgba(255,255,255,0.05)',
-                  color: verifyTab === 'tx' ? '#2ec4b6' : '#a08060'
-                }}
-              >TX HISTORY</button>
-              <button 
-                onClick={() => setVerifyTab('tatum')}
-                style={{
-                  padding: '4px 10px', fontSize: '10px', borderRadius: '4px', border: 'none',
-                  cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
-                  background: verifyTab === 'tatum' ? 'rgba(255,183,3,0.3)' : 'rgba(255,255,255,0.05)',
-                  color: verifyTab === 'tatum' ? '#ffb703' : '#a08060'
-                }}
-              >TATUM</button>
-            </div>
+            <WidgetTabs tab={widgetTab} setTab={setWidgetTab} />
           </div>
 
-          {verifyTab === 'tx' && (
-            <div style={{ marginBottom: '20px' }}>
+          {widgetTab === 'tasks' && (
+            <div>
               <h4 style={{
                 fontSize: '12px', color: '#a08060', margin: '0 0 12px 0',
                 textTransform: 'uppercase', letterSpacing: '2px',
                 fontFamily: "'Rubik Mono One', sans-serif"
               }}>
-                <Clock size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                TX HISTORY
+                TASK TRACKER
               </h4>
-              <TxHistoryList walletHash={walletHash} />
+              <TaskTracker tasks={tasks} setTasks={setTasks} agents={AGENTS} onSave={() => {}} />
             </div>
           )}
 
-          {verifyTab === 'tatum' && (
-            <div style={{ marginBottom: '20px' }}>
-              <TatumDashboardPanel wallet={{address: account?.address}} />
+          {widgetTab === 'draft' && (
+            <div>
+              <h4 style={{
+                fontSize: '12px', color: '#a08060', margin: '0 0 12px 0',
+                textTransform: 'uppercase', letterSpacing: '2px',
+                fontFamily: "'Rubik Mono One', sans-serif"
+              }}>
+                DRAFT WRITER
+              </h4>
+              <DraftWriter
+                draftText={draftText} setDraftText={setDraftText}
+                onSaveDraft={() => { showToast('Draft saved', 'info') }}
+                onSendToAgent={() => {
+                  if (!draftText.trim()) return
+                  setMessages(prev => [...prev, { role: 'user', content: draftText, agent_id: selectedAgent.id, id: Date.now() }])
+                  setDraftText('')
+                }}
+              />
             </div>
           )}
+
+          {widgetTab === 'verify' && (
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{
+                  fontSize: '12px', color: '#a08060', margin: '0 0 12px 0',
+                  textTransform: 'uppercase', letterSpacing: '2px',
+                  fontFamily: "'Rubik Mono One', sans-serif"
+                }}>
+                  <Clock size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                  TX HISTORY
+                </h4>
+                <TxHistoryList walletHash={walletHash} />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <TatumDashboardPanel wallet={{address: account?.address}} />
+              </div>
 
           <div style={{
             padding: '15px', background: 'rgba(46,196,182,0.05)', borderRadius: '10px',
@@ -3043,6 +3055,8 @@ Powered by Tatum RPC + Storage API`)
               </a>
             </div>
           )}
+          </div>
+        )}
         </div>
       )}
 
