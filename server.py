@@ -634,7 +634,9 @@ def save_memory(wallet_hash, data):
         "version": "2.0"
     }
 
-    blob_id = walrus_store(walrus_payload)
+    walrus_result = walrus_store(walrus_payload)
+    blob_id = walrus_result.get('blob_id') if isinstance(walrus_result, dict) else walrus_result
+    blob_network = walrus_result.get('network', 'mainnet') if isinstance(walrus_result, dict) else 'mainnet'
 
     conn = get_db_conn()
     c = conn.cursor()
@@ -669,13 +671,14 @@ def save_memory(wallet_hash, data):
     finally:
         conn.close()
 
-    print(f"[SAVE_MEMORY] {wallet_hash}: blob_id={blob_id}, source=WALRUS_PRIMARY")
-    return {"success": True, "blob_id": blob_id}
+    print(f"[SAVE_MEMORY] {wallet_hash}: blob_id={blob_id}, network={blob_network}, source=WALRUS_PRIMARY")
+    return {"success": True, "blob_id": blob_id, "blob_network": blob_network}
 
 # ═══════════════════════════════════════════════════════════════
 # WALRUS STORAGE — MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
+    """Returns dict {"blob_id": str, "network": "mainnet"|"testnet"} or None"""
     import traceback
     import time
     
@@ -729,7 +732,7 @@ def walrus_store(data):
                     
                     if current_status == "CERTIFIED":
                         print(f"[WALRUS] ✓ Tatum CERTIFIED: {blob_id}")
-                        return blob_id
+                        return {"blob_id": blob_id, "network": "mainnet"}
                     elif current_status == "FAILED":
                         error_msg = status.get("errorMessage", "Unknown error")
                         print(f"[WALRUS] ✗ Tatum FAILED: {error_msg}")
@@ -775,11 +778,11 @@ def walrus_store_direct_fallback(data):
                     if "newlyCreated" in result:
                         blob_id = result["newlyCreated"]["blobObject"]["blobId"]
                         print(f"[WALRUS] ✓ Fallback {label}: {blob_id[:20]}...")
-                        return blob_id
+                        return {"blob_id": blob_id, "network": label}
                     elif "alreadyCertified" in result:
                         blob_id = result["alreadyCertified"]["blobId"]
                         print(f"[WALRUS] ✓ Fallback {label} existing: {blob_id[:20]}...")
-                        return blob_id
+                        return {"blob_id": blob_id, "network": label}
                         
             except Exception as e:
                 print(f"[WALRUS] Fallback {label} error: {e}")

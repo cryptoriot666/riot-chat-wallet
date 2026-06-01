@@ -61,13 +61,16 @@ async function storeToWalrus(data, epochs = 1, onProgress) {
       throw new Error(result.error || 'Backend store failed')
     }
     
+    const network = result.network || 'mainnet'
+    const aggregator = network === 'testnet' ? WALRUS_AGGREGATOR_TESTNET : WALRUS_AGGREGATOR
     return {
       success: true,
       blob_id: result.blob_id,
       cost_sui: result.cost_sui || 0,
       cost_mist: result.cost_mist || 0,
       is_new: result.is_new || true,
-      url: `${WALRUS_AGGREGATOR}/v1/blobs/${result.blob_id}`,
+      network: network,
+      url: `${aggregator}/v1/blobs/${result.blob_id}`,
       verified: true,
       raw: result.raw
     }
@@ -2089,7 +2092,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
 
     if (result.success) {
       setLatestBlobId(result.blob_id)
-      setLatestBlobNetwork(result.url?.includes('testnet') ? 'testnet' : 'mainnet')
+      setLatestBlobNetwork(result.network || 'mainnet')
       setWalrusSaved(true)
 
       // Add to history
@@ -2121,6 +2124,7 @@ Powered by Tatum RPC + Storage API`)
       const fallback = await apiWalrusStoreChat(walletHash, messages, currentAgentId)
       if (fallback?.success) {
         setLatestBlobId(fallback.blob_id)
+        setLatestBlobNetwork(fallback.network || 'mainnet')
         showToast('Saved to database (Walrus fallback)', 'info')
       } else {
         showToast(`Save failed: ${result.error}`, 'error')
@@ -2590,6 +2594,7 @@ Powered by Tatum RPC + Storage API`)
       onImmortalized={(data) => {
         setMoveObjectId(data.object_id)
         setLatestBlobId(data.blob_id)
+        setLatestBlobNetwork(data.blob_url?.includes('testnet') ? 'testnet' : 'mainnet')
         setOnChainMessages(prev => [...prev, ...messages.filter(m => !m.onChain).map(m => m.content)])
         setMessages(prev => prev.map(m => ({
           ...m,
