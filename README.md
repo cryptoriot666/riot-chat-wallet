@@ -263,7 +263,7 @@ curl -X POST https://riot-chat-wallet.onrender.com/api/memory/save \
   -H "Content-Type: application/json" \
   -d '{
     "wallet_hash": "a1b2c3d4",
-    "user_name": "Nanda",
+    "user_name": "John",
     "summary": "Discussed Bitcoin price action",
     "visited_agents": ["J4", "J10"],
     "last_agent": "J4"
@@ -277,7 +277,7 @@ curl -X POST https://riot-chat-wallet.onrender.com/api/chat \
   -d '{
     "agent_id": "J4",
     "messages": [{"role": "user", "content": "What is my name?"}],
-    "user_name": "Nanda",
+    "user_name": "John",
     "wallet_hash": "a1b2c3d4"
   }'
 ```
