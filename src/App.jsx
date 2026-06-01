@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
+import { TaskTracker, DraftWriter, WidgetTabs, EncryptModal } from './widgets.jsx'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG — PUNK PALETTE
@@ -1767,6 +1768,20 @@ export default function App() {
   const [walrusCost, setWalrusCost] = useState(0)
   const [walrusProgress, setWalrusProgress] = useState(false)
   const [walrusStatus, setWalrusStatus] = useState('')
+  const handleEncryptEnable = () => {
+    if (encryptPassword.length < 4) { showToast('Password must be at least 4 chars', 'error'); return }
+    setEncryptEnabled(true)
+    setShowEncryptModal(false)
+    if (pendingEncryptConfirm) {
+      setPendingEncryptConfirm(false)
+      setShowWalrusModal(true)
+    }
+  }
+  const handleEncryptDisable = () => {
+    setEncryptEnabled(false)
+    setEncryptPassword('')
+    showToast('Encryption disabled', 'info')
+  }
   const [walrusHistory, setWalrusHistory] = useState([])
   const [verifyTab, setVerifyTab] = useState('tx')
   const [sidebarOpen, setSidebarOpen] = useState(true)
