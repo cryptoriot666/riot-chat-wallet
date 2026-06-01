@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+const fs = require('fs');
+
+const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -272,4 +274,7 @@ for (let i = 0; i < 50; i++) {
 </script>
 
 </body>
-</html>
+</html>`;
+
+fs.writeFileSync('C:/Users/nandacamp/.openclaw/workspace/riot-chat-wallet-temp/index.html', html);
+console.log('Landing page written! Size:', html.length);
