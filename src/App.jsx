@@ -13,6 +13,8 @@ const RIOT_WARM = '#1a1209'
 const RIOT_DARK = '#0d0a07'
 const RIOT_GOLD = '#ffb703'
 const RIOT_GREEN = '#2ec4b6'
+const RIOT_NEON = '#00ffff'
+const RIOT_PURPLE = '#9d4edd'
 const AUTO_SAVE_INTERVAL = 5
 const PACKAGE_ID = '0x1674e28b68c5928f60f39d5f0e3b20a1dcc22f57dea8a5a8a186c3f81816f474'
 const SUI_EXPLORER = 'https://suiscan.xyz/mainnet'
@@ -1379,19 +1381,25 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
           disabled={userMessages.length < 2}
           style={{
             background: 'linear-gradient(135deg, #ff2a6d 0%, #ff6b35 100%)',
-            color: '#fff', border: 'none', padding: '8px 16px',
-            borderRadius: '6px', fontWeight: 700, fontSize: '11px',
+            color: '#fff', border: '2px solid rgba(255,42,109,0.5)', padding: '10px 20px',
+            borderRadius: '6px', fontWeight: 800, fontSize: '12px',
             cursor: userMessages.length < 2 ? 'not-allowed' : 'pointer',
-            textTransform: 'uppercase', letterSpacing: '1px',
-            opacity: userMessages.length < 2 ? 0.5 : 1,
-            display: 'flex', alignItems: 'center', gap: '6px',
+            textTransform: 'uppercase', letterSpacing: '2px',
+            opacity: userMessages.length < 2 ? 0.4 : 1,
+            display: 'flex', alignItems: 'center', gap: '8px',
             fontFamily: "'Rubik Mono One', sans-serif",
-            boxShadow: userMessages.length >= 2 ? '0 0 15px rgba(255,42,109,0.4)' : 'none',
-            transition: 'all 0.3s'
+            boxShadow: userMessages.length >= 2 ? '0 0 20px rgba(255,42,109,0.5), 0 0 40px rgba(255,42,109,0.2), inset 0 0 20px rgba(255,42,109,0.1)' : 'none',
+            transition: 'all 0.3s',
+            animation: userMessages.length >= 2 ? 'riot-neon-breathe 2s ease-in-out infinite' : 'none',
+            position: 'relative',
+            overflow: 'hidden'
           }}
+          onMouseEnter={e => { e.target.style.boxShadow = '0 0 30px rgba(255,42,109,0.7), 0 0 60px rgba(255,42,109,0.3), inset 0 0 20px rgba(255,42,109,0.15)'; e.target.style.transform = 'scale(1.05)' }}
+          onMouseLeave={e => { e.target.style.boxShadow = userMessages.length >= 2 ? '0 0 20px rgba(255,42,109,0.5), 0 0 40px rgba(255,42,109,0.2), inset 0 0 20px rgba(255,42,109,0.1)' : 'none'; e.target.style.transform = 'scale(1)' }}
         >
-          <Flame size={12} />
-          ⚡ IMMORTALIZE ({userMessages.length})
+          <span style={{ fontSize: '14px' }}>⚡</span>
+          <span className="riot-glitch-text" data-text="IMMORTALIZE">IMMORTALIZE</span>
+          <span style={{ fontSize: '10px', opacity: 0.7 }}>({userMessages.length})</span>
         </button>
       ) : (
         <div style={{
@@ -2125,23 +2133,87 @@ Powered by Tatum RPC + Storage API`)
   return (
     <div style={{
       width: '100vw', height: '100vh', background: RIOT_DARK,
+      backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,42,109,0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(0,255,255,0.03) 0%, transparent 50%), radial-gradient(circle at 50% 10%, rgba(157,78,221,0.02) 0%, transparent 50%)',
       display: 'flex', fontFamily: "'Inter', sans-serif", overflow: 'hidden',
       position: 'relative'
     }}>
-      {/* Tatum x Walrus Powered Badge */}
-      <div style={{
-        position: 'fixed', top: '4px', left: '50%', transform: 'translateX(-50%)',
-        zIndex: 9999, pointerEvents: 'none'
-      }}>
-        <span style={{
-          fontSize: '9px',
-          color: 'rgba(255,255,255,0.15)',
-          fontFamily: "'JetBrains Mono', monospace",
-          letterSpacing: '1px'
-        }}>
-          SUI MAINNET · TATUM RPC · WALRUS STORAGE
-        </span>
+      {/* Scan line overlay */}
+      <div className="riot-scan-line" />
+      {/* Background particles */}
+      <div className="riot-bg-particles">
+        {Array.from({ length: 50 }, (_, i) => (
+          <div key={'p' + i} className="riot-particle" style={{
+            left: Math.random() * 100 + '%',
+            top: Math.random() * 100 + '%',
+            '--c': ['#ff2a6d','#00ffff','#ffb703','#9d4edd','#2ec4b6'][Math.floor(Math.random() * 5)],
+            '--dx': (Math.random() * 60 - 30) + 'px',
+            '--dy': (Math.random() * 60 - 30) + 'px',
+            '--d': (2 + Math.random() * 3) + 's',
+            '--dl': (Math.random() * 5) + 's'
+          }} />
+        ))}
       </div>
+      <style>{`
+    @keyframes riot-glitch {
+      0% { clip-path: inset(0 0 95% 0); transform: translate(-2px, 1px); }
+      10% { clip-path: inset(10% 0 80% 0); transform: translate(2px, -1px); }
+      20% { clip-path: inset(40% 0 30% 0); transform: translate(-1px, 2px); }
+      30% { clip-path: inset(80% 0 5% 0); transform: translate(1px, -2px); }
+      40% { clip-path: inset(20% 0 60% 0); transform: translate(-2px, 0); }
+      50% { clip-path: inset(0 0 100% 0); transform: translate(2px, 1px); }
+      60% { clip-path: inset(50% 0 30% 0); transform: translate(-1px, -1px); }
+      70% { clip-path: inset(10% 0 70% 0); transform: translate(1px, 2px); }
+      80% { clip-path: inset(60% 0 20% 0); transform: translate(-2px, 0); }
+      90% { clip-path: inset(30% 0 50% 0); transform: translate(2px, -1px); }
+      100% { clip-path: inset(0 0 95% 0); transform: translate(-2px, 1px); }
+    }
+    @keyframes riot-neon-breathe {
+      0%, 100% { opacity: 0.6; box-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
+      50% { opacity: 1; box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor; }
+    }
+    @keyframes riot-stripes {
+      0% { background-position: 0 0; }
+      100% { background-position: 40px 0; }
+    }
+    @keyframes riot-scan {
+      0% { top: -10%; }
+      100% { top: 110%; }
+    }
+    @keyframes riot-particle-fade {
+      0% { opacity: 0; transform: translate(0, 0) scale(0); }
+      50% { opacity: 0.8; transform: translate(var(--dx), var(--dy)) scale(1); }
+      100% { opacity: 0; transform: translate(calc(var(--dx)*2), calc(var(--dy)*2)) scale(0.3); }
+    }
+    @keyframes riot-typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    .riot-bg-particles { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; overflow: hidden; }
+    .riot-particle { position: absolute; width: 2px; height: 2px; background: var(--c); border-radius: 50%; animation: riot-particle-fade var(--d) ease-out infinite; animation-delay: var(--dl); }
+    .riot-scan-line { position: fixed; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, transparent, rgba(255,42,109,0.3), transparent); animation: riot-scan 4s linear infinite; pointer-events: none; z-index: 9998; }
+    .riot-glitch-text { position: relative; display: inline-block; }
+    .riot-glitch-text::before, .riot-glitch-text::after {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: transparent;
+      pointer-events: none;
+    }
+    .riot-glitch-text::before {
+      animation: riot-glitch 3s infinite linear alternate-reverse;
+      color: #ff2a6d;
+      z-index: -1;
+    }
+    .riot-glitch-text::after {
+      animation: riot-glitch 2.7s infinite linear alternate-reverse;
+      animation-delay: 0.3s;
+      color: #00ffff;
+      z-index: -2;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ff2a6d; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #ff6b35; }
+  `}</style>
 
       {/* Mobile Sidebar Toggle */}
       {isMobile && (
@@ -2329,30 +2401,46 @@ Powered by Tatum RPC + Storage API`)
             const isVisited = visitedAgents.has(agent.id)
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '10px', marginBottom: '6px', borderRadius: '10px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '8px 10px', marginBottom: '4px', borderRadius: '10px',
                 cursor: 'pointer',
-                background: isSelected ? `${agent.color}15` : 'transparent',
+                background: isSelected ? `${agent.color}18` : 'transparent',
                 border: isSelected ? `2px solid ${agent.color}66` : '2px solid transparent',
                 transition: 'all 0.2s',
-                boxShadow: isSelected ? `0 0 15px ${agent.color}22` : 'none'
-              }}>
-                <img src={agent.img} alt={agent.id} style={{
-                  width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover',
-                  border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
-                  boxShadow: isSelected ? `0 0 12px ${agent.color}55` : 'none'
-                }} onError={(e) => { e.target.style.display = 'none' }} />
+                boxShadow: isSelected ? `0 0 20px ${agent.color}33, inset 0 0 10px ${agent.color}11` : 'none',
+                transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+              }}
+              onMouseEnter={e => { if (!isSelected) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = agent.color + '33'; } }}
+              onMouseLeave={e => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; } }}
+              >
+                <div style={{ position: 'relative' }}>
+                  <img src={agent.img} alt={agent.id} style={{
+                    width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover',
+                    border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
+                    boxShadow: isSelected ? `0 0 12px ${agent.color}55` : 'none'
+                  }} onError={(e) => { e.target.style.display = 'none' }} />
+                  <div style={{
+                    position: 'absolute', bottom: '-3px', right: '-3px',
+                    width: '16px', height: '16px', borderRadius: '50%',
+                    background: agent.color,
+                    border: '2px solid #0d0a07',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '6px', fontWeight: 800, color: '#000',
+                    fontFamily: "'Rubik Mono One', sans-serif"
+                  }}>{agent.id.slice(1)}</div>
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: '13px', fontWeight: 600,
+                    fontSize: '12px', fontWeight: 700,
                     color: isSelected ? '#fff' : '#c0a080',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    textShadow: isSelected ? `0 0 8px ${agent.color}44` : 'none'
+                    textShadow: isSelected ? `0 0 8px ${agent.color}44` : 'none',
+                    fontFamily: isSelected ? "'Rubik Glitch', cursive" : "'Inter', sans-serif"
                   }}>{agent.name}</div>
-                  <div style={{ fontSize: '10px', color: '#a08060', marginTop: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>{agent.trait}</div>
+                  <div style={{ fontSize: '9px', color: '#8a7050', marginTop: '1px', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '0.3px' }}>{agent.trait}</div>
                 </div>
-                {isSelected && <ChevronRight size={14} color={agent.color} />}
-                {isVisited && !isSelected && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 6px #2ec4b6' }} />}
+                {isSelected && <ChevronRight size={12} color={agent.color} />}
+                {isVisited && !isSelected && React.createElement('div', { style: { width: '6px', height: '6px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 8px #2ec4b6' } })}
               </div>
             )
           })}
@@ -2409,18 +2497,30 @@ Powered by Tatum RPC + Storage API`)
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <img src={selectedAgent.img} alt={selectedAgent.id} style={{
-              width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
-              border: `2px solid ${selectedAgent.color}88`,
-              boxShadow: `0 0 20px ${selectedAgent.color}44`
-            }} onError={(e) => { e.target.style.display = 'none' }} />
+            <div style={{ position: 'relative' }}>
+              <img src={selectedAgent.img} alt={selectedAgent.id} style={{
+                width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
+                border: `2px solid ${selectedAgent.color}88`,
+                boxShadow: `0 0 20px ${selectedAgent.color}44`
+              }} onError={(e) => { e.target.style.display = 'none' }} />
+              <div style={{
+                position: 'absolute', bottom: '-4px', right: '-4px',
+                width: '20px', height: '20px', borderRadius: '50%',
+                background: selectedAgent.color,
+                border: `2px solid ${RIOT_DARK}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '8px', fontWeight: 800, color: '#000',
+                fontFamily: "'Rubik Mono One', sans-serif",
+                boxShadow: `0 0 10px ${selectedAgent.color}`
+              }}>{selectedAgent.id.slice(1)}</div>
+            </div>
             <div>
               <h2 style={{
                 fontSize: '18px', fontWeight: 700, color: '#fff',
                 margin: 0, fontFamily: "'Rubik Glitch', cursive",
                 textShadow: `0 0 10px ${selectedAgent.color}44`
-              }}>{selectedAgent.name}</h2>
-              <p style={{ fontSize: '12px', color: '#a08060', margin: '4px 0 0 0' }}>{selectedAgent.desc}</p>
+              }} className="riot-glitch-text" data-text={selectedAgent.name}>{selectedAgent.name}</h2>
+              <p style={{ fontSize: '11px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
             </div>
           </div>
 
@@ -2517,22 +2617,24 @@ Powered by Tatum RPC + Storage API`)
               <Lock size={48} color="#3a3020" />
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{
-                  fontSize: '22px', color: '#a08060', margin: '0 0 10px 0',
+                  fontSize: '28px', color: '#a08060', margin: '0 0 10px 0',
                   fontFamily: "'Rubik Glitch', cursive",
                   textShadow: '0 0 10px rgba(255,42,109,0.3)'
-                }}>ACCESS DENIED</h3>
-                <p style={{ fontSize: '14px', color: '#8a7050', maxWidth: '400px' }}>
+                }} className="riot-glitch-text" data-text="ACCESS DENIED">ACCESS DENIED</h3>
+                <p style={{ fontSize: '14px', color: '#8a7050', maxWidth: '400px', fontFamily: "'Inter', sans-serif" }}>
+                  <span style={{ color: RIOT_PINK }}>// WALLET REQUIRED</span><br />
                   Connect your Sui wallet to access the punk agents.<br />
-                  Your memory will be stored on Walrus.
+                  Your memory will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span>.
                 </p>
               </div>
               <ConnectButton style={{
                 padding: '12px 30px', fontSize: '14px',
                 background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-                border: 'none', color: '#fff', borderRadius: '8px',
+                border: '2px solid rgba(255,42,109,0.5)', color: '#fff', borderRadius: '8px',
                 cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
                 fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px',
-                boxShadow: '0 0 20px rgba(255,42,109,0.4)'
+                boxShadow: '0 0 20px rgba(255,42,109,0.4)',
+                animation: 'riot-neon-breathe 2s ease-in-out infinite'
               }}>UNLOCK ACCESS</ConnectButton>
             </div>
           )}
@@ -2558,7 +2660,7 @@ Powered by Tatum RPC + Storage API`)
             </div>
           )}
 
-          {/* Chat Messages — PUNK BUBBLES */}
+          {/* Chat Messages — PUNK BUBBLES GLITCH */}
           {messages.map((msg, idx) => (
             <div key={idx} style={{
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -2569,16 +2671,27 @@ Powered by Tatum RPC + Storage API`)
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background: msg.role === 'user'
                   ? 'linear-gradient(135deg, rgba(255,42,109,0.2), rgba(255,107,53,0.1))'
-                  : 'rgba(255,255,255,0.04)',
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
                 border: msg.role === 'user'
                   ? '2px solid rgba(255,42,109,0.4)'
-                  : `2px solid ${selectedAgent.color}33`,
+                  : `2px solid ${selectedAgent.color}44`,
                 color: '#e0d0c0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word',
                 boxShadow: msg.role === 'user' 
                   ? '0 0 15px rgba(255,42,109,0.15)' 
-                  : `0 0 15px ${selectedAgent.color}11`,
-                fontFamily: "'Inter', sans-serif"
-              }}>{msg.content}
+                  : `0 0 12px ${selectedAgent.color}22`,
+                fontFamily: "'Inter', sans-serif",
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Agent message glitch accent bar */}
+                {msg.role === 'agent' && React.createElement('div', {
+                  style: {
+                    position: 'absolute', left: 0, top: 0, width: '3px', height: '100%',
+                    background: `linear-gradient(180deg, ${selectedAgent.color}, transparent)`,
+                    opacity: 0.6
+                  }
+                })}
+                {msg.content}
                 {msg.onChain && (
                   <OnChainBadge 
                     objectId={msg.objectId}
@@ -2596,7 +2709,7 @@ Powered by Tatum RPC + Storage API`)
                 <Clock size={10} />
                 {new Date(msg.timestamp).toLocaleTimeString()}
                 {msg.role === 'agent' && (
-                  <span style={{ color: selectedAgent.color, marginLeft: '4px' }}>{msg.agent}</span>
+                  <span style={{ color: selectedAgent.color, marginLeft: '4px', textShadow: `0 0 5px ${selectedAgent.color}66` }}>{msg.agent}</span>
                 )}
               </div>
             </div>
