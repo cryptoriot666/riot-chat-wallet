@@ -2128,6 +2128,21 @@ Powered by Tatum RPC + Storage API`)
       display: 'flex', fontFamily: "'Inter', sans-serif", overflow: 'hidden',
       position: 'relative'
     }}>
+      {/* Tatum x Walrus Powered Badge */}
+      <div style={{
+        position: 'fixed', top: '4px', left: '50%', transform: 'translateX(-50%)',
+        zIndex: 9999, pointerEvents: 'none'
+      }}>
+        <span style={{
+          fontSize: '9px',
+          color: 'rgba(255,255,255,0.15)',
+          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '1px'
+        }}>
+          SUI MAINNET · TATUM RPC · WALRUS STORAGE
+        </span>
+      </div>
+
       {/* Mobile Sidebar Toggle */}
       {isMobile && (
         <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
@@ -2891,32 +2906,6 @@ Powered by Tatum RPC + Storage API`)
           )}
         </div>
       )}
-
-      {/* Tatum Footer Badge */}
-      <div style={{
-        textAlign: 'center',
-        padding: '12px 16px',
-        borderTop: '1px solid rgba(255,42,109,0.1)',
-        marginTop: '8px'
-      }}>
-        <span style={{
-          fontSize: '9px',
-          color: '#555',
-          fontFamily: 'JetBrains Mono, monospace',
-          letterSpacing: '1px'
-        }}>
-          🔗 SUI MAINNET via{' '}
-          <a href="https://tatum.io" target="_blank" rel="noopener"
-             style={{ color: '#00b4d8', textDecoration: 'none' }}>
-            TATUM RPC
-          </a>
-          {' '}| 🗄️ STORAGE ON{' '}
-          <a href="https://walrus.xyz" target="_blank" rel="noopener"
-             style={{ color: '#ff6b35', textDecoration: 'none' }}>
-            WALRUS
-          </a>
-        </span>
-      </div>
 
       {/* CSS Animations + Toast Animations */}
       <style>{`
