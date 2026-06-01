@@ -4,6 +4,7 @@
 
 [![Sui Overflow 2026](https://img.shields.io/badge/Sui%20Overflow-2026-ff2a6d?style=for-the-badge&logo=sui&logoColor=white)](https://suioverflow.com)
 [![Walrus Track](https://img.shields.io/badge/Walrus%20Track-Core-ff6b35?style=for-the-badge)]()
+[![Tatum Hackathon](https://img.shields.io/badge/Tatum%20x%20Walrus-Hackathon-00b4d8?style=for-the-badge&logo=tatum&logoColor=white)](https://tatum.io/tatum-x-walrus-hackathon)
 [![Sui Mainnet](https://img.shields.io/badge/Sui%20Mainnet-Live-2ec4b6?style=for-the-badge&logo=sui&logoColor=white)]()
 [![Vercel](https://img.shields.io/badge/Vercel-Live-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://riot-chat-wallet.vercel.app)
 
@@ -352,13 +353,25 @@ RIOT Chat Wallet leverages Tatum's infrastructure for reliable blockchain operat
 
 ---
 
-## 🏆 Sui Overflow 2026 Submission
+## 🏆 Hackathon Submissions
 
-### Track
-🏷️ **Walrus Track (Core)** — Decentralized storage for agent memory
+### Sui Overflow 2026
 
-### Prize Target
-🥇 **$35,000** — 1st Place Walrus Track
+**Track**: 🏷️ **Walrus Track (Core)** — Decentralized storage for agent memory
+**Prize Target**: 🥇 **$35,000** — 1st Place Walrus Track
+
+### Tatum x Walrus Hackathon
+
+**Challenge**: Build on Sui with Walrus using Tatum's enterprise-grade RPC
+**Award**: 🏆 Best Walrus Integration ($200) + Top 5 placement targeting
+
+**Tatum Integration Highlights:**
+- **RPC**: Sui Mainnet via `https://sui-mainnet.gateway.tatum.io`
+- **Storage API**: Walrus blob uploads through Tatum with async certification
+- **Dashboard**: Live Tatum analytics panel in-app (tx history, live feed, wallet stats)
+- **Wallet Stats**: Real-time balance & portfolio tracking via Tatum RPC
+
+
 
 ### What Judges Experience
 1. **Connect wallet** → instant agent greeting with your name
