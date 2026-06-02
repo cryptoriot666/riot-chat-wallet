@@ -1000,7 +1000,6 @@ def walrus_load_chat(wallet_hash):
 
 @app.route("/api/walrus/save", methods=["POST"])
 def walrus_save():
-def walrus_save():
     data = request.json
     wallet_hash = data.get("wallet_hash")
     tx_digest = data.get("tx_digest")
