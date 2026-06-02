@@ -579,6 +579,28 @@ def load_memory(wallet_hash):
         walrus_data = walrus_read(blob_id)
         if walrus_data:
             print(f"[LOAD_MEMORY] Loaded from Walrus: {blob_id}")
+            # Inject blob_history from saved DB (or seed from latest)
+            walrus_data["blob_history"] = []
+            try:
+                conn2 = get_db_conn()
+                c2 = conn2.cursor()
+                if USE_SQLITE:
+                    c2.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+                else:
+                    c2.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+                bh_row2 = c2.fetchone()
+                if bh_row2 and bh_row2[0]:
+                    walrus_data["blob_history"] = json.loads(bh_row2[0])
+                conn2.close()
+            except Exception:
+                pass
+            if not walrus_data["blob_history"] and blob_id:
+                walrus_data["blob_history"] = [{
+                    "blob_id": blob_id,
+                    "agent_id": walrus_data.get("last_agent", ""),
+                    "timestamp": walrus_data.get("last_visit", datetime.now().isoformat()),
+                    "network": "mainnet"
+                }]
             return walrus_data
 
     # Fallback to DB cache
