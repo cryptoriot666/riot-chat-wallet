@@ -592,6 +592,7 @@ def load_memory(wallet_hash):
         "last_agent": row[4] if row else "",
         "last_visit": row[5] if row else "",
         "latest_blob_id": row[6] if row and len(row) > 6 else "",
+        "blob_history": json.loads(row[7]) if row and len(row) > 7 and row[7] else [],
         "visit_count": 1,
         "user_name": ""
     }
@@ -644,17 +645,45 @@ def save_memory(wallet_hash, data):
     try:
         now = datetime.now().isoformat()
         visited = json.dumps(data.get("visited_agents", []))
+        
+        # Load existing blob_history or start new
+        existing_blob_history = "[]"
+        try:
+            if USE_SQLITE:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+            else:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+            row = c.fetchone()
+            if row and row[0]:
+                existing_blob_history = row[0]
+        except Exception:
+            existing_blob_history = "[]"
+        
+        blob_history = json.loads(existing_blob_history)
+        if blob_id:
+            new_entry = {
+                "blob_id": blob_id,
+                "agent_id": data.get("last_agent", ""),
+                "timestamp": datetime.now().isoformat(),
+                "network": blob_network
+            }
+            blob_history.append(new_entry)
+            # Keep last 100 entries max
+            if len(blob_history) > 100:
+                blob_history = blob_history[-100:]
+        blob_history_json = json.dumps(blob_history)
+        
         if USE_SQLITE:
             c.execute("""
                 INSERT OR REPLACE INTO memories
-                (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", now, now))
+                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json, now, now))
         else:
             c.execute("""
-                INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 ON CONFLICT (wallet_hash) DO UPDATE SET
                     wallet_address = EXCLUDED.wallet_address,
                     summary = EXCLUDED.summary,
@@ -662,9 +691,10 @@ def save_memory(wallet_hash, data):
                     last_agent = EXCLUDED.last_agent,
                     last_visit = EXCLUDED.last_visit,
                     latest_blob_id = EXCLUDED.latest_blob_id,
+                    blob_history = EXCLUDED.blob_history,
                     updated_at = CURRENT_TIMESTAMP
             """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or ""))
+                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json))
         conn.commit()
     except Exception as e:
         print(f"[SAVE_MEMORY] DB error: {e}")

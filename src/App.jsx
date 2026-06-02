@@ -1956,6 +1956,15 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setMemory(data)
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
       if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
+      // Load blob_history from backend into walrusHistory
+      if (data.blob_history && data.blob_history.length > 0) {
+        setWalrusHistory(data.blob_history.map(b => ({
+          blob_id: b.blob_id,
+          agent_id: b.agent_id,
+          timestamp: new Date(b.timestamp).getTime(),
+          url: `https://aggregator.walrus-mainnet.walrus.space/v1/${b.blob_id}`
+        })))
+      }
 
       const profileData = await apiGetProfile(walletHash)
       if (profileData?.success && profileData.exists) {
@@ -2489,7 +2498,7 @@ Powered by Tatum RPC + Storage API`)
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
-            const isVisited = visitedAgents.has(agent.id)
+            const isVisited = visitedAgents.has(agent.id) || walrusHistory.some(h => h.agent_id === agent.id)
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -2631,7 +2640,7 @@ Powered by Tatum RPC + Storage API`)
                 <Database size={12} color="#2ec4b6" />
                 <span style={{ color: '#2ec4b6' }}>Memory: {memory.visit_count || 1} sessions</span>
                 <span style={{ color: '#a08060' }}>|</span>
-                <span style={{ color: '#c0a080' }}>Agents: {visitedAgents.size}/25</span>
+                <span style={{ color: '#c0a080' }}>Agents: {new Set([...visitedAgents, ...walrusHistory.map(h => h.agent_id).filter(Boolean)]).size}/25</span>
                 {memory.user_name && (
                   <>
                     <span style={{ color: '#a08060' }}>|</span>
@@ -2940,7 +2949,7 @@ Powered by Tatum RPC + Storage API`)
               fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
               textTransform: 'uppercase', letterSpacing: '2px',
               fontFamily: "'Rubik Mono One', sans-serif"
-            }}>Visited Agents ({visitedAgents.size}/25)</h4>
+            }}>Visited Agents ({new Set([...visitedAgents, ...walrusHistory.map(h => h.agent_id).filter(Boolean)]).size}/25)</h4>
             {selectedMemoryAgent ? (
               // Agent detail view
               <div>
@@ -3009,7 +3018,7 @@ Powered by Tatum RPC + Storage API`)
             ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
-                const visited = visitedAgents.has(agent.id)
+                const visited = visitedAgents.has(agent.id) || walrusHistory.some(h => h.agent_id === agent.id)
                 return (
                   <div key={agent.id} onClick={() => { if (visited) setSelectedMemoryAgent(agent.id) }}
                     style={{
