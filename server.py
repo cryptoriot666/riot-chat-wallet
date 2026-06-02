@@ -709,31 +709,40 @@ def health_check():
 
 
 def save_memory(wallet_hash, data):
-    """Save memory to Walrus + DB cache"""
-    messages = data.get("messages", [])
-    extracted_name = extract_name_from_messages(messages)
+    """Save memory to Walrus + DB cache (defensive)"""
+    if not data:
+        data = {}
+    if not wallet_hash:
+        return {"success": False, "blob_id": "", "summary": "", "visited_agents": [], "cost_sui": 0, "source": "error", "error": "no wallet_hash"}
 
-    if extracted_name and extracted_name.strip():
-        update_profile_name(wallet_hash, extracted_name)
-    elif data.get("user_name") and data["user_name"].strip():
-        update_profile_name(wallet_hash, data["user_name"])
+    messages = data.get("messages") or []
+    visited_agents = data.get("visited_agents") or []
+
+    try:
+        extracted_name = extract_name_from_messages(messages)
+        if extracted_name and extracted_name.strip():
+            update_profile_name(wallet_hash, extracted_name)
+        elif data.get("user_name") and str(data["user_name"]).strip():
+            update_profile_name(wallet_hash, data["user_name"])
+    except Exception as e:
+        print(f"[SAVE_MEMORY] Profile update failed (non-fatal): {e}")
 
     # Store to Walrus via direct publisher call
+    blob_id = ""
+    blob_network = "mainnet"
     walrus_payload = {
         "wallet_hash": wallet_hash,
-        "wallet_address": data.get("wallet_address", ""),
-        "summary": data.get("summary", ""),
-        "visited_agents": data.get("visited_agents", []),
-        "last_agent": data.get("last_agent", ""),
-        "last_visit": data.get("last_visit", datetime.now().isoformat()),
-        "user_name": data.get("user_name", ""),
-        "messages": messages[-20:] if messages else [],
+        "wallet_address": str(data.get("wallet_address", "")),
+        "summary": str(data.get("summary", "")),
+        "visited_agents": list(visited_agents) if visited_agents else [],
+        "last_agent": str(data.get("last_agent", "")),
+        "last_visit": datetime.now().isoformat(),
+        "user_name": str(data.get("user_name", "")),
+        "messages": (messages[-20:] if messages else []),
         "timestamp": datetime.now().isoformat(),
         "version": "2.0"
     }
 
-    blob_id = ""
-    blob_network = "mainnet"
     try:
         print(f"[SAVE_MEMORY] Storing to Walrus for {wallet_hash}...")
         resp = requests.post("https://publisher.walrus-testnet.com/v1/store?epochs=5",
@@ -750,15 +759,15 @@ def save_memory(wallet_hash, data):
             print(f"[SAVE_MEMORY] Walrus HTTP {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         print(f"[SAVE_MEMORY] Walrus store failed: {e}")
-        # Continue anyway - save to DB without blob_id
 
-    conn = get_db_conn()
-    c = conn.cursor()
+    # DB save
+    conn = None
     try:
+        conn = get_db_conn()
+        c = conn.cursor()
         now = datetime.now().isoformat()
-        visited = json.dumps(data.get("visited_agents", []))
+        visited_json = json.dumps(list(visited_agents) if visited_agents else [])
 
-        # Load existing blob_history or start new
         existing_blob_history = "[]"
         try:
             if USE_SQLITE:
@@ -771,11 +780,15 @@ def save_memory(wallet_hash, data):
         except Exception:
             existing_blob_history = "[]"
 
-        blob_history = json.loads(existing_blob_history)
+        try:
+            blob_history = json.loads(existing_blob_history) if isinstance(existing_blob_history, str) else []
+        except:
+            blob_history = []
+
         if blob_id:
             new_entry = {
                 "blob_id": blob_id,
-                "agent_id": data.get("last_agent", ""),
+                "agent_id": str(data.get("last_agent", "")),
                 "timestamp": datetime.now().isoformat(),
                 "network": blob_network
             }
@@ -789,8 +802,8 @@ def save_memory(wallet_hash, data):
                 INSERT OR REPLACE INTO memories
                 (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json, now, now))
+            """, (wallet_hash, str(data.get("wallet_address", "")), str(data.get("summary", "")), visited_json,
+                  str(data.get("last_agent", "")), str(data.get("last_visit", now)), blob_id or "", blob_history_json, now, now))
         else:
             c.execute("""
                 INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
@@ -804,26 +817,34 @@ def save_memory(wallet_hash, data):
                     latest_blob_id = EXCLUDED.latest_blob_id,
                     blob_history = EXCLUDED.blob_history,
                     updated_at = CURRENT_TIMESTAMP
-            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json))
+            """, (wallet_hash, str(data.get("wallet_address", "")), str(data.get("summary", "")), visited_json,
+                  str(data.get("last_agent", "")), str(data.get("last_visit", now)), blob_id or "", blob_history_json))
         conn.commit()
+        print(f"[SAVE_MEMORY] DB updated for {wallet_hash}, blob={blob_id}")
     except Exception as e:
         print(f"[SAVE_MEMORY] DB error: {e}")
-        conn.rollback()
-        # If blob_id exists, Walrus save succeeded even if DB fails
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
+            finally:
+                conn.close()
         if blob_id:
-            conn.close()
-            return {"success": True, "blob_id": blob_id, "summary": "", "visited_agents": data.get("visited_agents", []), "cost_sui": 0, "source": "walrus_only"}
-        conn.close()
+            return {"success": True, "blob_id": blob_id, "summary": "", "visited_agents": list(visited_agents), "cost_sui": 0, "source": "walrus_only"}
         return {"success": False, "blob_id": "", "summary": "", "visited_agents": [], "cost_sui": 0, "source": "error", "error": str(e)}
     finally:
-        conn.close()
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
     return {
         "success": True,
         "blob_id": blob_id,
-        "summary": data.get("summary", ""),
-        "visited_agents": data.get("visited_agents", []),
+        "summary": str(data.get("summary", "")),
+        "visited_agents": list(visited_agents),
         "cost_sui": 0,
         "source": "walrus_db"
     }
