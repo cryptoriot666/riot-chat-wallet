@@ -699,6 +699,121 @@ def load_memory_route(wallet_hash):
 def health_check():
     return jsonify({"status": "ok", "time": datetime.now().isoformat(), "walrus": "mainnet"})
 
+
+def save_memory(wallet_hash, data):
+    """Save memory to Walrus + DB cache"""
+    messages = data.get("messages", [])
+    extracted_name = extract_name_from_messages(messages)
+
+    if extracted_name and extracted_name.strip():
+        update_profile_name(wallet_hash, extracted_name)
+    elif data.get("user_name") and data["user_name"].strip():
+        update_profile_name(wallet_hash, data["user_name"])
+
+    # Store to Walrus via direct publisher call
+    walrus_payload = {
+        "wallet_hash": wallet_hash,
+        "wallet_address": data.get("wallet_address", ""),
+        "summary": data.get("summary", ""),
+        "visited_agents": data.get("visited_agents", []),
+        "last_agent": data.get("last_agent", ""),
+        "last_visit": data.get("last_visit", datetime.now().isoformat()),
+        "user_name": data.get("user_name", ""),
+        "messages": messages[-20:] if messages else [],
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0"
+    }
+
+    blob_id = ""
+    blob_network = "mainnet"
+    try:
+        resp = requests.post("https://publisher.walrus-testnet.com/v1/store?epochs=5",
+                             json=walrus_payload, timeout=30)
+        if resp.status_code == 200:
+            result = resp.json()
+            if "newlyCreated" in result:
+                blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+            elif "alreadyCertified" in result:
+                blob_id = result["alreadyCertified"]["blobId"]
+    except Exception as e:
+        print(f"[SAVE_MEMORY] Walrus store failed: {e}")
+
+    conn = get_db_conn()
+    c = conn.cursor()
+    try:
+        now = datetime.now().isoformat()
+        visited = json.dumps(data.get("visited_agents", []))
+
+        # Load existing blob_history or start new
+        existing_blob_history = "[]"
+        try:
+            if USE_SQLITE:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+            else:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+            row = c.fetchone()
+            if row and row[0]:
+                existing_blob_history = row[0]
+        except Exception:
+            existing_blob_history = "[]"
+
+        blob_history = json.loads(existing_blob_history)
+        if blob_id:
+            new_entry = {
+                "blob_id": blob_id,
+                "agent_id": data.get("last_agent", ""),
+                "timestamp": datetime.now().isoformat(),
+                "network": blob_network
+            }
+            blob_history.append(new_entry)
+            if len(blob_history) > 100:
+                blob_history = blob_history[-100:]
+        blob_history_json = json.dumps(blob_history)
+
+        if USE_SQLITE:
+            c.execute("""
+                INSERT OR REPLACE INTO memories
+                (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
+                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json, now, now))
+        else:
+            c.execute("""
+                INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT (wallet_hash) DO UPDATE SET
+                    wallet_address = EXCLUDED.wallet_address,
+                    summary = EXCLUDED.summary,
+                    visited_agents = EXCLUDED.visited_agents,
+                    last_agent = EXCLUDED.last_agent,
+                    last_visit = EXCLUDED.last_visit,
+                    latest_blob_id = EXCLUDED.latest_blob_id,
+                    blob_history = EXCLUDED.blob_history,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
+                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json))
+        conn.commit()
+    except Exception as e:
+        print(f"[SAVE_MEMORY] DB error: {e}")
+        conn.rollback()
+        # If blob_id exists, Walrus save succeeded even if DB fails
+        if blob_id:
+            conn.close()
+            return {"success": True, "blob_id": blob_id, "summary": "", "visited_agents": data.get("visited_agents", []), "cost_sui": 0, "source": "walrus_only"}
+        conn.close()
+        return {"success": False, "blob_id": "", "summary": "", "visited_agents": [], "cost_sui": 0, "source": "error", "error": str(e)}
+    finally:
+        conn.close()
+
+    return {
+        "success": True,
+        "blob_id": blob_id,
+        "summary": data.get("summary", ""),
+        "visited_agents": data.get("visited_agents", []),
+        "cost_sui": 0,
+        "source": "walrus_db"
+    }
+
 @app.route("/api/memory/save", methods=["POST"])
 def save_memory_route():
     data = request.json
