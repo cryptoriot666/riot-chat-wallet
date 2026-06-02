@@ -184,6 +184,23 @@ def init_db():
     conn.close()
     print("[INIT] Database initialized")
 
+def migrate_db():
+    """Add blob_history column if missing (safe to run repeatedly)"""
+    conn = get_db_conn()
+    c = conn.cursor()
+    try:
+        if USE_SQLITE:
+            c.execute("ALTER TABLE memories ADD COLUMN blob_history TEXT DEFAULT '[]'")
+        else:
+            c.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS blob_history TEXT DEFAULT '[]'")
+        conn.commit()
+        print("[MIGRATE] Added blob_history column")
+    except Exception as e:
+        print(f"[MIGRATE] Column already exists or error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
 # ═══════════════════════════════════════════════════════════════
 # ENCRYPTION
 # ═══════════════════════════════════════════════════════════════
@@ -1848,5 +1865,6 @@ def get_recent_transactions(hours=24):
 
 if __name__ == "__main__":
     init_db()
+    migrate_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
