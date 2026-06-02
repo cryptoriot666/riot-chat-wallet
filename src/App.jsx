@@ -119,7 +119,7 @@ async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {})
     });
     if (!res.ok) return null;
     const result = await res.json();
-    console.log("[MemWal] Saved via API:", result.blob_id?.slice(0, 16));
+    console.log("[MemWal] Saved via API:", result.blob_id?.slice(0, 16) || result.success === false ? "failed" : "unknown");
     return result;
   } catch (err) {
     console.error("[MemWal] Save failed:", err.message);
@@ -2202,7 +2202,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
 
 
       setSaveStatus('Saved to Walrus!')
-      showToast(`💾 Walrus: ${result.blob_id.slice(0, 16)}... (${result.cost_sui?.toFixed(6)} SUI)`, 'success')
+      showToast(`💾 Walrus: ${result?.blob_id?.slice(0, 16) || 'unknown'}... (${result?.cost_sui?.toFixed(6) || '0'} SUI)`, 'success')
 
       alert(`🎆 Chat saved to Walrus via Tatum!
 

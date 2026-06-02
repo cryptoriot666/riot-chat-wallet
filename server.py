@@ -568,20 +568,35 @@ def load_memory(wallet_hash):
     conn = get_db_conn()
     c = conn.cursor()
     try:
+        sql_cols = "wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id"
         if USE_SQLITE:
-            c.execute("SELECT * FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+            c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = ?", (wallet_hash,))
             row = c.fetchone()
+            # Try blob_history column (may not exist yet)
+            try:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+                bh_row = c.fetchone()
+                blob_history_raw = bh_row[0] if bh_row else "[]"
+            except Exception:
+                blob_history_raw = "[]"
             c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
             profile_row = c.fetchone()
         else:
-            c.execute("SELECT * FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+            c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = %s", (wallet_hash,))
             row = c.fetchone()
+            try:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+                bh_row = c.fetchone()
+                blob_history_raw = bh_row[0] if bh_row else "[]"
+            except Exception:
+                blob_history_raw = "[]"
             c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
             profile_row = c.fetchone()
     except Exception as e:
         print(f"[LOAD_MEMORY] DB error: {e}")
         row = None
         profile_row = None
+        blob_history_raw = "[]"
     finally:
         conn.close()
 
@@ -592,7 +607,7 @@ def load_memory(wallet_hash):
         "last_agent": row[4] if row else "",
         "last_visit": row[5] if row else "",
         "latest_blob_id": row[6] if row and len(row) > 6 else "",
-        "blob_history": json.loads(row[7]) if row and len(row) > 7 and row[7] else [],
+        "blob_history": json.loads(blob_history_raw) if isinstance(blob_history_raw, str) else [],
         "visit_count": 1,
         "user_name": ""
     }
