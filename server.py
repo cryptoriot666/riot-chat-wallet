@@ -731,7 +731,10 @@ def save_memory_route():
         "visited_agents": result.get("visited_agents", []),
         "cost_sui": result.get("cost_sui", 0),
         "source": result.get("source", "unknown")
-    })def load_memory_route(wallet_hash):
+    })
+
+@app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
+def load_memory_route(wallet_hash):
     print(f"[API] Load: {wallet_hash}")
     profile = get_or_create_profile(wallet_hash)
     memory = load_memory(wallet_hash)
