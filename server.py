@@ -1118,11 +1118,25 @@ def memwal_save():
                 "message": "MemWal job submitted"
             })
 
-        # Fallback: save to local Walrus
-        fallback_blob = walrus_store(data)
+        # Fallback: save to local Walrus directly
+        fallback_blob = None
+        try:
+            blob_data = {
+                "wallet_hash": data.get("wallet_address", ""),
+                "messages": data.get("messages", []),
+                "agent_id": data.get("agent_id", ""),
+                "timestamp": data.get("timestamp", datetime.now().isoformat())
+            }
+            r = requests.post("https://publisher.walrus-testnet.com/v1/store?epochs=5", json=blob_data, timeout=15)
+            if r.status_code == 200:
+                blob_info = r.json()
+                fallback_blob = blob_info.get("newlyCreated", {}).get("blobObject", {}).get("blobId", 
+                    blob_info.get("alreadyCertified", {}).get("blobId", ""))
+        except Exception as e2:
+            print(f"[MEMWAL_SAVE] Fallback error: {e2}")
         return jsonify({
             "success": fallback_blob is not None,
-            "blob_id": fallback_blob,
+            "blob_id": fallback_blob or "",
             "source": "walrus_fallback",
             "memwal_error": "Relayer failed, used fallback"
         })
