@@ -579,6 +579,9 @@ def load_memory(wallet_hash):
         walrus_data = walrus_read(blob_id)
         if walrus_data:
             print(f"[LOAD_MEMORY] Loaded from Walrus: {blob_id}")
+            print(f"[LOAD_MEMORY] Walrus data keys: {list(walrus_data.keys())}")
+            print(f"[LOAD_MEMORY] visited_agents from Walrus: {walrus_data.get('visited_agents')}")
+            print(f"[LOAD_MEMORY] last_agent: {walrus_data.get('last_agent')}")
             # Inject blob_history from saved DB (or seed from latest)
             walrus_data["blob_history"] = []
             try:
