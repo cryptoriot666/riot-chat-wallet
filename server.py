@@ -559,10 +559,10 @@ def get_profile_settings(wallet_hash):
 # MEMORY MANAGEMENT
 # ═══════════════════════════════════════════════════════════════
 def load_memory(wallet_hash):
-    """Load memory - DB first (has blob_history), seed from Walrus if needed"""
+    """Load memory - Walrus source of truth, DB cache fallback"""
     print(f"[LOAD_MEMORY] Loading: {wallet_hash}")
-    
-    # Step 1: Build from DB cache
+
+    # Step 1: Try DB cache (fast path)
     conn = get_db_conn()
     c = conn.cursor()
     try:
@@ -570,108 +570,139 @@ def load_memory(wallet_hash):
         if USE_SQLITE:
             c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = ?", (wallet_hash,))
             row = c.fetchone()
-            try:
-                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
-                bh_row = c.fetchone()
-                blob_history_raw = bh_row[0] if bh_row else "[]"
-            except Exception:
-                blob_history_raw = "[]"
-            c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
-            profile_row = c.fetchone()
         else:
             c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = %s", (wallet_hash,))
             row = c.fetchone()
-            try:
-                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
-                bh_row = c.fetchone()
-                blob_history_raw = bh_row[0] if bh_row else "[]"
-            except Exception:
-                blob_history_raw = "[]"
-            c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
-            profile_row = c.fetchone()
-    except Exception as e:
-        print(f"[LOAD_MEMORY] DB error: {e}")
+        db_has_data = row is not None
+    except:
         row = None
-        profile_row = None
-        blob_history_raw = "[]"
-    finally:
-        conn.close()
-    
+        db_has_data = False
+
+    # Step 2: Try load from Walrus (all known blobs for this wallet)
+    all_blob_ids = []
+    try:
+        if USE_SQLITE:
+            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 50", (wallet_hash,))
+        else:
+            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 50", (wallet_hash,))
+        all_blob_ids = [r[0] for r in c.fetchall() if r[0]]
+    except:
+        pass
+    # Also include latest_blob_id from memories table
+    if row and len(row) > 6 and row[6]:
+        if row[6] not in all_blob_ids:
+            all_blob_ids.append(row[6])
+    # Try latest_blob_id as direct column
+    try:
+        if USE_SQLITE:
+            c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = ? AND latest_blob_id != ''", (wallet_hash,))
+        else:
+            c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = %s AND latest_blob_id != ''", (wallet_hash,))
+        extra = c.fetchone()
+        if extra and extra[0] and extra[0] not in all_blob_ids:
+            all_blob_ids.append(extra[0])
+    except:
+        pass
+
+    conn.close()
+
+    # Step 3: Build memory from Walrus blobs
     memory = {
         "wallet_hash": wallet_hash,
-        "summary": row[2] if row else "",
-        "visited_agents": json.loads(row[3]) if row and row[3] else [],
-        "last_agent": row[4] if row else "",
-        "last_visit": row[5] if row else "",
-        "latest_blob_id": row[6] if row and len(row) > 6 else "",
-        "blob_history": json.loads(blob_history_raw) if isinstance(blob_history_raw, str) else [],
+        "summary": "",
+        "visited_agents": [],
+        "last_agent": "",
+        "last_visit": "",
+        "latest_blob_id": all_blob_ids[0] if all_blob_ids else "",
+        "blob_history": [],
         "visit_count": 1,
         "user_name": ""
     }
-    
-    if profile_row:
-        memory["user_name"] = profile_row[2] or ""
-        memory["visit_count"] = profile_row[11] or 1
-        memory["preferences"] = profile_row[10] or ""
-        memory["bio"] = profile_row[3] or ""
-        memory["profile_pic"] = profile_row[4] or ""
-        memory["social"] = {
-            "twitter": profile_row[5] or "",
-            "discord": profile_row[6] or "",
-            "telegram": profile_row[7] or "",
-            "instagram": profile_row[8] or "",
-            "website": profile_row[9] or ""
-        }
-    
-    # Step 2: If blob_history empty but latest_blob_id exists, seed from Walrus
-    if not memory["blob_history"] and memory["latest_blob_id"]:
-        walrus_data = walrus_read(memory["latest_blob_id"])
+
+    # Load profile if exists
+    try:
+        conn2 = get_db_conn()
+        c2 = conn2.cursor()
+        if USE_SQLITE:
+            c2.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+        else:
+            c2.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+        profile_row = c2.fetchone()
+        conn2.close()
+        if profile_row:
+            memory["user_name"] = profile_row[2] or ""
+            memory["visit_count"] = profile_row[11] or 1
+            memory["preferences"] = profile_row[10] or ""
+            memory["bio"] = profile_row[3] or ""
+            memory["profile_pic"] = profile_row[4] or ""
+            memory["social"] = {
+                "twitter": profile_row[5] or "",
+                "discord": profile_row[6] or "",
+                "telegram": profile_row[7] or "",
+                "instagram": profile_row[8] or "",
+                "website": profile_row[9] or ""
+            }
+    except:
+        pass
+
+    # Step 4: Read from Walrus to populate blob_history
+    visited_set = set()
+    for bid in all_blob_ids[:20]:  # Max 20 blobs
+        walrus_data = walrus_read(bid)
         if walrus_data:
-            print(f"[LOAD_MEMORY] Seeding from Walrus: {memory['latest_blob_id']}")
-            print(f"[LOAD_MEMORY] Walrus keys: {list(walrus_data.keys())}")
-            memory["blob_history"] = [{
-                "blob_id": memory["latest_blob_id"],
-                "agent_id": walrus_data.get("last_agent", memory["last_agent"] or "J4"),
-                "timestamp": walrus_data.get("last_visit", memory["last_visit"] or datetime.now().isoformat()),
+            entry = {
+                "blob_id": bid,
+                "agent_id": walrus_data.get("agent_id", walrus_data.get("last_agent", "J4")),
+                "timestamp": walrus_data.get("timestamp", walrus_data.get("last_visit", "")),
                 "network": "mainnet"
-            }]
-            if not memory["summary"] and walrus_data.get("summary"):
+            }
+            memory["blob_history"].append(entry)
+            if entry["agent_id"]:
+                visited_set.add(entry["agent_id"])
+            if walrus_data.get("summary") and not memory["summary"]:
                 memory["summary"] = walrus_data["summary"]
-            walrus_agents = walrus_data.get("visited_agents", [])
-            if walrus_agents:
-                existing = set(memory["visited_agents"])
-                merged = list(existing.union(walrus_agents))
-                if len(merged) > len(memory["visited_agents"]):
-                    memory["visited_agents"] = merged
-                    print(f"[LOAD_MEMORY] Merged visited_agents: {merged}")
-    
-    # Step 3: Fallback - try Walrus again if still empty (legacy data)
-    if not memory["blob_history"] and memory["latest_blob_id"]:
-        print(f"[LOAD_MEMORY] Walrus fallback: reading {memory['latest_blob_id']}")
-        w3 = walrus_read(memory["latest_blob_id"])
-        if w3:
-            memory["blob_history"] = [{
-                "blob_id": memory["latest_blob_id"],
-                "agent_id": w3.get("last_agent", "J4"),
-                "timestamp": w3.get("last_visit", datetime.now().isoformat()),
-                "network": "mainnet"
-            }]
-            if w3.get("visited_agents"):
-                memory["visited_agents"] = w3["visited_agents"]
-            if w3.get("summary"):
-                memory["summary"] = w3["summary"]
-    
-    print(f"[LOAD_MEMORY] {wallet_hash}: blob_history={len(memory['blob_history'])} entries, visited={len(memory['visited_agents'])} agents, name='{memory['user_name']}'")
+            if walrus_data.get("visited_agents"):
+                for a in walrus_data["visited_agents"]:
+                    visited_set.add(a)
+
+    memory["visited_agents"] = list(visited_set)
+    print(f"[LOAD_MEMORY] {wallet_hash}: {len(memory['blob_history'])} blobs, {len(memory['visited_agents'])} agents")
+
+    # Step 5: Save latest blob_id back to DB for next fast load
+    if memory["latest_blob_id"] and not db_has_data:
+        try:
+            conn3 = get_db_conn()
+            c3 = conn3.cursor()
+            import json as _json
+            now = datetime.now().isoformat()
+            bh_json = _json.dumps(memory["blob_history"])
+            va_json = _json.dumps(memory["visited_agents"])
+            if USE_SQLITE:
+                c3.execute("INSERT OR REPLACE INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (wallet_hash, "", memory["summary"], va_json, "", "", memory["latest_blob_id"], bh_json, now, now))
+            else:
+                c3.execute("INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (wallet_hash) DO UPDATE SET visited_agents = EXCLUDED.visited_agents, latest_blob_id = EXCLUDED.latest_blob_id, blob_history = EXCLUDED.blob_history, updated_at = CURRENT_TIMESTAMP",
+                    (wallet_hash, "", memory["summary"], va_json, "", "", memory["latest_blob_id"], bh_json))
+            conn3.commit()
+            conn3.close()
+            print(f"[LOAD_MEMORY] Seeded DB cache")
+        except Exception as e:
+            print(f"[LOAD_MEMORY] DB seed skipped: {e}")
+
     return memory
+
+
 @app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
     print(f"[API] Load: {wallet_hash}")
-    profile = get_or_create_profile(wallet_hash)
     memory = load_memory(wallet_hash)
-    memory["user_name"] = profile.get("name", "")
-    memory["visit_count"] = profile.get("visit_count", 1)
-    print(f"[API] Return: name='{memory['user_name']}', visits={memory['visit_count']}")
+    print(f"[API] Return: blob_history={len(memory.get('blob_history',[]))}, visited={len(memory.get('visited_agents',[]))}")
     return jsonify(memory)
+
+
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "ok", "time": datetime.now().isoformat(), "walrus": "mainnet"})
 
 @app.route("/api/memory/save", methods=["POST"])
 def save_memory_route():
@@ -696,10 +727,19 @@ def save_memory_route():
         "success": result["success"],
         "blob_id": result.get("blob_id", ""),
         "name_saved": name_saved,
-        "timestamp": datetime.now().isoformat()
-    })
+        "summary": result.get("summary", ""),
+        "visited_agents": result.get("visited_agents", []),
+        "cost_sui": result.get("cost_sui", 0),
+        "source": result.get("source", "unknown")
+    })def load_memory_route(wallet_hash):
+    print(f"[API] Load: {wallet_hash}")
+    profile = get_or_create_profile(wallet_hash)
+    memory = load_memory(wallet_hash)
+    memory["user_name"] = profile.get("name", "")
+    memory["visit_count"] = profile.get("visit_count", 1)
+    print(f"[API] Return: name='{memory['user_name']}', visits={memory['visit_count']}")
+    return jsonify(memory)
 
-@app.route("/api/chat", methods=["POST"])
 def chat():
     data = request.json
     agent_id = data.get("agent_id", "J4")
@@ -919,28 +959,47 @@ def walrus_store_direct():
 
 @app.route("/api/walrus/load-chat/<wallet_hash>", methods=["GET"])
 def walrus_load_chat(wallet_hash):
+    """Load chat history from Walrus - reads all blobs"""
     conn = get_db_conn()
     c = conn.cursor()
+    try:
+        if USE_SQLITE:
+            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 20", (wallet_hash,))
+        else:
+            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 20", (wallet_hash,))
+        rows = c.fetchall()
+    except:
+        rows = []
+    finally:
+        conn.close()
 
-    if USE_SQLITE:
-        c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
-    else:
-        c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1", (wallet_hash,))
-    row = c.fetchone()
-    conn.close()
+    all_chats = []
+    all_blob_ids = []
 
-    if not row or not row[0]:
-        return jsonify({"error": "No Walrus backup found"}), 404
+    for r in rows:
+        if r and r[0]:
+            bid = r[0]
+            all_blob_ids.append(bid)
+            data = walrus_read(bid)
+            if data:
+                if isinstance(data, dict):
+                    chats = data.get("chat_history", data.get("messages", []))
+                elif isinstance(data, list):
+                    chats = data
+                else:
+                    chats = []
+                if chats:
+                    all_chats.extend(chats)
 
-    blob_id = row[0]
-    chat_data = walrus_read(blob_id)
-
-    if chat_data:
-        return jsonify({"success": True, "chat_history": chat_data.get("chat_history", []), "blob_id": blob_id})
-
-    return jsonify({"success": False, "error": "Failed to read from Walrus"}), 500
+    return jsonify({
+        "success": True,
+        "chat_history": all_chats,
+        "blob_ids": all_blob_ids,
+        "count": len(all_chats)
+    })
 
 @app.route("/api/walrus/save", methods=["POST"])
+def walrus_save():
 def walrus_save():
     data = request.json
     wallet_hash = data.get("wallet_hash")
