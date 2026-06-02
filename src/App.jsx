@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
+import MemoryExplorer from './MemoryExplorer'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG - PUNK PALETTE
@@ -1815,6 +1816,7 @@ export default function App() {
   const [showNameAsk, setShowNameAsk] = useState(false)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showMemWalSearch, setShowMemWalSearch] = useState(false)
+  const [showMemoryExplorer, setShowMemoryExplorer] = useState(false)
   const [profile, setProfile] = useState(null)
   const [selectedMemoryAgent, setSelectedMemoryAgent] = useState(null)
   const [autoSaveCount, setAutoSaveCount] = useState(0)
@@ -2362,6 +2364,22 @@ Powered by Tatum RPC + Storage API`)
         />
       )}
 
+      {/* Memory Explorer Panel */}
+      {showMemoryExplorer && (
+        <div style={{
+          position: 'fixed', top: 0, right: 0, width: '450px', height: '100vh',
+          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+          borderLeft: '2px solid rgba(255,215,0,0.3)',
+          zIndex: 999, display: 'flex', flexDirection: 'column',
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.5)'
+        }}>
+          <MemoryExplorer
+            walletHash={walletHash}
+            onBack={() => setShowMemoryExplorer(false)}
+          />
+        </div>
+      )}
+
       {/* LEFT SIDEBAR - PUNK STYLED */}
       <div style={{
         width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
@@ -2408,6 +2426,17 @@ Powered by Tatum RPC + Storage API`)
                 }}>
                   <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                   PROFILE
+                </button>
+                <button onClick={() => setShowMemoryExplorer(true)} style={{
+                  flex: 1, padding: '6px', fontSize: '10px',
+                  background: 'rgba(255,215,0,0.08)',
+                  border: '2px solid rgba(255,215,0,0.3)',
+                  color: '#ffd700', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}>
+                  <Database size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  MEMORIES
                 </button>
                 <button onClick={() => setShowMemWalSearch(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
