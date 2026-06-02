@@ -44,7 +44,7 @@ def get_sui_balance_tatum(address):
         return None
 
 app = Flask(__name__)
-CORS(app, origins="*", supports_credentials=True)
+CORS(app, origins=["*"], supports_credentials=False)
 
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
