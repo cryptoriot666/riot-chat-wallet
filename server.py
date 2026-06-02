@@ -612,6 +612,15 @@ def load_memory(wallet_hash):
         "user_name": ""
     }
 
+    # If blob_history is empty but latest_blob_id exists, seed it
+    if not memory["blob_history"] and memory["latest_blob_id"]:
+        memory["blob_history"] = [{
+            "blob_id": memory["latest_blob_id"],
+            "agent_id": memory["last_agent"],
+            "timestamp": memory["last_visit"],
+            "network": "mainnet"
+        }]
+
     if profile_row:
         memory["user_name"] = profile_row[2] or ""
         memory["visit_count"] = profile_row[11] or 1
