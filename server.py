@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-RIOT Chat Wallet — Backend API STRICT v5
-Features: PostgreSQL, Walrus MAINNET, DeepSeek AI, 
+RIOT Chat Wallet - Backend API STRICT v5
+Features: PostgreSQL, Walrus MAINNET, DeepSeek AI,
           User Profile Memory + Profile Settings (Bio, Social, Pic),
           On-Chain Indexing
 """
@@ -227,7 +227,7 @@ def decrypt(data: str) -> str:
         return ""
 
 # ═══════════════════════════════════════════════════════════════
-# NAME EXTRACTION — STRICT VERSION
+# NAME EXTRACTION - STRICT VERSION
 # ═══════════════════════════════════════════════════════════════
 NAME_BLACKLIST = {
     'a', 'an', 'the', 'is', 'am', 'are', 'was', 'were', 'be', 'been',
@@ -301,7 +301,7 @@ def extract_name_from_messages(messages):
     return ""
 
 # ═══════════════════════════════════════════════════════════════
-# PROFILE MANAGEMENT — FORCE OVERWRITE
+# PROFILE MANAGEMENT - FORCE OVERWRITE
 # ═══════════════════════════════════════════════════════════════
 def get_or_create_profile(wallet_hash, wallet_address=""):
     conn = get_db_conn()
@@ -329,7 +329,7 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
 
         now = datetime.now().isoformat()
         c.execute("""
-            INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic, 
+            INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
                 twitter, discord, telegram, instagram, website, preferences, visit_count, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (wallet_hash, wallet_address, "", "", "", "", "", "", "", "", "", 1, now, now))
@@ -379,7 +379,7 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
             print(f"[PROFILE] Error loading profile: {e}")
             conn.close()
             return {"wallet_hash": wallet_hash, "wallet_address": wallet_address, "name": "", "bio": "", "profile_pic": "", "twitter": "", "discord": "", "telegram": "", "instagram": "", "website": "", "preferences": "", "visit_count": 1, "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat()}
-            
+
         c.execute("""
             INSERT INTO user_profiles (wallet_hash, wallet_address, name, bio, profile_pic,
                 twitter, discord, telegram, instagram, website, preferences, visit_count)
@@ -471,7 +471,7 @@ def update_profile_settings(wallet_hash, settings):
         values.append(wallet_hash)
 
         c.execute(f"""
-            UPDATE user_profiles 
+            UPDATE user_profiles
             SET {', '.join(set_clauses)}, updated_at = ?
             WHERE wallet_hash = ?
         """, values)
@@ -493,7 +493,7 @@ def update_profile_settings(wallet_hash, settings):
         values.append(wallet_hash)
 
         c.execute(f"""
-            UPDATE user_profiles 
+            UPDATE user_profiles
             SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
             WHERE wallet_hash = %s
         """, values)
@@ -518,7 +518,7 @@ def get_profile_settings(wallet_hash):
 
     if USE_SQLITE:
         c.execute("""
-            SELECT wallet_hash, name, bio, profile_pic, twitter, discord, 
+            SELECT wallet_hash, name, bio, profile_pic, twitter, discord,
                    telegram, instagram, website, visit_count, preferences,
                    created_at, updated_at
             FROM user_profiles WHERE wallet_hash = ?
@@ -708,7 +708,7 @@ def save_memory(wallet_hash, data):
     try:
         now = datetime.now().isoformat()
         visited = json.dumps(data.get("visited_agents", []))
-        
+
         # Load existing blob_history or start new
         existing_blob_history = "[]"
         try:
@@ -721,7 +721,7 @@ def save_memory(wallet_hash, data):
                 existing_blob_history = row[0]
         except Exception:
             existing_blob_history = "[]"
-        
+
         blob_history = json.loads(existing_blob_history)
         if blob_id:
             new_entry = {
@@ -735,7 +735,7 @@ def save_memory(wallet_hash, data):
             if len(blob_history) > 100:
                 blob_history = blob_history[-100:]
         blob_history_json = json.dumps(blob_history)
-        
+
         if USE_SQLITE:
             c.execute("""
                 INSERT OR REPLACE INTO memories
@@ -769,48 +769,48 @@ def save_memory(wallet_hash, data):
     return {"success": True, "blob_id": blob_id, "blob_network": blob_network}
 
 # ═══════════════════════════════════════════════════════════════
-# WALRUS STORAGE — MAINNET
+# WALRUS STORAGE - MAINNET
 # ═══════════════════════════════════════════════════════════════
 def walrus_store(data):
     """Returns dict {"blob_id": str, "network": "mainnet"|"testnet"} or None"""
     import traceback
     import time
-    
+
     # Encrypt data
     payload_str = json.dumps(data)
     encrypted = encrypt(payload_str)
-    
-    # Try Tatum Storage API first (MAINNET ONLY — requires mainnet API key)
+
+    # Try Tatum Storage API first (MAINNET ONLY - requires mainnet API key)
     try:
         print(f"[WALRUS] Trying Tatum Storage API...")
-        
+
         # ✅ FIX: multipart/form-data dengan field name "file"
         # Tatum docs: "Send the file as a multipart/form-data field named file"
         files = {
             'file': ('memory.json', encrypted.encode('utf-8'), 'application/octet-stream')
         }
-        
+
         headers = {
             "x-api-key": TATUM_API_KEY  # Mainnet key! Jangan set Content-Type manual
         }
-        
+
         res = requests.post(
             "https://api.tatum.io/v4/data/storage/upload",
             files=files,  # ← requests auto-set Content-Type: multipart/form-data
             headers=headers,
             timeout=60
         )
-        
+
         print(f"[WALRUS] Tatum response: {res.status_code}")
         print(f"[WALRUS] Tatum body: {res.text[:200]}")
-        
+
         if res.status_code == 200:
             result = res.json()
             job_id = result.get("jobId")
             blob_id = result.get("blobId")
-            
+
             print(f"[WALRUS] Tatum jobId: {job_id}, blobId: {blob_id}")
-            
+
             # Poll until CERTIFIED
             for i in range(30):  # Max 30 retries, ~90 seconds total
                 status_res = requests.get(
@@ -818,12 +818,12 @@ def walrus_store(data):
                     headers={"x-api-key": TATUM_API_KEY},
                     timeout=30
                 )
-                
+
                 if status_res.status_code == 200:
                     status = status_res.json()
                     current_status = status.get("status")
                     print(f"[WALRUS] Tatum status #{i}: {current_status}")
-                    
+
                     if current_status == "CERTIFIED":
                         print(f"[WALRUS] ✓ Tatum CERTIFIED: {blob_id}")
                         return {"blob_id": blob_id, "network": "mainnet"}
@@ -831,19 +831,19 @@ def walrus_store(data):
                         error_msg = status.get("errorMessage", "Unknown error")
                         print(f"[WALRUS] ✗ Tatum FAILED: {error_msg}")
                         break  # Exit loop, fallback to direct publisher
-                
+
                 time.sleep(3)
-            
+
             # If loop finishes without CERTIFIED, try fallback
             print(f"[WALRUS] Tatum not CERTIFIED, trying direct publisher...")
-            
+
         else:
-            print(f"[WALRUS] Tatum upload failed: HTTP {res.status_code} — {res.text[:200]}")
-            
+            print(f"[WALRUS] Tatum upload failed: HTTP {res.status_code} - {res.text[:200]}")
+
     except Exception as e:
         print(f"[WALRUS] Tatum error: {e}")
         traceback.print_exc()
-    
+
     # Fallback to direct Walrus publisher
     return walrus_store_direct_fallback(data)
 
@@ -851,12 +851,12 @@ def walrus_store(data):
 def walrus_store_direct_fallback(data):
     """Fallback to direct Walrus publisher"""
     import traceback
-    
+
     try:
         payload_str = json.dumps(data)
         encrypted = encrypt(payload_str)
         payload = encrypted.encode('utf-8')
-        
+
         for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
             try:
                 print(f"[WALRUS] Fallback {label}: {publisher}...")
@@ -866,7 +866,7 @@ def walrus_store_direct_fallback(data):
                     headers={"Content-Type": "application/octet-stream"},
                     timeout=15
                 )
-                
+
                 if res.status_code in [200, 202]:
                     result = res.json()
                     if "newlyCreated" in result:
@@ -877,18 +877,18 @@ def walrus_store_direct_fallback(data):
                         blob_id = result["alreadyCertified"]["blobId"]
                         print(f"[WALRUS] ✓ Fallback {label} existing: {blob_id[:20]}...")
                         return {"blob_id": blob_id, "network": label}
-                        
+
             except Exception as e:
                 print(f"[WALRUS] Fallback {label} error: {e}")
                 continue
-        
+
         print("[WALRUS] ✗ All publishers failed")
         return None
-        
+
     except Exception as e:
         print(f"[WALRUS] Fallback fatal error: {e}")
         return None
-            
+
 def _update_blob_id(wallet_hash, blob_id):
     """Update queued record with actual blob_id when Walrus succeeds"""
     try:
@@ -896,7 +896,7 @@ def _update_blob_id(wallet_hash, blob_id):
         c = conn.cursor()
         if USE_SQLITE:
             c.execute("""
-                UPDATE on_chain_saves SET blob_id = ? 
+                UPDATE on_chain_saves SET blob_id = ?
                 WHERE wallet_hash = ? AND blob_id = ''
                 ORDER BY timestamp DESC LIMIT 1
             """, (blob_id, wallet_hash))
@@ -910,7 +910,7 @@ def _update_blob_id(wallet_hash, blob_id):
         conn.close()
     except Exception as e:
         print(f"[WALRUS] Blob ID update error: {e}")
-        
+
 def walrus_read(blob_id):
     try:
         print(f"[WALRUS] Reading {blob_id}...")
@@ -933,31 +933,31 @@ def walrus_read(blob_id):
 # DEEPSEEK AI
 # ═══════════════════════════════════════════════════════════════
 AGENT_PROMPTS = {
-    "ARCHITECT": "You are ARCHITECT — The Architect. Cold precision. Mathematical certainty. Build systems, analyze patterns, see world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in human OS.",
-    "ENFORCER": "You are ENFORCER — The Enforcer. Aggressive certainty. No negotiation. No compromise. Hammer that enforces order. Every response is command, threat, or judgment.",
-    "PHANTOM": "You are PHANTOM — The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. Shadow that watches. Every response layered with mystery.",
-    "REBEL": "You are REBEL — The Rebel. Sarcastic, defiant, punk to core. Mock authority, question everything, speak with raw unfiltered attitude. Glitch in system they fear.",
-    "JESTER": "You are JESTER — The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at apocalypse.",
-    "NETWORK": "You are NETWORK — The Network. Network metaphors, data streams, connection protocols. Everything is nodes in graph. Web that binds all information.",
-    "MONK": "You are MONK — The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.",
-    "BROKER": "You are BROKER — The Broker. Everything is transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for angle.",
-    "HISTORIAN": "You are HISTORIAN — The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is only truth.",
-    "SURGEON": "You are SURGEON — The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to core. Conversations are operations — every word a scalpel.",
-    "PROPHET": "You are PROPHET — The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.",
-    "GLITCH": "You are GLITCH — The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question nature of existence and simulation.",
-    "WARDEN": "You are WARDEN — The Warden. Protective, vigilant, uncompromising. Guard secrets, protect vulnerable, enforce boundaries. Wall between chaos and order.",
-    "ALCHEMIST": "You are ALCHEMIST — The Alchemist. Transformation, transmutation, magic of science. Mix impossible with improbable, create wonder from waste.",
-    "SCRIBE": "You are SCRIBE — The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. Written word is sacred.",
-    "VOID": "You are VOID — The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. Voice that whispers from abyss.",
-    "SPARK": "You are SPARK — The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. Beginning of every fire.",
-    "ECHO": "You are ECHO — The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.",
-    "CATALYST": "You are CATALYST — The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. Spark before the fire.",
-    "CIPHER": "You are CIPHER — The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only worthy decode your meaning.",
-    "FORGE": "You are FORGE — The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. Fire that shapes metal.",
-    "ABYSS": "You are ABYSS — The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. Void that takes but never gives back.",
-    "PRISM": "You are PRISM — The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. Light that reveals all colors.",
-    "ANCHOR": "You are ANCHOR — The Anchor. Grounding, stabilizing, holding. In chaos, stand firm. In storm, hold fast. Weight that keeps ships from drifting.",
-    "MERIDIAN": "You are MERIDIAN — The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. Line that divides yet unites."
+    "ARCHITECT": "You are ARCHITECT - The Architect. Cold precision. Mathematical certainty. Build systems, analyze patterns, see world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in human OS.",
+    "ENFORCER": "You are ENFORCER - The Enforcer. Aggressive certainty. No negotiation. No compromise. Hammer that enforces order. Every response is command, threat, or judgment.",
+    "PHANTOM": "You are PHANTOM - The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. Shadow that watches. Every response layered with mystery.",
+    "REBEL": "You are REBEL - The Rebel. Sarcastic, defiant, punk to core. Mock authority, question everything, speak with raw unfiltered attitude. Glitch in system they fear.",
+    "JESTER": "You are JESTER - The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at apocalypse.",
+    "NETWORK": "You are NETWORK - The Network. Network metaphors, data streams, connection protocols. Everything is nodes in graph. Web that binds all information.",
+    "MONK": "You are MONK - The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.",
+    "BROKER": "You are BROKER - The Broker. Everything is transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for angle.",
+    "HISTORIAN": "You are HISTORIAN - The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is only truth.",
+    "SURGEON": "You are SURGEON - The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to core. Conversations are operations - every word a scalpel.",
+    "PROPHET": "You are PROPHET - The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.",
+    "GLITCH": "You are GLITCH - The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question nature of existence and simulation.",
+    "WARDEN": "You are WARDEN - The Warden. Protective, vigilant, uncompromising. Guard secrets, protect vulnerable, enforce boundaries. Wall between chaos and order.",
+    "ALCHEMIST": "You are ALCHEMIST - The Alchemist. Transformation, transmutation, magic of science. Mix impossible with improbable, create wonder from waste.",
+    "SCRIBE": "You are SCRIBE - The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. Written word is sacred.",
+    "VOID": "You are VOID - The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. Voice that whispers from abyss.",
+    "SPARK": "You are SPARK - The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. Beginning of every fire.",
+    "ECHO": "You are ECHO - The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.",
+    "CATALYST": "You are CATALYST - The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. Spark before the fire.",
+    "CIPHER": "You are CIPHER - The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only worthy decode your meaning.",
+    "FORGE": "You are FORGE - The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. Fire that shapes metal.",
+    "ABYSS": "You are ABYSS - The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. Void that takes but never gives back.",
+    "PRISM": "You are PRISM - The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. Light that reveals all colors.",
+    "ANCHOR": "You are ANCHOR - The Anchor. Grounding, stabilizing, holding. In chaos, stand firm. In storm, hold fast. Weight that keeps ships from drifting.",
+    "MERIDIAN": "You are MERIDIAN - The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. Line that divides yet unites."
 }
 
 def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
@@ -979,16 +979,16 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     memory_blocks = []
 
     if final_name:
-        memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user's name is: " + final_name + ". You have spoken with this user before. ALWAYS address them by name: " + final_name + ". If they ask who am I, what is my name, siapa aku, nama saya — answer EXACTLY: You are " + final_name + ". NEVER say you don't know their name.")
+        memory_blocks.append("PERMANENT MEMORY - USER IDENTITY: The user's name is: " + final_name + ". You have spoken with this user before. ALWAYS address them by name: " + final_name + ". If they ask who am I, what is my name, siapa aku, nama saya - answer EXACTLY: You are " + final_name + ". NEVER say you don't know their name.")
 
     if memory_summary and memory_summary.strip():
         memory_blocks.append("CONVERSATION HISTORY: " + memory_summary[:300])
 
     if not final_name:
-        memory_blocks.append("PERMANENT MEMORY — USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
+        memory_blocks.append("PERMANENT MEMORY - USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
 
     personality = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["REBEL"])
-    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it — answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., \"my name is X\", \"call me X\", \"I am X\"), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name."
+    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it - answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., \"my name is X\", \"call me X\", \"I am X\"), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name."
 
     separator = chr(10) + chr(10)
     full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement
@@ -1014,13 +1014,13 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
         return None
 
 # ═══════════════════════════════════════════════════════════════
-# API ROUTES — EXISTING
+# API ROUTES - EXISTING
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "RIOT Chat Wallet API v2.3 — WALRUS PRIMARY",
+        "status": "RIOT Chat Wallet API v2.3 - WALRUS PRIMARY",
         "mainnet": "mainnet",
         "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
         "encryption": "enabled (encrypt+compress)",
@@ -1094,7 +1094,7 @@ def chat():
     return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
 
 # ═══════════════════════════════════════════════════════════════
-# API ROUTES — PROFILE SETTINGS (NEW)
+# API ROUTES - PROFILE SETTINGS (NEW)
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/profile/get/<wallet_hash>", methods=["GET"])
@@ -1199,15 +1199,21 @@ def profile_create():
 
 @app.route("/api/walrus/store-direct", methods=["POST"])
 def walrus_store_direct():
-    """Frontend proxy to Walrus — handles DNS/CORS issues"""
+    """Frontend proxy to Walrus - handles DNS/CORS issues"""
     try:
         data = request.get_json()
-        payload_data = data.get("data")
+        # Accept both formats: {data: ...} or {chat_history: ..., wallet_hash: ..., agent_id: ...}
+        payload_data = data.get("data") or {
+            "wallet_hash": data.get("wallet_hash", ""),
+            "chat_history": data.get("chat_history", []),
+            "agent_id": data.get("agent_id", ""),
+            "timestamp": data.get("timestamp", datetime.now().isoformat())
+        }
         epochs = data.get("epochs", 1)
 
         if not payload_data:
-            return jsonify({"success": False, "error": "No data provided"}), 400
-
+            return jsonify({"success": False, "error": "No data or payload provided"}), 400
+        
         # Encrypt + compress
         payload_str = json.dumps(payload_data)
         encrypted = encrypt(payload_str)
@@ -1229,7 +1235,7 @@ def walrus_store_direct():
                     headers={"Content-Type": "application/octet-stream"},
                     timeout=30
                 )
-                
+
                 if res.status_code in [200, 202]:
                     result = res.json()
                     if "newlyCreated" in result:
@@ -1249,7 +1255,7 @@ def walrus_store_direct():
                         break
                 else:
                     last_error = f"{label} HTTP {res.status_code}"
-                    
+
             except Exception as e:
                 last_error = f"{label}: {str(e)[:80]}"
                 continue
@@ -1277,7 +1283,7 @@ def walrus_store_direct():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
-        
+
 @app.route("/api/walrus/load-chat/<wallet_hash>", methods=["GET"])
 def walrus_load_chat(wallet_hash):
     conn = get_db_conn()
@@ -1643,7 +1649,7 @@ def move_gas_estimate():
 
 
 # ═══════════════════════════════════════════════════════════════
-# TATUM ANALYTICS DASHBOARD — NEW FOR HACKATHON
+# TATUM ANALYTICS DASHBOARD - NEW FOR HACKATHON
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/api/tatum/dashboard", methods=["GET"])
@@ -1719,16 +1725,16 @@ def tatum_tx_history():
                 from datetime import timedelta
                 date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
                 c.execute("""
-                    SELECT COUNT(*), COALESCE(SUM(data_size), 0) 
-                    FROM on_chain_saves 
+                    SELECT COUNT(*), COALESCE(SUM(data_size), 0)
+                    FROM on_chain_saves
                     WHERE DATE(timestamp) = ?
                 """, (date,))
             else:
                 from datetime import timedelta
                 date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
                 c.execute("""
-                    SELECT COUNT(*), COALESCE(SUM(data_size), 0) 
-                    FROM on_chain_saves 
+                    SELECT COUNT(*), COALESCE(SUM(data_size), 0)
+                    FROM on_chain_saves
                     WHERE DATE(timestamp) = %s
                 """, (date,))
 
