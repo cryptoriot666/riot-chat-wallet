@@ -2370,7 +2370,7 @@ Powered by Tatum RPC + Storage API`)
             fontFamily: "'Rubik Glitch', cursive", fontSize: '26px', fontWeight: 900,
             color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '3px', margin: 0,
             textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
-          }}>$RIOT</h1>
+          }}><a href="https://theriot.vercel.app" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>$RIOT</a></h1>
           <p style={{ fontSize: '11px', color: '#a08060', marginTop: '6px', letterSpacing: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>
             PUNK AGENTS WITH MEMORY
           </p>
