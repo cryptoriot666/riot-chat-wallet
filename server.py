@@ -47,7 +47,8 @@ app = Flask(__name__)
 CORS(app, origins=[
     "https://riot-chat-wallet.vercel.app",
     "https://riot-chat-wallet-git-main-the-riot-s-projects.vercel.app",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://riot-chat-wallet-temp.vercel.app"
 ], supports_credentials=True)
 
 # ═══════════════════════════════════════════════════════════════
