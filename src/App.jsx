@@ -1816,6 +1816,7 @@ export default function App() {
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showMemWalSearch, setShowMemWalSearch] = useState(false)
   const [profile, setProfile] = useState(null)
+  const [selectedMemoryAgent, setSelectedMemoryAgent] = useState(null)
   const [autoSaveCount, setAutoSaveCount] = useState(0)
   const [memwalSaveCount, setMemwalSaveCount] = useState(0)
   const [latestBlobId, setLatestBlobId] = useState('')
@@ -2940,20 +2941,90 @@ Powered by Tatum RPC + Storage API`)
               textTransform: 'uppercase', letterSpacing: '2px',
               fontFamily: "'Rubik Mono One', sans-serif"
             }}>Visited Agents ({visitedAgents.size}/25)</h4>
+            {selectedMemoryAgent ? (
+              // Agent detail view
+              <div>
+                <button onClick={() => setSelectedMemoryAgent(null)}
+                  style={{
+                    background: 'none', border: 'none', color: '#a08060', cursor: 'pointer',
+                    fontSize: '11px', fontFamily: "'Rubik Mono One', sans-serif",
+                    marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px', padding: 0
+                  }}>
+                  {'< BACK TO AGENTS'}
+                </button>
+                {(() => {
+                  const agent = AGENTS.find(a => a.id === selectedMemoryAgent)
+                  if (!agent) return null
+                  const agentHistory = walrusHistory.filter(h => h.agent_id === agent.id)
+                  return (
+                    <div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        marginBottom: '12px'
+                      }}>
+                        <span style={{ fontSize: '20px' }}>{agent.emoji}</span>
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: agent.color }}>{agent.id}</div>
+                          <div style={{ fontSize: '10px', color: '#a08060' }}>{agent.trait}</div>
+                        </div>
+                      </div>
+                      {agentHistory.length === 0 ? (
+                        <div style={{ fontSize: '11px', color: '#8a7050', padding: '10px',
+                          textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '6px'
+                        }}>
+                          No saved blobs for this agent yet.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {agentHistory.slice().reverse().map((item, i) => (
+                            <div key={i} style={{
+                              padding: '8px', borderRadius: '6px',
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '2px solid rgba(255,255,255,0.06)',
+                              fontSize: '10px'
+                            }}>
+                              <div style={{ color: '#c0a080', marginBottom: '4px' }}>
+                                {new Date(item.timestamp).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                })}
+                              </div>
+                              <div style={{ fontFamily: 'monospace', color: '#2ec4b6', wordBreak: 'break-all', marginBottom: '4px' }}>
+                                {item.blob_id?.slice(0, 24)}...
+                              </div>
+                              <a href={item.url} target="_blank" rel="noopener"
+                                style={{ color: '#00b4d8', textDecoration: 'underline', fontSize: '10px' }}>
+                                View on Walrus ↗
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ marginTop: '10px', fontSize: '10px', color: '#8a7050', textAlign: 'center' }}>
+                        {agentHistory.length} blob{agentHistory.length !== 1 ? 's' : ''} saved
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
                 const visited = visitedAgents.has(agent.id)
                 return (
-                  <div key={agent.id} style={{
+                  <div key={agent.id} onClick={() => { if (visited) setSelectedMemoryAgent(agent.id) }}
+                    style={{
                     padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
+                    cursor: visited ? 'pointer' : 'default',
                     background: visited ? `${agent.color}22` : 'rgba(255,255,255,0.03)',
                     color: visited ? agent.color : '#8a7050',
                     border: visited ? `2px solid ${agent.color}44` : '2px solid rgba(255,255,255,0.05)',
-                    boxShadow: visited ? `0 0 8px ${agent.color}22` : 'none'
+                    boxShadow: visited ? `0 0 8px ${agent.color}22` : 'none',
+                    transition: 'all 0.2s'
                   }}>{agent.id}</div>
                 )
               })}
             </div>
+            )}
           </div>
 
           {/* Session Summary */}
