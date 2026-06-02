@@ -423,17 +423,17 @@ $RIOT leverages Tatum's enterprise-grade infrastructure:
 
 **🚀 Mainnet Advantage:** On Sui Mainnet = 100% prize upfront if we win. No 50% holdback for mainnet deployment.
 
-### vs. Competitors
+### vs. Competitors (Sui Overflow 2026)
 
-| Factor | **$RIOT** | WalGit | AegisonChain |
-|--------|-----------|--------|--------------|
-| **Network** | ✅ **Sui Mainnet** | ❌ Testnet | ❌ Testnet |
-| **Interface** | ✅ **Live Web App** | ❌ CLI only | ❌ Basic web |
-| **Agents** | ✅ **25 agents** | ❌ 1 agent | ❌ 3 agents |
-| **Memory** | ✅ **Cross-agent** | ✅ Single memory | ❌ Stateless |
-| **Encryption** | ✅ **Seal (optional)** | ✅ Seal | ❌ None |
-| **MCP Protocol** | ✅ **Server ready** | ✅ Built-in | ❌ None |
-| **Prize Eligible** | **100% upfront** | 50% holdback | 50% holdback |
+| Factor | **$RIOT** | Average Competitor |
+|--------|-----------|-------------------|
+| **Network** | ✅ **Sui Mainnet** | ❌ Testnet |
+| **Interface** | ✅ **Live Web App** | ❌ CLI / README only |
+| **Agents** | ✅ **25 specialists** | ❌ 1-3 agents |
+| **Memory** | ✅ **Cross-agent** | ❌ Single / stateless |
+| **Encryption** | ✅ **Seal (optional)** | ❌ Mostly none |
+| **MCP Protocol** | ✅ **Server ready** | ❌ Rare |
+| **Prize Eligible** | **100% upfront** | 50% holdback |
 
 ---
 
