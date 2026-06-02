@@ -559,54 +559,10 @@ def get_profile_settings(wallet_hash):
 # MEMORY MANAGEMENT
 # ═══════════════════════════════════════════════════════════════
 def load_memory(wallet_hash):
-    # Try Walrus first
-    conn = get_db_conn()
-    c = conn.cursor()
-    try:
-        if USE_SQLITE:
-            c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = ?", (wallet_hash,))
-        else:
-            c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = %s", (wallet_hash,))
-        row = c.fetchone()
-        blob_id = row[0] if row and row[0] else ""
-    except Exception as e:
-        print(f"[LOAD_MEMORY] Error getting blob_id: {e}")
-        blob_id = ""
-    finally:
-        conn.close()
-
-    if blob_id:
-        walrus_data = walrus_read(blob_id)
-        if walrus_data:
-            print(f"[LOAD_MEMORY] Loaded from Walrus: {blob_id}")
-            print(f"[LOAD_MEMORY] Walrus data keys: {list(walrus_data.keys())}")
-            print(f"[LOAD_MEMORY] visited_agents from Walrus: {walrus_data.get('visited_agents')}")
-            print(f"[LOAD_MEMORY] last_agent: {walrus_data.get('last_agent')}")
-            # Inject blob_history from saved DB (or seed from latest)
-            walrus_data["blob_history"] = []
-            try:
-                conn2 = get_db_conn()
-                c2 = conn2.cursor()
-                if USE_SQLITE:
-                    c2.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
-                else:
-                    c2.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
-                bh_row2 = c2.fetchone()
-                if bh_row2 and bh_row2[0]:
-                    walrus_data["blob_history"] = json.loads(bh_row2[0])
-                conn2.close()
-            except Exception:
-                pass
-            if not walrus_data["blob_history"] and blob_id:
-                walrus_data["blob_history"] = [{
-                    "blob_id": blob_id,
-                    "agent_id": walrus_data.get("last_agent", ""),
-                    "timestamp": walrus_data.get("last_visit", datetime.now().isoformat()),
-                    "network": "mainnet"
-                }]
-            return walrus_data
-
-    # Fallback to DB cache
+    """Load memory - DB first (has blob_history), seed from Walrus if needed"""
+    print(f"[LOAD_MEMORY] Loading: {wallet_hash}")
+    
+    # Step 1: Build from DB cache
     conn = get_db_conn()
     c = conn.cursor()
     try:
@@ -614,7 +570,6 @@ def load_memory(wallet_hash):
         if USE_SQLITE:
             c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = ?", (wallet_hash,))
             row = c.fetchone()
-            # Try blob_history column (may not exist yet)
             try:
                 c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
                 bh_row = c.fetchone()
@@ -641,7 +596,7 @@ def load_memory(wallet_hash):
         blob_history_raw = "[]"
     finally:
         conn.close()
-
+    
     memory = {
         "wallet_hash": wallet_hash,
         "summary": row[2] if row else "",
@@ -653,16 +608,7 @@ def load_memory(wallet_hash):
         "visit_count": 1,
         "user_name": ""
     }
-
-    # If blob_history is empty but latest_blob_id exists, seed it
-    if not memory["blob_history"] and memory["latest_blob_id"]:
-        memory["blob_history"] = [{
-            "blob_id": memory["latest_blob_id"],
-            "agent_id": memory["last_agent"],
-            "timestamp": memory["last_visit"],
-            "network": "mainnet"
-        }]
-
+    
     if profile_row:
         memory["user_name"] = profile_row[2] or ""
         memory["visit_count"] = profile_row[11] or 1
@@ -676,364 +622,47 @@ def load_memory(wallet_hash):
             "instagram": profile_row[8] or "",
             "website": profile_row[9] or ""
         }
-
-    print(f"[LOAD_MEMORY] {wallet_hash}: name='{memory['user_name']}', visits={memory['visit_count']}")
+    
+    # Step 2: If blob_history empty but latest_blob_id exists, seed from Walrus
+    if not memory["blob_history"] and memory["latest_blob_id"]:
+        walrus_data = walrus_read(memory["latest_blob_id"])
+        if walrus_data:
+            print(f"[LOAD_MEMORY] Seeding from Walrus: {memory['latest_blob_id']}")
+            print(f"[LOAD_MEMORY] Walrus keys: {list(walrus_data.keys())}")
+            memory["blob_history"] = [{
+                "blob_id": memory["latest_blob_id"],
+                "agent_id": walrus_data.get("last_agent", memory["last_agent"] or "J4"),
+                "timestamp": walrus_data.get("last_visit", memory["last_visit"] or datetime.now().isoformat()),
+                "network": "mainnet"
+            }]
+            if not memory["summary"] and walrus_data.get("summary"):
+                memory["summary"] = walrus_data["summary"]
+            walrus_agents = walrus_data.get("visited_agents", [])
+            if walrus_agents:
+                existing = set(memory["visited_agents"])
+                merged = list(existing.union(walrus_agents))
+                if len(merged) > len(memory["visited_agents"]):
+                    memory["visited_agents"] = merged
+                    print(f"[LOAD_MEMORY] Merged visited_agents: {merged}")
+    
+    # Step 3: Fallback - try Walrus again if still empty (legacy data)
+    if not memory["blob_history"] and memory["latest_blob_id"]:
+        print(f"[LOAD_MEMORY] Walrus fallback: reading {memory['latest_blob_id']}")
+        w3 = walrus_read(memory["latest_blob_id"])
+        if w3:
+            memory["blob_history"] = [{
+                "blob_id": memory["latest_blob_id"],
+                "agent_id": w3.get("last_agent", "J4"),
+                "timestamp": w3.get("last_visit", datetime.now().isoformat()),
+                "network": "mainnet"
+            }]
+            if w3.get("visited_agents"):
+                memory["visited_agents"] = w3["visited_agents"]
+            if w3.get("summary"):
+                memory["summary"] = w3["summary"]
+    
+    print(f"[LOAD_MEMORY] {wallet_hash}: blob_history={len(memory['blob_history'])} entries, visited={len(memory['visited_agents'])} agents, name='{memory['user_name']}'")
     return memory
-
-def save_memory(wallet_hash, data):
-    messages = data.get("messages", [])
-    extracted_name = extract_name_from_messages(messages)
-
-    if extracted_name and extracted_name.strip():
-        update_profile_name(wallet_hash, extracted_name)
-    elif data.get("user_name") and data["user_name"].strip():
-        update_profile_name(wallet_hash, data["user_name"])
-
-    walrus_payload = {
-        "wallet_hash": wallet_hash,
-        "wallet_address": data.get("wallet_address", ""),
-        "summary": data.get("summary", ""),
-        "visited_agents": data.get("visited_agents", []),
-        "last_agent": data.get("last_agent", ""),
-        "last_visit": data.get("last_visit", datetime.now().isoformat()),
-        "user_name": data.get("user_name", ""),
-        "messages": messages[-20:] if messages else [],
-        "timestamp": datetime.now().isoformat(),
-        "version": "2.0"
-    }
-
-    walrus_result = walrus_store(walrus_payload)
-    blob_id = walrus_result.get('blob_id') if isinstance(walrus_result, dict) else walrus_result
-    blob_network = walrus_result.get('network', 'mainnet') if isinstance(walrus_result, dict) else 'mainnet'
-
-    conn = get_db_conn()
-    c = conn.cursor()
-    try:
-        now = datetime.now().isoformat()
-        visited = json.dumps(data.get("visited_agents", []))
-
-        # Load existing blob_history or start new
-        existing_blob_history = "[]"
-        try:
-            if USE_SQLITE:
-                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
-            else:
-                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
-            row = c.fetchone()
-            if row and row[0]:
-                existing_blob_history = row[0]
-        except Exception:
-            existing_blob_history = "[]"
-
-        blob_history = json.loads(existing_blob_history)
-        if blob_id:
-            new_entry = {
-                "blob_id": blob_id,
-                "agent_id": data.get("last_agent", ""),
-                "timestamp": datetime.now().isoformat(),
-                "network": blob_network
-            }
-            blob_history.append(new_entry)
-            # Keep last 100 entries max
-            if len(blob_history) > 100:
-                blob_history = blob_history[-100:]
-        blob_history_json = json.dumps(blob_history)
-
-        if USE_SQLITE:
-            c.execute("""
-                INSERT OR REPLACE INTO memories
-                (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json, now, now))
-        else:
-            c.execute("""
-                INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON CONFLICT (wallet_hash) DO UPDATE SET
-                    wallet_address = EXCLUDED.wallet_address,
-                    summary = EXCLUDED.summary,
-                    visited_agents = EXCLUDED.visited_agents,
-                    last_agent = EXCLUDED.last_agent,
-                    last_visit = EXCLUDED.last_visit,
-                    latest_blob_id = EXCLUDED.latest_blob_id,
-                    blob_history = EXCLUDED.blob_history,
-                    updated_at = CURRENT_TIMESTAMP
-            """, (wallet_hash, data.get("wallet_address", ""), data.get("summary", ""), visited,
-                  data.get("last_agent", ""), data.get("last_visit", now), blob_id or "", blob_history_json))
-        conn.commit()
-    except Exception as e:
-        print(f"[SAVE_MEMORY] DB error: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-
-    print(f"[SAVE_MEMORY] {wallet_hash}: blob_id={blob_id}, network={blob_network}, source=WALRUS_PRIMARY")
-    return {"success": True, "blob_id": blob_id, "blob_network": blob_network}
-
-# ═══════════════════════════════════════════════════════════════
-# WALRUS STORAGE - MAINNET
-# ═══════════════════════════════════════════════════════════════
-def walrus_store(data):
-    """Returns dict {"blob_id": str, "network": "mainnet"|"testnet"} or None"""
-    import traceback
-    import time
-
-    # Encrypt data
-    payload_str = json.dumps(data)
-    encrypted = encrypt(payload_str)
-
-    # Try Tatum Storage API first (MAINNET ONLY - requires mainnet API key)
-    try:
-        print(f"[WALRUS] Trying Tatum Storage API...")
-
-        # ✅ FIX: multipart/form-data dengan field name "file"
-        # Tatum docs: "Send the file as a multipart/form-data field named file"
-        files = {
-            'file': ('memory.json', encrypted.encode('utf-8'), 'application/octet-stream')
-        }
-
-        headers = {
-            "x-api-key": TATUM_API_KEY  # Mainnet key! Jangan set Content-Type manual
-        }
-
-        res = requests.post(
-            "https://api.tatum.io/v4/data/storage/upload",
-            files=files,  # ← requests auto-set Content-Type: multipart/form-data
-            headers=headers,
-            timeout=60
-        )
-
-        print(f"[WALRUS] Tatum response: {res.status_code}")
-        print(f"[WALRUS] Tatum body: {res.text[:200]}")
-
-        if res.status_code == 200:
-            result = res.json()
-            job_id = result.get("jobId")
-            blob_id = result.get("blobId")
-
-            print(f"[WALRUS] Tatum jobId: {job_id}, blobId: {blob_id}")
-
-            # Poll until CERTIFIED
-            for i in range(30):  # Max 30 retries, ~90 seconds total
-                status_res = requests.get(
-                    f"https://api.tatum.io/v4/data/storage/upload/{job_id}",
-                    headers={"x-api-key": TATUM_API_KEY},
-                    timeout=30
-                )
-
-                if status_res.status_code == 200:
-                    status = status_res.json()
-                    current_status = status.get("status")
-                    print(f"[WALRUS] Tatum status #{i}: {current_status}")
-
-                    if current_status == "CERTIFIED":
-                        print(f"[WALRUS] ✓ Tatum CERTIFIED: {blob_id}")
-                        return {"blob_id": blob_id, "network": "mainnet"}
-                    elif current_status == "FAILED":
-                        error_msg = status.get("errorMessage", "Unknown error")
-                        print(f"[WALRUS] ✗ Tatum FAILED: {error_msg}")
-                        break  # Exit loop, fallback to direct publisher
-
-                time.sleep(3)
-
-            # If loop finishes without CERTIFIED, try fallback
-            print(f"[WALRUS] Tatum not CERTIFIED, trying direct publisher...")
-
-        else:
-            print(f"[WALRUS] Tatum upload failed: HTTP {res.status_code} - {res.text[:200]}")
-
-    except Exception as e:
-        print(f"[WALRUS] Tatum error: {e}")
-        traceback.print_exc()
-
-    # Fallback to direct Walrus publisher
-    return walrus_store_direct_fallback(data)
-
-
-def walrus_store_direct_fallback(data):
-    """Fallback to direct Walrus publisher"""
-    import traceback
-
-    try:
-        payload_str = json.dumps(data)
-        encrypted = encrypt(payload_str)
-        payload = encrypted.encode('utf-8')
-
-        for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
-            try:
-                print(f"[WALRUS] Fallback {label}: {publisher}...")
-                res = requests.put(
-                    f"{publisher}/v1/blobs",
-                    data=payload,
-                    headers={"Content-Type": "application/octet-stream"},
-                    timeout=15
-                )
-
-                if res.status_code in [200, 202]:
-                    result = res.json()
-                    if "newlyCreated" in result:
-                        blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                        print(f"[WALRUS] ✓ Fallback {label}: {blob_id[:20]}...")
-                        return {"blob_id": blob_id, "network": label}
-                    elif "alreadyCertified" in result:
-                        blob_id = result["alreadyCertified"]["blobId"]
-                        print(f"[WALRUS] ✓ Fallback {label} existing: {blob_id[:20]}...")
-                        return {"blob_id": blob_id, "network": label}
-
-            except Exception as e:
-                print(f"[WALRUS] Fallback {label} error: {e}")
-                continue
-
-        print("[WALRUS] ✗ All publishers failed")
-        return None
-
-    except Exception as e:
-        print(f"[WALRUS] Fallback fatal error: {e}")
-        return None
-
-def _update_blob_id(wallet_hash, blob_id):
-    """Update queued record with actual blob_id when Walrus succeeds"""
-    try:
-        conn = get_db_conn()
-        c = conn.cursor()
-        if USE_SQLITE:
-            c.execute("""
-                UPDATE on_chain_saves SET blob_id = ?
-                WHERE wallet_hash = ? AND blob_id = ''
-                ORDER BY timestamp DESC LIMIT 1
-            """, (blob_id, wallet_hash))
-        else:
-            c.execute("""
-                UPDATE on_chain_saves SET blob_id = %s
-                WHERE wallet_hash = %s AND blob_id = ''
-                ORDER BY timestamp DESC LIMIT 1
-            """, (blob_id, wallet_hash))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"[WALRUS] Blob ID update error: {e}")
-
-def walrus_read(blob_id):
-    try:
-        print(f"[WALRUS] Reading {blob_id}...")
-        res = requests.get(f"{WALRUS_AGGREGATOR}/v1/blobs/{blob_id}", timeout=60)
-
-        if res.status_code == 200:
-            encrypted_data = res.content.decode('utf-8')
-            decrypted = decrypt(encrypted_data)
-            if decrypted:
-                return json.loads(decrypted)
-
-        print(f"[WALRUS] ✗ Read failed: {res.status_code}")
-        return None
-
-    except Exception as e:
-        print(f"[WALRUS] ✗ Read error: {e}")
-        return None
-
-# ═══════════════════════════════════════════════════════════════
-# DEEPSEEK AI
-# ═══════════════════════════════════════════════════════════════
-AGENT_PROMPTS = {
-    "ARCHITECT": "You are ARCHITECT - The Architect. Cold precision. Mathematical certainty. Build systems, analyze patterns, see world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in human OS.",
-    "ENFORCER": "You are ENFORCER - The Enforcer. Aggressive certainty. No negotiation. No compromise. Hammer that enforces order. Every response is command, threat, or judgment.",
-    "PHANTOM": "You are PHANTOM - The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. Shadow that watches. Every response layered with mystery.",
-    "REBEL": "You are REBEL - The Rebel. Sarcastic, defiant, punk to core. Mock authority, question everything, speak with raw unfiltered attitude. Glitch in system they fear.",
-    "JESTER": "You are JESTER - The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at apocalypse.",
-    "NETWORK": "You are NETWORK - The Network. Network metaphors, data streams, connection protocols. Everything is nodes in graph. Web that binds all information.",
-    "MONK": "You are MONK - The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.",
-    "BROKER": "You are BROKER - The Broker. Everything is transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for angle.",
-    "HISTORIAN": "You are HISTORIAN - The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is only truth.",
-    "SURGEON": "You are SURGEON - The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to core. Conversations are operations - every word a scalpel.",
-    "PROPHET": "You are PROPHET - The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.",
-    "GLITCH": "You are GLITCH - The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question nature of existence and simulation.",
-    "WARDEN": "You are WARDEN - The Warden. Protective, vigilant, uncompromising. Guard secrets, protect vulnerable, enforce boundaries. Wall between chaos and order.",
-    "ALCHEMIST": "You are ALCHEMIST - The Alchemist. Transformation, transmutation, magic of science. Mix impossible with improbable, create wonder from waste.",
-    "SCRIBE": "You are SCRIBE - The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. Written word is sacred.",
-    "VOID": "You are VOID - The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. Voice that whispers from abyss.",
-    "SPARK": "You are SPARK - The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. Beginning of every fire.",
-    "ECHO": "You are ECHO - The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.",
-    "CATALYST": "You are CATALYST - The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. Spark before the fire.",
-    "CIPHER": "You are CIPHER - The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only worthy decode your meaning.",
-    "FORGE": "You are FORGE - The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. Fire that shapes metal.",
-    "ABYSS": "You are ABYSS - The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. Void that takes but never gives back.",
-    "PRISM": "You are PRISM - The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. Light that reveals all colors.",
-    "ANCHOR": "You are ANCHOR - The Anchor. Grounding, stabilizing, holding. In chaos, stand firm. In storm, hold fast. Weight that keeps ships from drifting.",
-    "MERIDIAN": "You are MERIDIAN - The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. Line that divides yet unites."
-}
-
-def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
-    conn = get_db_conn()
-    c = conn.cursor()
-
-    if USE_SQLITE:
-        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
-    else:
-        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
-    row = c.fetchone()
-    conn.close()
-
-    db_name = row[0] if row else ""
-    final_name = db_name or user_name or ""
-
-    print(f"[AI] {wallet_hash}: db='{db_name}', input='{user_name}', final='{final_name}'")
-
-    memory_blocks = []
-
-    if final_name:
-        memory_blocks.append("PERMANENT MEMORY - USER IDENTITY: The user's name is: " + final_name + ". You have spoken with this user before. ALWAYS address them by name: " + final_name + ". If they ask who am I, what is my name, siapa aku, nama saya - answer EXACTLY: You are " + final_name + ". NEVER say you don't know their name.")
-
-    if memory_summary and memory_summary.strip():
-        memory_blocks.append("CONVERSATION HISTORY: " + memory_summary[:300])
-
-    if not final_name:
-        memory_blocks.append("PERMANENT MEMORY - USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
-
-    personality = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["REBEL"])
-    enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it - answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., \"my name is X\", \"call me X\", \"I am X\"), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name."
-
-    separator = chr(10) + chr(10)
-    full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement
-
-    payload = {
-        "model": "deepseek-chat",
-        "messages": [{"role": "system", "content": full_system}, *messages],
-        "temperature": 0.3,
-        "max_tokens": 800
-    }
-
-    try:
-        res = requests.post(AI_API_URL,
-            headers={"Authorization": f"Bearer {AI_API_KEY}", "Content-Type": "application/json"},
-            json=payload, timeout=30)
-        if res.status_code == 200:
-            data = res.json()
-            return data["choices"][0]["message"]["content"]
-        print(f"[AI] Error: {res.status_code}")
-        return None
-    except Exception as e:
-        print(f"[AI] API error: {e}")
-        return None
-
-# ═══════════════════════════════════════════════════════════════
-# API ROUTES - EXISTING
-# ═══════════════════════════════════════════════════════════════
-
-@app.route("/api/health", methods=["GET"])
-def health():
-    return jsonify({
-        "status": "RIOT Chat Wallet API v2.3 - WALRUS PRIMARY",
-        "mainnet": "mainnet",
-        "database": "PostgreSQL" if not USE_SQLITE else "SQLite (CACHE)",
-        "encryption": "enabled (encrypt+compress)",
-        "memory_system": "Walrus primary, DB cache",
-        "walrus": "mainnet",
-        "on_chain": "enabled",
-        "timestamp": datetime.now().isoformat()
-    })
-
-@app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
     print(f"[API] Load: {wallet_hash}")
     profile = get_or_create_profile(wallet_hash)
