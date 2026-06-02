@@ -663,6 +663,7 @@ def load_memory(wallet_hash):
     
     print(f"[LOAD_MEMORY] {wallet_hash}: blob_history={len(memory['blob_history'])} entries, visited={len(memory['visited_agents'])} agents, name='{memory['user_name']}'")
     return memory
+@app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
     print(f"[API] Load: {wallet_hash}")
     profile = get_or_create_profile(wallet_hash)
@@ -967,6 +968,33 @@ def walrus_save():
 
 
 @app.route("/api/walrus/read/<blob_id>", methods=["GET"])
+def walrus_read(blob_id):
+    """Read and decrypt blob from Walrus"""
+    try:
+        # Walrus aggregator URLs
+        aggregators = [
+            f"https://aggregator.walrus-testnet.com/v1/{blob_id}",
+            f"https://wal-aggregator-testnet.stardust-network.com/v1/{blob_id}",
+            f"https://walrus-testnet.blob.store/v1/{blob_id}"
+        ]
+        for url in aggregators:
+            try:
+                r = requests.get(url, timeout=10)
+                if r.status_code == 200:
+                    try:
+                        data = r.json()
+                    except:
+                        data = r.text
+                    return data
+            except:
+                continue
+        print(f"[WALRUS_READ] Failed to read {blob_id}")
+        return None
+    except Exception as e:
+        print(f"[WALRUS_READ] Error: {e}")
+        return None
+
+
 def walrus_read_direct(blob_id):
     """Read blob from Walrus via backend"""
     try:
