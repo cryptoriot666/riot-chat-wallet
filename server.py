@@ -731,3 +731,34 @@ def save_memory_route():
         "visited_agents": result.get("visited_agents", []),
         "cost_sui": result.get("cost_sui", 0),
         "source": result.get("source", "unknown")
+    }), 200
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    data = request.json
+    agent_id = data.get("agent_id", "J4")
+    messages = data.get("messages", [])
+    memory_summary = data.get("memory_summary", "")
+    user_name = data.get("user_name", "")
+    wallet_hash = data.get("wallet_hash", "")
+
+    conn = get_db_conn()
+    c = conn.cursor()
+    if USE_SQLITE:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
+    else:
+        c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+    row = c.fetchone()
+    conn.close()
+
+    db_name = row[0] if row else ""
+    final_name = db_name or user_name or ""
+
+    response = call_deepseek(agent_id, messages, memory_summary, final_name, wallet_hash)
+
+    if response:
+        return jsonify({"response": response, "source": "ai", "name_used": final_name})
+    return jsonify({"response": f"I'm {agent_id}. Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
+
+
+@app.route("/api/profile/get/<wallet_hash>", methods=["GET"])
