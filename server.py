@@ -831,18 +831,28 @@ def save_memory(wallet_hash, data):
 
     try:
         print(f"[SAVE_MEMORY] Storing to Walrus for {wallet_hash}...")
-        resp = requests.post("https://publisher.walrus-testnet.com/v1/store?epochs=5",
-                             json=walrus_payload, timeout=30)
-        if resp.status_code == 200:
-            result = resp.json()
-            if "newlyCreated" in result:
-                blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                print(f"[SAVE_MEMORY] Stored new blob: {blob_id}")
-            elif "alreadyCertified" in result:
-                blob_id = result["alreadyCertified"]["blobId"]
-                print(f"[SAVE_MEMORY] Already certified: {blob_id}")
-        else:
-            print(f"[SAVE_MEMORY] Walrus HTTP {resp.status_code}: {resp.text[:200]}")
+        # Try mainnet first, fallback to testnet
+        for url in [
+            "https://publisher.walrus-mainnet.walrus.space/v1/store?epochs=5",
+            "https://publisher.walrus-testnet.walrus.space/v1/store?epochs=5"
+        ]:
+            try:
+                resp = requests.post(url, json=walrus_payload, timeout=15)
+                if resp.status_code == 200:
+                    result = resp.json()
+                    if "newlyCreated" in result:
+                        blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                        print(f"[SAVE_MEMORY] Stored new blob: {blob_id}")
+                    elif "alreadyCertified" in result:
+                        blob_id = result["alreadyCertified"]["blobId"]
+                        print(f"[SAVE_MEMORY] Already certified: {blob_id}")
+                    if blob_id:
+                        break
+                else:
+                    print(f"[SAVE_MEMORY] Walrus HTTP {resp.status_code} from {url}")
+            except Exception as e2:
+                print(f"[SAVE_MEMORY] {url} failed: {e2}")
+                continue
     except Exception as e:
         print(f"[SAVE_MEMORY] Walrus store failed: {e}")
 
