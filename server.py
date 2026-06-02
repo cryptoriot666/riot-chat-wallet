@@ -46,6 +46,14 @@ def get_sui_balance_tatum(address):
 app = Flask(__name__)
 CORS(app, origins=["*"], supports_credentials=False)
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
+
+
 # ═══════════════════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════════════════
@@ -727,16 +735,22 @@ def save_memory(wallet_hash, data):
     blob_id = ""
     blob_network = "mainnet"
     try:
+        print(f"[SAVE_MEMORY] Storing to Walrus for {wallet_hash}...")
         resp = requests.post("https://publisher.walrus-testnet.com/v1/store?epochs=5",
                              json=walrus_payload, timeout=30)
         if resp.status_code == 200:
             result = resp.json()
             if "newlyCreated" in result:
                 blob_id = result["newlyCreated"]["blobObject"]["blobId"]
+                print(f"[SAVE_MEMORY] Stored new blob: {blob_id}")
             elif "alreadyCertified" in result:
                 blob_id = result["alreadyCertified"]["blobId"]
+                print(f"[SAVE_MEMORY] Already certified: {blob_id}")
+        else:
+            print(f"[SAVE_MEMORY] Walrus HTTP {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
         print(f"[SAVE_MEMORY] Walrus store failed: {e}")
+        # Continue anyway - save to DB without blob_id
 
     conn = get_db_conn()
     c = conn.cursor()
