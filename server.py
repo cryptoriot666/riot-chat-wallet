@@ -947,34 +947,41 @@ def save_memory(wallet_hash, data):
 
 @app.route("/api/memory/save", methods=["POST"])
 def save_memory_route():
-    data = request.json
-    wallet_hash = data.get("wallet_hash")
-    if not wallet_hash:
-        return jsonify({"error": "wallet_hash required"}), 400
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        wallet_hash = data.get("wallet_hash")
+        if not wallet_hash:
+            return jsonify({"error": "wallet_hash required"}), 400
 
-    messages = data.get("messages", [])
-    extracted_name = extract_name_from_messages(messages)
+        messages = data.get("messages") or []
+        visited_agents_list = list(data.get("visited_agents") or [])
 
-    name_saved = ""
-    if extracted_name and extracted_name.strip():
-        update_profile_name(wallet_hash, extracted_name)
-        name_saved = extracted_name
-    elif data.get("user_name") and data["user_name"].strip():
-        update_profile_name(wallet_hash, data["user_name"])
-        name_saved = data["user_name"]
+        extracted_name = ""
+        try:
+            extracted_name = extract_name_from_messages(messages)
+        except Exception as e:
+            print(f"[SAVE_ROUTE] extract_name error: {e}")
 
-    result = save_memory(wallet_hash, data)
-    return jsonify({
-        "success": result["success"],
-        "blob_id": result.get("blob_id", ""),
-        "name_saved": name_saved,
-        "summary": result.get("summary", ""),
-        "visited_agents": result.get("visited_agents", []),
-        "cost_sui": result.get("cost_sui", 0),
-        "source": result.get("source", "unknown")
-    })
+        name_saved = ""
+        try:
+            if extracted_name and str(extracted_name).strip():
+                update_profile_name(wallet_hash, extracted_name)
+                name_saved = extracted_name
+            elif data.get("user_name") and str(data["user_name"]).strip():
+                update_profile_name(wallet_hash, data["user_name"])
+                name_saved = data["user_name"]
+        except Exception as e:
+            print(f"[SAVE_ROUTE] profile update error: {e}")
 
-
+        result = save_memory(wallet_hash, data)
+        if not isinstance(result, dict):
+            result = {"success": False, "blob_id": "", "summary": "", "visited_agents": visited_agents_list, "cost_sui": 0, "source": "error"}
+        return jsonify(result)
+    except Exception as e:
+        print(f"[SAVE_ROUTE] UNHANDLED ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e), "blob_id": "", "summary": "", "visited_agents": visited_agents_list if 'visited_agents_list' in dir() else [], "cost_sui": 0, "source": "crash"}), 500
 @app.route("/api/chat", methods=["POST"])
 def chat():
     data = request.get_json(force=True, silent=True) or {}
