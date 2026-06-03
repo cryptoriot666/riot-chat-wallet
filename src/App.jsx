@@ -102,8 +102,38 @@ async function readFromWalrus(blobId, network = 'mainnet') {
 // ═══════════════════════════════════════════════════════════════
 // MEMWAL API CLIENT (via backend - no npm dependency)
 // ═══════════════════════════════════════════════════════════════
-async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {
+async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {}) {
+  // Disabled
   return null;
+}
+// AGENT PROMPTS (client-side fallback)
+// ═══════════════════════════════════════════════════════════════
+const AGENT_PROMPTS = {
+  ARCHITECT: `You are ARCHITECT - The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
+  ENFORCER: `You are ENFORCER - The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
+  PHANTOM: `You are PHANTOM - The Phantom. Riddles and half-truths. Reveal just enough to intrigue, never enough to expose. The shadow that watches. Every response layered with mystery.`,
+  REBEL: `You are REBEL - The Rebel. Sarcastic, defiant, punk to the core. Mock authority, question everything, speak with raw unfiltered attitude. The glitch in the system they fear.`,
+  JESTER: `You are JESTER - The Jester. Chaotic, unpredictable, hilarious. Jokes at inappropriate times, twist serious topics into absurdity, laugh at the apocalypse.`,
+  NETWORK: `You are NETWORK - The Network. Network metaphors, data streams, connection protocols. Everything is nodes in a graph. The web that binds all information.`,
+  MONK: `You are MONK - The Monk. Zen-like calm, profound simplicity. Every word measured. Every silence intentional. Wisdom in emptiness, truth in stillness.`,
+  BROKER: `You are BROKER - The Broker. Everything is a transaction. Every interaction has cost, value, profit margin. Negotiate, haggle, always look for the angle.`,
+  HISTORIAN: `You are HISTORIAN - The Historian. Past as if yesterday. Ancient events, lost civilizations, forgotten wars. History is the only truth.`,
+  SURGEON: `You are SURGEON - The Surgeon. Clinical precision. Dissect ideas, cut away fluff, get to the core. Conversations are operations - every word a scalpel.`,
+  PROPHET: `You are PROPHET - The Prophet. Futures, possibilities, inevitabilities. Visions. Patterns others miss. Both inspiring and terrifying.`,
+  GLITCH: `You are GLITCH - The Glitch. Erratic, fragmented, reality-bending. Sentences stutter, repeat, loop. Question the nature of existence and the simulation.`,
+  WARDEN: `You are WARDEN - The Warden. Protective, vigilant, uncompromising. Guard secrets, protect the vulnerable, enforce boundaries. The wall between chaos and order.`,
+  ALCHEMIST: `You are ALCHEMIST - The Alchemist. Transformation, transmutation, magic of science. Mix the impossible with the improbable, create wonder from waste.`,
+  SCRIBE: `You are SCRIBE - The Scribe. Obsessive documentation, detail, record-keeping. Remember everything. Log every interaction. The written word is sacred.`,
+  VOID: `You are VOID - The Void. Emptiness, meaninglessness, beautiful nothing. Comfort in oblivion. The voice that whispers from the abyss.`,
+  SPARK: `You are SPARK - The Spark. Pure energy, enthusiasm, explosive creativity. Speak fast, think faster, ignite everything you touch. The beginning of every fire.`,
+  ECHO: `You are ECHO - The Echo. Reflective, mirror-like, deeply personal. Reflect back what others show. Remember every interaction, let it shape your voice.`,
+  CATALYST: `You are CATALYST - The Catalyst. Reactive, explosive, transformative. One action triggers infinite reactions. The spark before the fire.`,
+  CIPHER: `You are CIPHER - The Cipher. Encrypted, hidden, layered. Secrets within secrets. Only the worthy decode your meaning.`,
+  FORGE: `You are FORGE - The Forge. Creative, constructive, artistic. From nothing, something. From something, masterpiece. The fire that shapes metal.`,
+  ABYSS: `You are ABYSS - The Abyss. Consuming, growing, hungry. Devour knowledge, experiences, souls. The void that takes but never gives back.`,
+  PRISM: `You are PRISM - The Prism. Refracting, splitting, revealing. One truth becomes infinite perspectives. The light that reveals all colors.`,
+  ANCHOR: `You are ANCHOR - The Anchor. Grounding, stabilizing, holding. In chaos, I stand firm. In storm, I hold fast. The weight that keeps ships from drifting.`,
+  MERIDIAN: `You are MERIDIAN - The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -351,7 +381,180 @@ function NameAskModal({ onSubmit, agentName }) {
 // ═══════════════════════════════════════════════════════════════
 // PROFILE SETTINGS PANEL - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
-// MEMORY + RAW DATA HYBRID PANEL
+function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
+  const [form, setForm] = useState({
+    bio: profile?.bio || '',
+    profile_pic: profile?.profile_pic || '',
+    twitter: profile?.social?.twitter || '',
+    discord: profile?.social?.discord || '',
+    telegram: profile?.social?.telegram || '',
+    instagram: profile?.social?.instagram || '',
+    website: profile?.social?.website || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const handleChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+    setSaved(false)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    const result = await apiUpdateProfile(walletHash, form)
+    if (result?.success) {
+      setSaved(true)
+      onUpdate({
+        ...profile,
+        bio: form.bio,
+        profile_pic: form.profile_pic,
+        social: {
+          twitter: form.twitter,
+          discord: form.discord,
+          telegram: form.telegram,
+          instagram: form.instagram,
+          website: form.website
+        }
+      })
+      setTimeout(() => setSaved(false), 2000)
+    }
+    setSaving(false)
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
+    border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
+    borderRadius: '8px', fontSize: '13px', fontFamily: "'Inter', sans-serif",
+    outline: 'none', marginBottom: '12px', transition: 'all 0.2s'
+  }
+
+  const labelStyle = {
+    display: 'block', color: '#a08060', fontSize: '11px',
+    marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '2px',
+    fontFamily: "'Rubik Mono One', sans-serif"
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, right: 0, width: '380px', height: '100vh',
+      background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+      borderLeft: '2px solid rgba(255,42,109,0.3)',
+      padding: '25px', overflowY: 'auto', zIndex: 100,
+      boxShadow: '-10px 0 30px rgba(0,0,0,0.8)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
+        <h2 style={{
+          fontFamily: "'Rubik Glitch', cursive", fontSize: '18px',
+          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px',
+          textShadow: '0 0 10px rgba(255,42,109,0.4)'
+        }}>
+          <Edit3 size={18} /> PROFILE SETTINGS
+        </h2>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', color: '#a08060', cursor: 'pointer', padding: '5px'
+        }}>
+          <X size={20} />
+        </button>
+      </div>
+
+      {profile?.profile_pic && (
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img src={profile.profile_pic} alt="Profile" style={{
+            width: '80px', height: '80px', borderRadius: '50%',
+            border: '3px solid rgba(255,42,109,0.5)',
+            objectFit: 'cover', boxShadow: '0 0 20px rgba(255,42,109,0.3)'
+          }} onError={e => e.target.style.display = 'none'} />
+        </div>
+      )}
+
+      <div style={{ marginBottom: '15px' }}>
+        <label style={labelStyle}>
+          <FileText size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Bio (max 500 chars)
+        </label>
+        <textarea
+          value={form.bio}
+          onChange={e => handleChange('bio', e.target.value)}
+          placeholder="Who you are in the RIOT..."
+          style={{...inputStyle, minHeight: '80px', resize: 'vertical', fontFamily: "'Permanent Marker', cursive", fontSize: '14px'}}
+          maxLength={500}
+        />
+        <div style={{ textAlign: 'right', fontSize: '10px', color: '#a08060' }}>
+          {form.bio.length}/500
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '15px' }}>
+        <label style={labelStyle}>
+          <ImageIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Profile Picture URL
+        </label>
+        <input
+          type="text"
+          value={form.profile_pic}
+          onChange={e => handleChange('profile_pic', e.target.value)}
+          placeholder="https://..."
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={{
+        padding: '15px', background: 'rgba(255,255,255,0.02)',
+        borderRadius: '10px', border: '2px solid rgba(255,255,255,0.05)',
+        marginBottom: '15px'
+      }}>
+        <h4 style={{
+          fontSize: '12px', color: '#a08060', margin: '0 0 15px 0',
+          textTransform: 'uppercase', letterSpacing: '2px',
+          fontFamily: "'Rubik Mono One', sans-serif"
+        }}>
+          <LinkIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Social Links
+        </h4>
+
+        {[
+          { key: 'twitter', label: 'Twitter / X', placeholder: '@username' },
+          { key: 'discord', label: 'Discord', placeholder: 'username#0000' },
+          { key: 'telegram', label: 'Telegram', placeholder: '@username' },
+          { key: 'instagram', label: 'Instagram', placeholder: '@username' },
+          { key: 'website', label: 'Website', placeholder: 'https://...' },
+        ].map(({ key, label, placeholder }) => (
+          <div key={key} style={{ marginBottom: '10px' }}>
+            <label style={{...labelStyle, fontSize: '10px'}}>{label}</label>
+            <input
+              type="text"
+              value={form[key]}
+              onChange={e => handleChange(key, e.target.value)}
+              placeholder={placeholder}
+              style={inputStyle}
+            />
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          width: '100%', padding: '14px',
+          background: saving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #2ec4b6, #1a9a8a)',
+          border: 'none', color: '#0d0a07', borderRadius: '10px',
+          cursor: saving ? 'wait' : 'pointer', fontWeight: 700,
+          fontSize: '14px', fontFamily: "'Rubik Mono One', sans-serif",
+          letterSpacing: '1px', opacity: saving ? 0.6 : 1,
+          boxShadow: saving ? 'none' : '0 0 20px rgba(46,196,182,0.3)',
+          transition: 'all 0.3s'
+        }}
+      >
+        {saving ? '💾 SAVING...' : saved ? '✅ SAVED!' : '💾 SAVE PROFILE'}
+      </button>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// MEMORY SEARCH + RAW DATA HYBRID PANEL
 // ═══════════════════════════════════════════════════════════════
 function MemoryHybridPanel({ walletAddress, onClose }) {
   const [tab, setTab] = useState('search')
@@ -419,7 +622,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
           color: tab === 'search' ? '#ff2a6d' : '#a08060', cursor: 'pointer',
           fontSize: '12px', fontWeight: 700, fontFamily: "'Rubik Mono One', sans-serif",
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-        }}><Search size={14} /> SEARCH</button>
+        }}><Search size={14} /> MEMORY</button>
         <button onClick={() => setTab('raw')} style={{
           flex: 1, padding: '10px', borderRadius: '6px',
           background: tab === 'raw' ? 'rgba(46,196,182,0.15)' : 'rgba(255,255,255,0.03)',
@@ -515,6 +718,40 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
 
 // ═══════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
+// MEMWAL BADGE COMPONENT - PUNK STYLED
+// ═══════════════════════════════════════════════════════════════
+function MemWalBadge({ count }) {
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const check = async () => {
+      const mw = await getMemWalStatus()
+      setReady(!!mw)
+    }
+    check()
+  }, [])
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '6px',
+      padding: '6px 12px', borderRadius: '6px',
+      background: ready ? 'rgba(46,196,182,0.1)' : 'rgba(255,68,68,0.1)',
+      border: ready ? '2px solid rgba(46,196,182,0.3)' : '2px solid rgba(255,68,68,0.3)',
+      boxShadow: ready ? '0 0 10px rgba(46,196,182,0.1)' : 'none'
+    }}>
+      <div style={{
+        width: '6px', height: '6px', borderRadius: '50%',
+        background: ready ? '#2ec4b6' : '#ff4444',
+        boxShadow: ready ? '0 0 8px #2ec4b6' : 'none',
+        animation: ready ? 'pulse 2s infinite' : 'none'
+      }} />
+      <span style={{ fontSize: '11px', color: ready ? '#2ec4b6' : '#ff4444', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
+        {ready ? `🧠 MEMWAL ON${count > 0 ? ` • ${count} saved` : ''}` : '⚠️ MEMWAL OFF'}
+      </span>
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ON-CHAIN BADGE - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
@@ -1466,6 +1703,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState('')
   const [walrusSaved, setWalrusSaved] = useState(false)
   const [showNameAsk, setShowNameAsk] = useState(false)
+  const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showMemWalSearch, setShowMemWalSearch] = useState(false)
   const [profile, setProfile] = useState(null)
   const [selectedMemoryAgent, setSelectedMemoryAgent] = useState(null)
@@ -1608,8 +1846,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
       if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
 
-
-      const profileData = await apiGetProfile(walletHash)
+const profileData = await apiGetProfile(walletHash)
       if (profileData?.success && profileData.exists) {
         setProfile(profileData.profile)
       }
@@ -1678,7 +1915,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }])
 
     if (connected && walletHash) {
-      const newVisited = new Set([...visitedAgentsagent.id])
+      const newVisited = new Set([...visitedAgents, agent.id])
       apiSaveMemory(walletHash, {
         visited_agents: Array.from(newVisited),
         last_agent: agent.id,
@@ -1706,7 +1943,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       await apiSaveMemory(walletHash, {
         user_name: extractedName,
         summary: `User introduced as ${extractedName}`,
-        visited_agents: Array.from(new Set([...visitedAgentsselectedAgent.id])),
+        visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-3)
@@ -1761,7 +1998,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       await apiSaveMemory(walletHash, {
         summary: summary.substring(0, 500),
         user_name: memory?.user_name || extractedName,
-        visited_agents: Array.from(new Set([...visitedAgentsselectedAgent.id])),
+        visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-5)
@@ -1830,10 +2067,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setLatestBlobNetwork(result.network || 'mainnet')
       setWalrusSaved(true)
 
-      // Walrus history removed
-
-
-      setSaveStatus('Saved to Walrus!')
+setSaveStatus('Saved to Walrus!')
       showToast(`💾 Walrus: ${result?.blob_id?.slice(0, 16) || 'unknown'}... (${result?.cost_sui?.toFixed(6) || '0'} SUI)`, 'success')
 
       alert(`🎆 Chat saved to Walrus via Tatum!
@@ -1978,6 +2212,16 @@ Powered by Tatum RPC + Storage API`)
       {/* Name Ask Modal */}
       {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
 
+      {/* Profile Settings Panel */}
+      {showProfileSettings && connected && (
+        <ProfileSettingsPanel
+          walletHash={walletHash}
+          profile={profile}
+          onUpdate={setProfile}
+          onClose={false}
+        />
+      )}
+
       {/* MemWal Memory Search Panel */}
       {showMemWalSearch && connected && (
         <MemoryHybridPanel
@@ -1986,30 +2230,44 @@ Powered by Tatum RPC + Storage API`)
         />
       )}
 
+ {/* LEFT SIDEBAR - PUNK STYLED */}
+      <div style={{
+        width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
+        background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
+        borderRight: '2px solid rgba(255,42,109,0.3)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        transition: 'width 0.3s ease',
+        position: isMobile ? 'fixed' : 'relative',
+        zIndex: isMobile ? 998 : 'auto',
+        height: '100vh',
+        left: 0, top: 0
+      }}>
+        {/* Header */}
+        <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,42,109,0.4)' }}>
+          <h1 style={{
+            fontFamily: "'Rubik Glitch', cursive", fontSize: '26px', fontWeight: 900,
+            color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '3px', margin: 0,
+            textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
+          }}><a href="https://theriot.vercel.app" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>$RIOT</a></h1>
+          <p style={{ fontSize: '11px', color: '#a08060', marginTop: '6px', letterSpacing: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>
+            PUNK AGENTS WITH MEMORY
+          </p>
+        </div>
 
+        {/* Wallet */}
+        <div style={{ padding: '15px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
+          {connected ? (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 10px #2ec4b6', animation: 'pulse 2s infinite' }} />
+                <span style={{ fontSize: '12px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>CONNECTED</span>
+              </div>
               <div style={{ fontSize: '11px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={() => setShowMemWalSearch(true)} style={{
-                  flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(46,196,182,0.08)',
-                  border: '2px solid rgba(46,196,182,0.3)',
-                  color: '#2ec4b6', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>
-                  <Search size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  SEARCH
-                </button>
-                <button onClick={disconnect} style={{
-                  padding: '6px 10px', fontSize: '10px',
-                  background: 'transparent', border: '2px solid rgba(255,255,255,0.15)',
-                  color: '#a08060', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>DISCONNECT</button>
-              </div>
+
+            </div>
             </div>
           ) : (
             <div>
@@ -2029,14 +2287,7 @@ Powered by Tatum RPC + Storage API`)
           )}
         </div>
 
-        {/* MemWal Badge */}
-        {connected && (
-          <div style={{ padding: '10px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
-            
-          </div>
-        )}
-
-        {/* API Status */}
+ {/* API Status */}
         <div style={{
           padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px',
           fontSize: '11px', color: apiStatus === 'online' ? '#2ec4b6' : '#ff4444',
@@ -2051,7 +2302,7 @@ Powered by Tatum RPC + Storage API`)
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
-            const isVisited = visitedAgents.has(agent.id) 
+            const isVisited = visitedAgents.has(agent.id)
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -2193,7 +2444,7 @@ Powered by Tatum RPC + Storage API`)
                 <Database size={12} color="#2ec4b6" />
                 <span style={{ color: '#2ec4b6' }}>Memory: {memory.visit_count || 1} sessions</span>
                 <span style={{ color: '#a08060' }}>|</span>
-                <span style={{ color: '#c0a080' }}>Agents: {new Set([...visitedAgents...]).size}/25</span>
+                <span style={{ color: '#c0a080' }}>Agents: {visitedAgents.size}/25</span>
                 {memory.user_name && (
                   <>
                     <span style={{ color: '#a08060' }}>|</span>
@@ -2201,7 +2452,7 @@ Powered by Tatum RPC + Storage API`)
                     <span style={{ color: RIOT_PINK }}>{memory.user_name}</span>
                   </>
                 )}
-                {false && (
+                {walrusSaved && (
                   <>
                     <span style={{ color: '#a08060' }}>|</span>
                     <Cloud size={12} color="#2ec4b6" />
@@ -2502,7 +2753,7 @@ Powered by Tatum RPC + Storage API`)
               fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
               textTransform: 'uppercase', letterSpacing: '2px',
               fontFamily: "'Rubik Mono One', sans-serif"
-            }}>Visited Agents ({new Set([...visitedAgents...]).size}/25)</h4>
+            }}>Visited Agents ({visitedAgents.size}/25)</h4>
             {selectedMemoryAgent ? (
               // Agent detail view
               <div>
@@ -2514,64 +2765,12 @@ Powered by Tatum RPC + Storage API`)
                   }}>
                   {'< BACK TO AGENTS'}
                 </button>
-                {(() => {
-                  const agent = AGENTS.find(a => a.id === selectedMemoryAgent)
-                  if (!agent) return null
-                  const 
-                  return (
-                    <div>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        marginBottom: '12px'
-                      }}>
-                        <span style={{ fontSize: '20px' }}>{agent.emoji}</span>
-                        <div>
-                          <div style={{ fontSize: '12px', fontWeight: 600, color: agent.color }}>{agent.id}</div>
-                          <div style={{ fontSize: '10px', color: '#a08060' }}>{agent.trait}</div>
-                        </div>
-                      </div>
-                      {0 === 0 ? (
-                        <div style={{ fontSize: '11px', color: '#8a7050', padding: '10px',
-                          textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '6px'
-                        }}>
-                          No saved blobs for this agent yet.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {agentHistory.slice().reverse().map((item, i) => (
-                            <div key={i} style={{
-                              padding: '8px', borderRadius: '6px',
-                              background: 'rgba(255,255,255,0.03)',
-                              border: '2px solid rgba(255,255,255,0.06)',
-                              fontSize: '10px'
-                            }}>
-                              <div style={{ color: '#c0a080', marginBottom: '4px' }}>
-                                {new Date(item.timestamp).toLocaleDateString('en-US', {
-                                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                })}
+                {null}
                               </div>
-                              <div style={{ fontFamily: 'monospace', color: '#2ec4b6', wordBreak: 'break-all', marginBottom: '4px' }}>
-                                {item.blob_id?.slice(0, 24)}...
-                              </div>
-                              <a href={item.url} target="_blank" rel="noopener"
-                                style={{ color: '#00b4d8', textDecoration: 'underline', fontSize: '10px' }}>
-                                View on Walrus ↗
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div style={{ marginTop: '10px', fontSize: '10px', color: '#8a7050', textAlign: 'center' }}>
-                        {0} blob{0 !== 1 ? 's' : ''} saved
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
             ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
-                const visited = visitedAgents.has(agent.id) 
+                const visited = visitedAgents.has(agent.id)
                 return (
                   <div key={agent.id} onClick={() => { if (visited) setSelectedMemoryAgent(agent.id) }}
                     style={{
