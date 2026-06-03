@@ -4,8 +4,10 @@
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_App-riot--chat--wallet--temp.vercel.app-000?logo=vercel&style=for-the-badge)](https://riot-chat-wallet-temp.vercel.app)
-[![Landing Page](https://img.shields.io/badge/📄_Landing_Page-View_on_GitHub-ff6b35?style=for-the-badge)](https://github.com/cryptoriot666/riot-chat-wallet/blob/master/landing.html)
+[![Live App](https://img.shields.io/badge/🚀_Live_App-riot--chat--wallet--temp.vercel.app-000?logo=vercel&style=for-the-badge)](https://riot-chat-wallet-temp.vercel.app)
+[![Landing Page](https://img.shields.io/badge/🎸_Landing_Page-theriot.vercel.app-ff6b35?style=for-the-badge)](https://theriot.vercel.app)
+[![App Repo](https://img.shields.io/badge/📦_App_Repo-GitHub-181717?style=for-the-badge)](https://github.com/cryptoriot666/riot-chat-wallet)
+[![Landing Repo](https://img.shields.io/badge/🎨_Landing_Repo-GitHub-181717?style=for-the-badge)](https://github.com/cryptoriot666/the-riot-sui)
 
 [![Tatum](https://img.shields.io/badge/Tatum-100k_Credits_Used-ff69b4?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMjJjNS41MjMgMCAxMC00LjQ3NyAxMC0xMFMxNy41MjMgMiAxMiAyIDIgNi40NzcgMiAxMnM0LjQ3NyAxMCAxMCAxMHoiLz48cGF0aCBkPSJNMTIgNnY2bDQgMiIvPjwvc3ZnPg==)](https://tatum.io)
 [![Walrus](https://img.shields.io/badge/Walrus-Immutable_Blobs-00ff88)](https://www.walrus.xyz)

@@ -64,10 +64,11 @@
 ---
 
 ## Live Demo Links
-- **Landing Page:** https://github.com/cryptoriot666/riot-chat-wallet/blob/master/landing.html
+- **Landing Page:** https://theriot.vercel.app
 - **App:** https://riot-chat-wallet-temp.vercel.app
 - **Backend API:** https://riot-chat-wallet.onrender.com
-- **GitHub:** https://github.com/cryptoriot666/riot-chat-wallet
+- **App Repo:** https://github.com/cryptoriot666/riot-chat-wallet
+- **Landing Repo:** https://github.com/cryptoriot666/the-riot-sui
 - **Walrus Explorer:** https://aggregator.walrus-testnet.walrus.space
 
 ---
