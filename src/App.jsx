@@ -641,29 +641,43 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MEMORY SEARCH PANEL (MemWal Semantic Search) - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
-function MemorySearchPanel({ walletAddress, onClose }) {
+// MEMORY SEARCH + RAW DATA HYBRID PANEL
+// ═══════════════════════════════════════════════════════════════
+function MemoryHybridPanel({ walletAddress, onClose }) {
+  const [tab, setTab] = useState('search')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
-  const [memwalReady, setMemwalReady] = useState(false)
+  const [rawData, setRawData] = useState(null)
+  const [rawLoading, setRawLoading] = useState(false)
 
   useEffect(() => {
-    const check = async () => {
-      const mw = await getMemWalStatus()
-      setMemwalReady(!!mw)
-    }
-    check()
-  }, [])
+    if (tab === 'raw') loadRawData()
+  }, [tab])
+
+  const loadRawData = async () => {
+    setRawLoading(true)
+    try {
+      const wc = localStorage.getItem('last_wallet_hash') || walletAddress || 'nanda'
+      const res = await fetch(API_BASE + '/api/memory/load/' + wc)
+      setRawData(await res.json())
+    } catch (e) { setRawData({error: e.message}) }
+    setRawLoading(false)
+  }
 
   const handleSearch = async (e) => {
     e.preventDefault()
     if (!query.trim()) return
-
     setLoading(true)
-    const searchResults = await memwalSearch(query, 5)
-    setResults(searchResults)
+    try {
+      const res = await fetch(API_BASE + '/api/memwal/search', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({query, wallet_hash: walletAddress || '', limit: 10})
+      })
+      setResults((await res.json()).results || [])
+    } catch (e) { setResults([]) }
     setLoading(false)
   }
 
@@ -675,159 +689,122 @@ function MemorySearchPanel({ walletAddress, onClose }) {
       padding: '25px', overflowY: 'auto', zIndex: 100,
       boxShadow: '-10px 0 30px rgba(0,0,0,0.8)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <h2 style={{
           fontFamily: "'Rubik Glitch', cursive", fontSize: '18px',
           color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px',
           textShadow: '0 0 10px rgba(255,42,109,0.4)'
         }}>
-          <Search size={18} /> MEMORY SEARCH
+          <Brain size={18} /> MEMORY
         </h2>
         <button onClick={onClose} style={{
           background: 'none', border: 'none', color: '#a08060', cursor: 'pointer', padding: '5px'
-        }}>
-          <X size={20} />
-        </button>
+        }}><X size={20} /></button>
       </div>
 
-      <div style={{
-        padding: '10px 12px', borderRadius: '6px', marginBottom: '20px',
-        background: memwalReady ? 'rgba(46,196,182,0.08)' : 'rgba(255,68,68,0.08)',
-        border: memwalReady ? '2px solid rgba(46,196,182,0.3)' : '2px solid rgba(255,68,68,0.3)',
-        display: 'flex', alignItems: 'center', gap: '8px'
-      }}>
-        <div style={{
-          width: '8px', height: '8px', borderRadius: '50%',
-          background: memwalReady ? '#2ec4b6' : '#ff4444',
-          boxShadow: memwalReady ? '0 0 10px #2ec4b6' : 'none',
-          animation: memwalReady ? 'pulse 2s infinite' : 'none'
-        }} />
-        <span style={{ fontSize: '12px', color: memwalReady ? '#2ec4b6' : '#ff4444', fontWeight: 600 }}>
-          {memwalReady ? '🧠 MemWal Connected - Semantic Search Active' : '⚠️ MemWal Offline - Check credentials'}
-        </span>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <button onClick={() => setTab('search')} style={{
+          flex: 1, padding: '10px', borderRadius: '6px',
+          background: tab === 'search' ? 'rgba(255,42,109,0.15)' : 'rgba(255,255,255,0.03)',
+          border: tab === 'search' ? '2px solid rgba(255,42,109,0.3)' : '2px solid transparent',
+          color: tab === 'search' ? '#ff2a6d' : '#a08060', cursor: 'pointer',
+          fontSize: '12px', fontWeight: 700, fontFamily: "'Rubik Mono One', sans-serif",
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+        }}><Search size={14} /> SEARCH</button>
+        <button onClick={() => setTab('raw')} style={{
+          flex: 1, padding: '10px', borderRadius: '6px',
+          background: tab === 'raw' ? 'rgba(46,196,182,0.15)' : 'rgba(255,255,255,0.03)',
+          border: tab === 'raw' ? '2px solid rgba(46,196,182,0.3)' : '2px solid transparent',
+          color: tab === 'raw' ? '#2ec4b6' : '#a08060', cursor: 'pointer',
+          fontSize: '12px', fontWeight: 700, fontFamily: "'Rubik Mono One', sans-serif",
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+        }}><Database size={14} /> RAW DATA</button>
       </div>
 
-      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask about your memories... (e.g., 'What about Bitcoin?')"
-          style={{
-            flex: 1, padding: '12px 14px', background: 'rgba(255,255,255,0.03)',
-            border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
-            borderRadius: '8px', fontSize: '13px',
-            outline: 'none', fontFamily: "'Permanent Marker', cursive"
-          }}
-          onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.5)'}
-          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-        />
-        <button
-          type="submit"
-          disabled={loading || !query.trim()}
-          style={{
-            padding: '12px 16px',
-            background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-            border: 'none', color: '#fff', borderRadius: '8px',
-            cursor: loading ? 'wait' : 'pointer', fontSize: '12px',
-            fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-            boxShadow: loading ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
-          }}
-        >
-          {loading ? '...' : 'Search'}
-        </button>
-      </form>
+      {tab === 'search' && (
+        <>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <input type="text" value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search conversations... (e.g., Bitcoin)"
+              style={{ flex: 1, padding: '12px 14px', background: 'rgba(255,255,255,0.03)',
+                border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
+                borderRadius: '8px', fontSize: '13px', outline: 'none',
+                fontFamily: "'Permanent Marker', cursive" }}
+              onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.5)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+            <button type="submit" disabled={loading || !query.trim()} style={{
+              padding: '12px 16px',
+              background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
+              border: 'none', color: '#fff', borderRadius: '8px',
+              cursor: loading ? 'wait' : 'pointer', fontSize: '12px',
+              fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+              boxShadow: loading ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
+            }}>{loading ? '...' : <Search size={14} />}</button>
+          </form>
 
-      <div style={{ fontSize: '11px', color: '#a08060', marginBottom: '20px', lineHeight: '1.5' }}>
-        <Brain size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-        Powered by MemWal vector embeddings on Walrus. Search by <strong style={{color: RIOT_PINK}}>meaning</strong>, not keywords.
-        <br />Example: "crypto" finds "Bitcoin" conversations too.
-      </div>
-
-      {results.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {results.map((r, i) => {
-            let data = {}
-            try { data = JSON.parse(r.text) } catch(e) {}
-            const relevance = Math.round((1 - (r.distance || 0)) * 100)
-            const agent = AGENTS.find(a => a.id === data.agent_id)
-
-            return (
-              <div key={i} style={{
-                padding: '14px', background: 'rgba(255,255,255,0.02)',
-                borderRadius: '10px', border: `2px solid ${agent?.color ? agent.color + '33' : 'rgba(255,255,255,0.08)'}`
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                      width: '8px', height: '8px', borderRadius: '50%',
-                      background: agent?.color || '#ff0044',
-                      boxShadow: `0 0 8px ${agent?.color || '#ff0044'}`
-                    }} />
-                    <span style={{ fontSize: '12px', color: agent?.color || '#ff0044', fontWeight: 700 }}>
-                      {agent?.name || data.agent_id || 'Unknown'}
-                    </span>
+          {results.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {results.map((r, i) => (
+                <div key={i} style={{ padding: '14px', background: 'rgba(255,255,255,0.02)',
+                  borderRadius: '10px', border: '2px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '12px', color: '#d0b090', lineHeight: '1.6' }}>
+                    {r.text?.slice(0, 300)}
                   </div>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700,
-                    color: relevance > 80 ? '#2ec4b6' : relevance > 50 ? '#ffb703' : '#ff4444'
-                  }}>
-                    {relevance}% match
-                  </span>
+                  <div style={{ fontSize: '10px', color: '#666', marginTop: '8px' }}>
+                    Score: {Math.round((1 - (r.distance || 0)) * 100)}%
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
 
-                <div style={{ fontSize: '12px', color: '#d0b090', lineHeight: '1.6', marginBottom: '8px' }}>
-                  {data.messages?.slice(-2).map((m, mi) => (
-                    <div key={mi} style={{ marginBottom: '6px' }}>
-                      <span style={{ color: m.role === 'user' ? '#ff2a6d' : '#a08060', fontWeight: 600 }}>
-                        {m.role === 'user' ? 'You' : agent?.name || 'Agent'}:
-                      </span>
-                      <span style={{ marginLeft: '6px' }}>
-                        {m.content?.slice(0, 100)}{m.content?.length > 100 ? '...' : ''}
-                      </span>
-                    </div>
-                  )) || <span style={{ color: '#666' }}>{r.text?.slice(0, 150)}...</span>}
-                </div>
+          {results.length === 0 && !loading && query && (
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <Search size={32} color="#333" />
+              <p style={{ color: '#666', fontSize: '13px', marginTop: '12px' }}>No memories found.</p>
+            </div>
+          )}
 
-                <div style={{ fontSize: '10px', color: '#a08060', display: 'flex', gap: '12px' }}>
-                  {data.timestamp && (
-                    <span>{new Date(data.timestamp).toLocaleString()}</span>
-                  )}
-                  {data.wallet_address && (
-                    <span style={{ fontFamily: 'monospace' }}>
-                      {data.wallet_address.slice(0, 6)}...{data.wallet_address.slice(-4)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+          {!query && !loading && (
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <Brain size={32} color="#333" />
+              <p style={{ color: '#666', fontSize: '13px', marginTop: '12px' }}>Search your memories</p>
+            </div>
+          )}
+        </>
       )}
 
-      {results.length === 0 && !loading && query && (
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <Search size={32} color="#333" style={{ marginBottom: '12px' }} />
-          <p style={{ color: '#666', fontSize: '13px' }}>No memories found.</p>
-          <p style={{ color: '#555', fontSize: '11px', marginTop: '8px' }}>
-            Try a different question. MemWal understands meaning, not just keywords.
-          </p>
-        </div>
-      )}
-
-      {!query && !loading && (
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <Brain size={32} color="#333" style={{ marginBottom: '12px' }} />
-          <p style={{ color: '#666', fontSize: '13px' }}>Search your encrypted memories</p>
-          <p style={{ color: '#555', fontSize: '11px', marginTop: '8px' }}>
-            Ask natural questions like "What did I ask about Bitcoin?" or "Tell me about my crypto questions"
-          </p>
+      {tab === 'raw' && (
+        <div>
+          {rawLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <p style={{ color: '#666', fontSize: '13px' }}>Loading raw data...</p>
+            </div>
+          ) : rawData ? (
+            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '8px',
+              padding: '16px', overflowX: 'auto' }}>
+              <pre style={{ fontSize: '11px', color: '#2ec4b6', lineHeight: '1.6',
+                fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>
+                {JSON.stringify(rawData, null, 2)}
+              </pre>
+            </div>
+          ) : (
+            <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '40px' }}>No data.</p>
+          )}
+          <button onClick={loadRawData} style={{
+            marginTop: '12px', padding: '10px 16px',
+            background: 'rgba(46,196,182,0.1)', border: '2px solid rgba(46,196,182,0.3)',
+            color: '#2ec4b6', borderRadius: '8px', cursor: 'pointer',
+            fontSize: '12px', fontFamily: "'Rubik Mono One', sans-serif"
+          }}><Database size={12} style={{marginRight: '6px'}} /> REFRESH</button>
         </div>
       )}
     </div>
   )
 }
 
+// ═══════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
 // MEMWAL BADGE COMPONENT - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
@@ -2358,7 +2335,7 @@ Powered by Tatum RPC + Storage API`)
 
       {/* MemWal Memory Search Panel */}
       {showMemWalSearch && connected && (
-        <MemorySearchPanel
+        <MemoryHybridPanel
           walletAddress={account?.address}
           onClose={() => setShowMemWalSearch(false)}
         />
