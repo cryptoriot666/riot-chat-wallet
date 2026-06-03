@@ -625,11 +625,15 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 
 
+
 function MemoryHybridPanel({ walletAddress, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedAgentBlobs, setSelectedAgentBlobs] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const WALRUS_AGG = "https://aggregator.walrus-testnet.walrus.space";
 
   useEffect(() => { loadData(); }, []);
@@ -645,6 +649,19 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
       setSelectedAgentBlobs(null);
     } catch (e) { setError(e.message); }
     setLoading(false);
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const wc = localStorage.getItem("last_wallet_hash") || walletAddress || "nanda";
+      const res = await fetch(API_BASE + "/api/memory/search/" + wc + "?q=" + encodeURIComponent(searchQuery));
+      const result = await res.json();
+      setSearchResults(result.results || []);
+    } catch (e) { setSearchResults([]); }
+    setSearching(false);
   };
 
   const findAgent = (id) => AGENTS.find(a => a.id === id);
@@ -681,40 +698,70 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
         <button onClick={onClose} style={{background:"none",border:"none",color:"#a08060",cursor:"pointer",padding:"5px"}}><X size={20} /></button>
       </div>
 
-      {/* USER PROFILE */}
-      <div style={{padding:"12px",background:"rgba(255,255,255,0.02)",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.06)",marginBottom:"14px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
-          <div>
-            <div style={{fontSize:"13px",color:RIOT_PINK,fontWeight:600}}>User Profile</div>
-            <div style={{fontSize:"11px",color:"#a08060"}}>Name: {data?.user_name || "nanda"}</div>
-            <div style={{fontSize:"10px",color:"#666",wordBreak:"break-all",fontFamily:"monospace"}}>ID: {data?.wallet_hash}</div>
-            <div style={{fontSize:"10px",color:"#666"}}>Sessions: {data?.visit_count}</div>
+      {/* SEARCH BAR */}
+      <form onSubmit={handleSearch} style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search memories by agent name..."
+          style={{flex:1,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"2px solid rgba(255,255,255,0.08)",color:"#fff",borderRadius:"6px",fontSize:"12px",outline:"none",fontFamily:"'Permanent Marker',cursive"}}
+          onFocus={e=>e.target.style.borderColor="rgba(255,42,109,0.5)"}
+          onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.08)"} />
+        <button type="submit" disabled={searching || !searchQuery.trim()}
+          style={{padding:"10px 14px",background:searching?"rgba(255,255,255,0.05)":"linear-gradient(135deg,#ff2a6d,#ff6b35)",border:"none",color:"#fff",borderRadius:"6px",cursor:searching?"wait":"pointer",fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif"}}>
+          <Search size={14} />
+        </button>
+      </form>
+
+      {/* SEARCH RESULTS */}
+      {searchResults.length > 0 && (
+        <div style={{marginBottom:"14px"}}>
+          <div style={{fontSize:"11px",color:"#2ec4b6",fontFamily:"'Rubik Mono One',sans-serif",marginBottom:"6px"}}>
+            RESULTS ({searchResults.length})
           </div>
-          {data?.latest_blob_id && (
-            <div style={{fontSize:"9px",color:"#2ec4b6",fontFamily:"monospace",textAlign:"right"}}>
-              Blob: {data.latest_blob_id.slice(0,16)}...
-            </div>
-          )}
+          <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"20vh",overflowY:"auto"}}>
+            {searchResults.map((item,i) => {
+              const agent = findAgent(item.agent_id);
+              return (
+                <div key={i} style={{padding:"6px",borderRadius:"4px",background:"rgba(46,196,182,0.03)",border:"1px solid rgba(46,196,182,0.15)",fontSize:"10px"}}>
+                  <span style={{color:"#ffd700",fontWeight:600}}>{agent?.emoji || ''} {item.agent_id}</span>
+                  <span style={{color:"#666",marginLeft:"6px",fontSize:"9px"}}>
+                    {new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+                  </span>
+                  <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px"}}>{item.blob_id}{' '}
+                    <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{color:"#00b4d8"}}>&nearr;</a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* USER PROFILE */}
+      <div style={{padding:"10px",background:"rgba(255,255,255,0.02)",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.06)",marginBottom:"12px"}}>
+        <div style={{fontSize:"11px",color:RIOT_PINK,fontWeight:600}}>User Profile</div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#a08060"}}>
+          <div>Name: {data?.user_name || "nanda"} · Sessions: {data?.visit_count}</div>
+          {data?.latest_blob_id && <div style={{fontFamily:"monospace",fontSize:"9px",color:"#2ec4b6"}}>Blob: {data.latest_blob_id.slice(0,12)}...</div>}
         </div>
       </div>
 
       {/* VISITED AGENTS */}
-      <div style={{marginBottom:"8px",fontSize:"12px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
+      <div style={{marginBottom:"6px",fontSize:"11px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
         VISITED AGENTS ({selectedAgentBlobs ? selectedAgentBlobs : visitedIds.length}/{AGENTS.length})
       </div>
 
       {!selectedAgentBlobs ? (
-        /* AGENT GRID */
-        <div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"14px"}}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"12px"}}>
           {AGENTS.map(agent => {
             const visited = visitedIds.includes(agent.id);
+            const hasBlobs = history.some(h => h.agent_id === agent.id);
             return (
               <button key={agent.id} onClick={() => setSelectedAgentBlobs(agent.id)}
                 style={{
                   padding:"4px 8px",borderRadius:"4px",fontSize:"10px",
                   fontFamily:"'Rubik Mono One',sans-serif",
                   background: visited ? agent.color + "22" : "rgba(255,255,255,0.02)",
-                  border: visited ? "2px solid " + agent.color : "2px solid transparent",
+                  border: hasBlobs ? "2px solid " + agent.color : "2px solid transparent",
                   color: visited ? agent.color : "#555",
                   cursor:"pointer",transition:"all 0.15s"
               }}>{agent.emoji} {agent.id}</button>
@@ -722,32 +769,23 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
           })}
         </div>
       ) : (
-        /* AGENT BLOB HISTORY */
-        <div style={{marginBottom:"14px"}}>
+        <div style={{marginBottom:"12px"}}>
           <button onClick={() => setSelectedAgentBlobs(null)}
-            style={{
-              background:"none",border:"none",color:"#a08060",cursor:"pointer",
-              fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif",
-              marginBottom:"8px",display:"flex",alignItems:"center",gap:"4px",padding:0
-            }}>
+            style={{background:"none",border:"none",color:"#a08060",cursor:"pointer",fontSize:"10px",fontFamily:"'Rubik Mono One',sans-serif",marginBottom:"6px",padding:0}}>
             {'< BACK TO AGENTS'}
           </button>
           {agentBlobs.length === 0 ? (
-            <div style={{fontSize:"11px",color:"#8a7050",padding:"10px",textAlign:"center",border:"1px dashed rgba(255,255,255,0.1)",borderRadius:"6px"}}>
-              No blobs saved for {selectedAgentBlobs} yet.
+            <div style={{fontSize:"11px",color:"#8a7050",padding:"8px",textAlign:"center",border:"1px dashed rgba(255,255,255,0.1)",borderRadius:"6px"}}>
+              No blobs for {selectedAgentBlobs}
             </div>
           ) : (
-            <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"200px",overflowY:"auto"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:"3px",maxHeight:"150px",overflowY:"auto"}}>
               {agentBlobs.slice().reverse().map((item,i) => (
-                <div key={i} style={{padding:"6px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"10px"}}>
-                  <div style={{fontSize:"9px",color:"#666",marginBottom:"2px"}}>
-                    {new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+                <div key={i} style={{padding:"5px",borderRadius:"3px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"9px"}}>
+                  <div style={{fontSize:"9px",color:"#666",marginBottom:"1px"}}>{new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+                  <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"8px"}}>{item.blob_id}
+                    <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline",marginLeft:"4px"}}>View &nearr;</a>
                   </div>
-                  <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px",marginBottom:"2px"}}>{item.blob_id}</div>
-                  <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener"
-                    style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline"}}>
-                    View on Walrus &nearr;
-                  </a>
                 </div>
               ))}
             </div>
@@ -757,42 +795,36 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
 
       {/* SUMMARY */}
       {summary && (
-        <div style={{marginBottom:"14px",padding:"10px",background:"rgba(46,196,182,0.03)",borderRadius:"6px",border:"1px solid rgba(46,196,182,0.15)"}}>
-          <div style={{fontSize:"10px",color:"#2ec4b6",marginBottom:"4px",fontFamily:"'Rubik Mono One',sans-serif"}}>SESSION SUMMARY</div>
-          <div style={{fontSize:"11px",color:"#a08060",lineHeight:"1.5",maxHeight:"72px",overflow:"hidden"}}>
-            {summary.slice(0,250)}{summary.length > 250 ? "..." : ""}
-          </div>
+        <div style={{marginBottom:"10px",padding:"8px",background:"rgba(46,196,182,0.03)",borderRadius:"6px",border:"1px solid rgba(46,196,182,0.15)"}}>
+          <div style={{fontSize:"9px",color:"#2ec4b6",marginBottom:"3px",fontFamily:"'Rubik Mono One',sans-serif"}}>SESSION SUMMARY</div>
+          <div style={{fontSize:"10px",color:"#a08060",lineHeight:"1.5",maxHeight:"48px",overflow:"hidden"}}>{summary.slice(0,200)}{summary.length > 200 ? "..." : ""}</div>
         </div>
       )}
 
       {/* ALL BLOBS */}
       {history.length > 0 && !selectedAgentBlobs && (
         <>
-          <div style={{marginBottom:"6px",fontSize:"11px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
+          <div style={{marginBottom:"4px",fontSize:"10px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
             ALL BLOBS ({history.length})
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"25vh",overflowY:"auto"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:"3px",maxHeight:"20vh",overflowY:"auto"}}>
             {history.slice().reverse().map((item,i) => (
-              <div key={i} style={{padding:"6px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"10px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2px"}}>
+              <div key={i} style={{padding:"5px",borderRadius:"3px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"9px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:"1px"}}>
                   <span style={{color:"#ffd700",fontWeight:600}}>{item.agent_id}</span>
-                  <span style={{color:"#666",fontSize:"9px"}}>
-                    {new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
-                  </span>
+                  <span style={{color:"#666",fontSize:"8px"}}>{new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
                 </div>
-                <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px",marginBottom:"2px"}}>{item.blob_id}</div>
-                <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener"
-                  style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline"}}>
-                  View on Walrus &nearr;
-                </a>
+                <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"8px"}}>{item.blob_id}
+                  <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline",marginLeft:"4px"}}>View &nearr;</a>
+                </div>
               </div>
             ))}
           </div>
         </>
       )}
 
-      <button onClick={loadData} style={{width:"100%",padding:"8px",marginTop:"10px",background:"rgba(46,196,182,0.08)",border:"2px solid rgba(46,196,182,0.3)",color:"#2ec4b6",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif"}}>
-        <Database size={12} style={{marginRight:"6px",verticalAlign:"middle"}} /> REFRESH
+      <button onClick={loadData} style={{width:"100%",padding:"7px",marginTop:"8px",background:"rgba(46,196,182,0.08)",border:"2px solid rgba(46,196,182,0.3)",color:"#2ec4b6",borderRadius:"5px",cursor:"pointer",fontSize:"10px",fontFamily:"'Rubik Mono One',sans-serif"}}>
+        <Database size={11} style={{marginRight:"5px",verticalAlign:"middle"}} /> REFRESH
       </button>
     </div>
   );
