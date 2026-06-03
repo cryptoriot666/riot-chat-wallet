@@ -469,179 +469,6 @@ function NameAskModal({ onSubmit, agentName }) {
 // ═══════════════════════════════════════════════════════════════
 // PROFILE SETTINGS PANEL - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
-function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
-  const [form, setForm] = useState({
-    bio: profile?.bio || '',
-    profile_pic: profile?.profile_pic || '',
-    twitter: profile?.social?.twitter || '',
-    discord: profile?.social?.discord || '',
-    telegram: profile?.social?.telegram || '',
-    instagram: profile?.social?.instagram || '',
-    website: profile?.social?.website || '',
-  })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  const handleChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }))
-    setSaved(false)
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    const result = await apiUpdateProfile(walletHash, form)
-    if (result?.success) {
-      setSaved(true)
-      onUpdate({
-        ...profile,
-        bio: form.bio,
-        profile_pic: form.profile_pic,
-        social: {
-          twitter: form.twitter,
-          discord: form.discord,
-          telegram: form.telegram,
-          instagram: form.instagram,
-          website: form.website
-        }
-      })
-      setTimeout(() => setSaved(false), 2000)
-    }
-    setSaving(false)
-  }
-
-  const inputStyle = {
-    width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
-    border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
-    borderRadius: '8px', fontSize: '13px', fontFamily: "'Inter', sans-serif",
-    outline: 'none', marginBottom: '12px', transition: 'all 0.2s'
-  }
-
-  const labelStyle = {
-    display: 'block', color: '#a08060', fontSize: '11px',
-    marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '2px',
-    fontFamily: "'Rubik Mono One', sans-serif"
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', top: 0, right: 0, width: '380px', height: '100vh',
-      background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
-      borderLeft: '2px solid rgba(255,42,109,0.3)',
-      padding: '25px', overflowY: 'auto', zIndex: 100,
-      boxShadow: '-10px 0 30px rgba(0,0,0,0.8)'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px' }}>
-        <h2 style={{
-          fontFamily: "'Rubik Glitch', cursive", fontSize: '18px',
-          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px',
-          textShadow: '0 0 10px rgba(255,42,109,0.4)'
-        }}>
-          <Edit3 size={18} /> PROFILE SETTINGS
-        </h2>
-        <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#a08060', cursor: 'pointer', padding: '5px'
-        }}>
-          <X size={20} />
-        </button>
-      </div>
-
-      {profile?.profile_pic && (
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <img src={profile.profile_pic} alt="Profile" style={{
-            width: '80px', height: '80px', borderRadius: '50%',
-            border: '3px solid rgba(255,42,109,0.5)',
-            objectFit: 'cover', boxShadow: '0 0 20px rgba(255,42,109,0.3)'
-          }} onError={e => e.target.style.display = 'none'} />
-        </div>
-      )}
-
-      <div style={{ marginBottom: '15px' }}>
-        <label style={labelStyle}>
-          <FileText size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Bio (max 500 chars)
-        </label>
-        <textarea
-          value={form.bio}
-          onChange={e => handleChange('bio', e.target.value)}
-          placeholder="Who you are in the RIOT..."
-          style={{...inputStyle, minHeight: '80px', resize: 'vertical', fontFamily: "'Permanent Marker', cursive", fontSize: '14px'}}
-          maxLength={500}
-        />
-        <div style={{ textAlign: 'right', fontSize: '10px', color: '#a08060' }}>
-          {form.bio.length}/500
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label style={labelStyle}>
-          <ImageIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Profile Picture URL
-        </label>
-        <input
-          type="text"
-          value={form.profile_pic}
-          onChange={e => handleChange('profile_pic', e.target.value)}
-          placeholder="https://..."
-          style={inputStyle}
-        />
-      </div>
-
-      <div style={{
-        padding: '15px', background: 'rgba(255,255,255,0.02)',
-        borderRadius: '10px', border: '2px solid rgba(255,255,255,0.05)',
-        marginBottom: '15px'
-      }}>
-        <h4 style={{
-          fontSize: '12px', color: '#a08060', margin: '0 0 15px 0',
-          textTransform: 'uppercase', letterSpacing: '2px',
-          fontFamily: "'Rubik Mono One', sans-serif"
-        }}>
-          <LinkIcon size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Social Links
-        </h4>
-
-        {[
-          { key: 'twitter', label: 'Twitter / X', placeholder: '@username' },
-          { key: 'discord', label: 'Discord', placeholder: 'username#0000' },
-          { key: 'telegram', label: 'Telegram', placeholder: '@username' },
-          { key: 'instagram', label: 'Instagram', placeholder: '@username' },
-          { key: 'website', label: 'Website', placeholder: 'https://...' },
-        ].map(({ key, label, placeholder }) => (
-          <div key={key} style={{ marginBottom: '10px' }}>
-            <label style={{...labelStyle, fontSize: '10px'}}>{label}</label>
-            <input
-              type="text"
-              value={form[key]}
-              onChange={e => handleChange(key, e.target.value)}
-              placeholder={placeholder}
-              style={inputStyle}
-            />
-          </div>
-        ))}
-      </div>
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{
-          width: '100%', padding: '14px',
-          background: saving ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #2ec4b6, #1a9a8a)',
-          border: 'none', color: '#0d0a07', borderRadius: '10px',
-          cursor: saving ? 'wait' : 'pointer', fontWeight: 700,
-          fontSize: '14px', fontFamily: "'Rubik Mono One', sans-serif",
-          letterSpacing: '1px', opacity: saving ? 0.6 : 1,
-          boxShadow: saving ? 'none' : '0 0 20px rgba(46,196,182,0.3)',
-          transition: 'all 0.3s'
-        }}
-      >
-        {saving ? '💾 SAVING...' : saved ? '✅ SAVED!' : '💾 SAVE PROFILE'}
-      </button>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
 // MEMORY SEARCH + RAW DATA HYBRID PANEL
 // ═══════════════════════════════════════════════════════════════
 function MemoryHybridPanel({ walletAddress, onClose }) {
@@ -1791,7 +1618,6 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState('')
   const [walrusSaved, setWalrusSaved] = useState(false)
   const [showNameAsk, setShowNameAsk] = useState(false)
-  const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showMemWalSearch, setShowMemWalSearch] = useState(false)
   const [showMemoryExplorer, setShowMemoryExplorer] = useState(false)
   const [profile, setProfile] = useState(null)
@@ -2323,16 +2149,6 @@ Powered by Tatum RPC + Storage API`)
       {/* Name Ask Modal */}
       {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
 
-      {/* Profile Settings Panel */}
-      {showProfileSettings && connected && (
-        <ProfileSettingsPanel
-          walletHash={walletHash}
-          profile={profile}
-          onUpdate={setProfile}
-          onClose={() => setShowProfileSettings(false)}
-        />
-      )}
-
       {/* MemWal Memory Search Panel */}
       {showMemWalSearch && connected && (
         <MemoryHybridPanel
@@ -2393,17 +2209,6 @@ Powered by Tatum RPC + Storage API`)
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={() => setShowProfileSettings(true)} style={{
-                  flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(255,42,109,0.15)',
-                  border: '2px solid rgba(255,42,109,0.4)',
-                  color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>
-                  <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  PROFILE
-                </button>
                 <button onClick={() => setShowMemoryExplorer(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
                   background: 'rgba(255,215,0,0.08)',

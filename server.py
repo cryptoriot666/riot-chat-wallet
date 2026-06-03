@@ -867,6 +867,20 @@ def save_memory(wallet_hash, data):
                     updated_at = CURRENT_TIMESTAMP
             """, (wallet_hash, str(data.get("wallet_address", "")), str(data.get("summary", "")), visited_json,
                   str(data.get("last_agent", "")), str(data.get("last_visit", now)), blob_id or "", blob_history_json))
+        # Track blob in on_chain_saves for per-agent display
+        if blob_id:
+            try:
+                tx_digest = "from_memory_save_" + datetime.now().isoformat()
+                agent_id = str(data.get("last_agent", ""))
+                if USE_SQLITE:
+                    c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (?, ?, ?, ?, ?)",
+                              (wallet_hash, tx_digest, blob_id, now, agent_id))
+                else:
+                    c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (%s, %s, %s, %s, %s)",
+                              (wallet_hash, tx_digest, blob_id, now, agent_id))
+                print(f"[SAVE_MEMORY] Tracked blob in on_chain_saves: {blob_id[:20]}...")
+            except Exception as e2:
+                print(f"[SAVE_MEMORY] on_chain_saves insert failed: {e2}")
         conn.commit()
         print(f"[SAVE_MEMORY] DB updated for {wallet_hash}, blob={blob_id}")
     except Exception as e:
