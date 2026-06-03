@@ -723,6 +723,7 @@ def load_memory(wallet_hash):
     print(f"[LOAD_MEMORY] {wallet_hash}: vagents={len(memory['visited_agents'])}, user='{memory['user_name']}'")
     return memory
 
+@app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
     print(f"[API] Load: {wallet_hash}")
     memory = load_memory(wallet_hash)
