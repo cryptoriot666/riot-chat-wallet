@@ -2792,7 +2792,7 @@ Powered by Tatum RPC + Storage API`)
 
       {/* RIGHT: MEMORY PANEL - PUNK STYLED */}
       {showMemoryPanel && connected && memory && (
-  <div style={{width:'65%',maxWidth:'420px',maxHeight:'30vh',overflowY:'auto',padding:'10px',background:'rgba(0,0,0,0.3)',borderRadius:'10px',border:'2px solid rgba(255,42,109,0.15)',marginTop:'10px'}}>
+  <div style={{width:'50%',minWidth:'320px',maxWidth:'380px',maxHeight:'50vh',overflowY:'auto',padding:'10px',background:'rgba(0,0,0,0.3)',borderRadius:'10px',border:'2px solid rgba(255,42,109,0.15)',marginTop:'10px'}}>
 
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'15px'}}>
       <h3 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:'16px',color:RIOT_PINK,margin:0,textShadow:'0 0 10px rgba(255,42,109,0.4)'}}>
