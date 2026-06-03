@@ -658,140 +658,71 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
 
 # ═══════════════════════════════════════════════════════════════
 def load_memory(wallet_hash):
-    """Load memory - Walrus source of truth, DB cache fallback"""
+    """Load memory - DB cache source of truth, Walrus fallback"""
     print(f"[LOAD_MEMORY] Loading: {wallet_hash}")
-
-    # Step 1: Try DB cache (fast path)
     conn = get_db_conn()
     c = conn.cursor()
-    try:
-        sql_cols = "wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id"
-        if USE_SQLITE:
-            c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = ?", (wallet_hash,))
-            row = c.fetchone()
-        else:
-            c.execute("SELECT " + sql_cols + " FROM memories WHERE wallet_hash = %s", (wallet_hash,))
-            row = c.fetchone()
-        db_has_data = row is not None
-    except:
-        row = None
-        db_has_data = False
-
-    # Step 2: Try load from Walrus (all known blobs for this wallet)
-    all_blob_ids = []
+    row = None
+    blob_history_raw = "[]"
+    profile_row = None
     try:
         if USE_SQLITE:
-            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 50", (wallet_hash,))
+            c.execute("SELECT wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id FROM memories WHERE wallet_hash = ?", (wallet_hash,))
         else:
-            c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 50", (wallet_hash,))
-        all_blob_ids = [r[0] for r in c.fetchall() if r[0]]
-    except:
-        pass
-    # Also include latest_blob_id from memories table
-    if row and len(row) > 6 and row[6]:
-        if row[6] not in all_blob_ids:
-            all_blob_ids.append(row[6])
-    # Try latest_blob_id as direct column
-    try:
+            c.execute("SELECT wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+        row = c.fetchone()
+        try:
+            if USE_SQLITE:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
+            else:
+                c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
+            bh_row = c.fetchone()
+            blob_history_raw = bh_row[0] if bh_row else "[]"
+        except:
+            blob_history_raw = "[]"
         if USE_SQLITE:
-            c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = ? AND latest_blob_id != ''", (wallet_hash,))
+            c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         else:
-            c.execute("SELECT latest_blob_id FROM memories WHERE wallet_hash = %s AND latest_blob_id != ''", (wallet_hash,))
-        extra = c.fetchone()
-        if extra and extra[0] and extra[0] not in all_blob_ids:
-            all_blob_ids.append(extra[0])
-    except:
-        pass
+            c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
+        profile_row = c.fetchone()
+    except Exception as e:
+        print(f"[LOAD_MEMORY] DB error: {e}")
+    finally:
+        conn.close()
 
-    conn.close()
-
-    # Step 3: Build memory from Walrus blobs
     memory = {
         "wallet_hash": wallet_hash,
-        "summary": "",
-        "visited_agents": [],
-        "last_agent": "",
-        "last_visit": "",
-        "latest_blob_id": all_blob_ids[0] if all_blob_ids else "",
-        "blob_history": [],
+        "summary": str(row[2]) if row and len(row) > 2 and row[2] else "",
+        "visited_agents": list(json.loads(row[3])) if row and len(row) > 3 and row[3] else [],
+        "last_agent": str(row[4]) if row and len(row) > 4 and row[4] else "",
+        "last_visit": str(row[5]) if row and len(row) > 5 and row[5] else "",
+        "latest_blob_id": str(row[6]) if row and len(row) > 6 and row[6] else "",
+        "blob_history": list(json.loads(blob_history_raw)) if isinstance(blob_history_raw, str) and blob_history_raw else [],
         "visit_count": 1,
         "user_name": ""
     }
 
-    # Load profile if exists
-    try:
-        conn2 = get_db_conn()
-        c2 = conn2.cursor()
-        if USE_SQLITE:
-            c2.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
-        else:
-            c2.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
-        profile_row = c2.fetchone()
-        conn2.close()
-        if profile_row:
-            memory["user_name"] = profile_row[2] or ""
-            memory["visit_count"] = profile_row[11] or 1
-            memory["preferences"] = profile_row[10] or ""
-            memory["bio"] = profile_row[3] or ""
-            memory["profile_pic"] = profile_row[4] or ""
-            memory["social"] = {
-                "twitter": profile_row[5] or "",
-                "discord": profile_row[6] or "",
-                "telegram": profile_row[7] or "",
-                "instagram": profile_row[8] or "",
-                "website": profile_row[9] or ""
-            }
-    except:
-        pass
+    # Seed blob_history if empty but latest_blob_id exists
+    if not memory["blob_history"] and memory["latest_blob_id"]:
+        memory["blob_history"] = [{"blob_id": memory["latest_blob_id"], "agent_id": memory["last_agent"], "timestamp": memory["last_visit"], "network": "mainnet"}]
 
-    # Step 4: Read from Walrus to populate blob_history
-    visited_set = set()
-    for bid in all_blob_ids[:20]:  # Max 20 blobs
-        walrus_data = walrus_read(bid)
-        if walrus_data:
-            entry = {
-                "blob_id": bid,
-                "agent_id": walrus_data.get("agent_id", walrus_data.get("last_agent", "J4")),
-                "timestamp": walrus_data.get("timestamp", walrus_data.get("last_visit", "")),
-                "network": "mainnet"
-            }
-            memory["blob_history"].append(entry)
-            if entry["agent_id"]:
-                visited_set.add(entry["agent_id"])
-            if walrus_data.get("summary") and not memory["summary"]:
-                memory["summary"] = walrus_data["summary"]
-            if walrus_data.get("visited_agents"):
-                for a in walrus_data["visited_agents"]:
-                    visited_set.add(a)
+    if profile_row:
+        memory["user_name"] = str(profile_row[2] or "")
+        memory["visit_count"] = int(profile_row[11] or 1) if len(profile_row) > 11 else 1
+        memory["preferences"] = str(profile_row[10] or "") if len(profile_row) > 10 else ""
+        memory["bio"] = str(profile_row[3] or "") if len(profile_row) > 3 else ""
+        memory["profile_pic"] = str(profile_row[4] or "") if len(profile_row) > 4 else ""
+        memory["social"] = {
+            "twitter": str(profile_row[5] or "") if len(profile_row) > 5 else "",
+            "discord": str(profile_row[6] or "") if len(profile_row) > 6 else "",
+            "telegram": str(profile_row[7] or "") if len(profile_row) > 7 else "",
+            "instagram": str(profile_row[8] or "") if len(profile_row) > 8 else "",
+            "website": str(profile_row[9] or "") if len(profile_row) > 9 else ""
+        }
 
-    memory["visited_agents"] = list(visited_set)
-    print(f"[LOAD_MEMORY] {wallet_hash}: {len(memory['blob_history'])} blobs, {len(memory['visited_agents'])} agents")
-
-    # Step 5: Save latest blob_id back to DB for next fast load
-    if memory["latest_blob_id"] and not db_has_data:
-        try:
-            conn3 = get_db_conn()
-            c3 = conn3.cursor()
-            import json as _json
-            now = datetime.now().isoformat()
-            bh_json = _json.dumps(memory["blob_history"])
-            va_json = _json.dumps(memory["visited_agents"])
-            if USE_SQLITE:
-                c3.execute("INSERT OR REPLACE INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (wallet_hash, "", memory["summary"], va_json, "", "", memory["latest_blob_id"], bh_json, now, now))
-            else:
-                c3.execute("INSERT INTO memories (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (wallet_hash) DO UPDATE SET visited_agents = EXCLUDED.visited_agents, latest_blob_id = EXCLUDED.latest_blob_id, blob_history = EXCLUDED.blob_history, updated_at = CURRENT_TIMESTAMP",
-                    (wallet_hash, "", memory["summary"], va_json, "", "", memory["latest_blob_id"], bh_json))
-            conn3.commit()
-            conn3.close()
-            print(f"[LOAD_MEMORY] Seeded DB cache")
-        except Exception as e:
-            print(f"[LOAD_MEMORY] DB seed skipped: {e}")
-
+    print(f"[LOAD_MEMORY] {wallet_hash}: vagents={len(memory['visited_agents'])}, user='{memory['user_name']}'")
     return memory
 
-
-@app.route("/api/memory/load/<wallet_hash>", methods=["GET"])
 def load_memory_route(wallet_hash):
     print(f"[API] Load: {wallet_hash}")
     memory = load_memory(wallet_hash)
