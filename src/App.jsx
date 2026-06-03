@@ -2298,7 +2298,10 @@ Powered by Tatum RPC + Storage API`)
     ::-webkit-scrollbar-thumb:hover { background: #ff6b35; }
   `}</style>
 
-      {/* Mobile Sidebar Toggle */}
+      {/* TOP NAVBAR */}
+      <div style={{position:'fixed',top:0,left:0,right:0,height:'26px',background:'rgba(13,10,7,0.85)',borderBottom:'1px solid rgba(255,42,109,0.15)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,fontSize:'9px',fontFamily:"'Rubik Mono One',sans-serif",color:'rgba(255,255,255,0.25)',letterSpacing:'4px',textTransform:'uppercase'}}>SUI NETWORK · WALRUS MEMORY · TATUM</div>
+
+{/* Mobile Sidebar Toggle */}
       {isMobile && (
         <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
           position: 'fixed', top: '10px', left: '10px', zIndex: 999,
@@ -2359,7 +2362,6 @@ Powered by Tatum RPC + Storage API`)
             textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
           }}><a href="https://theriot.vercel.app" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>$RIOT</a></h1>
           <p style={{ fontSize: '11px', color: '#a08060', marginTop: '6px', letterSpacing: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>
-            SUI NETWORK · WALRUS MEMORY · TATUM
           </p>
         </div>
 
@@ -2507,6 +2509,7 @@ Powered by Tatum RPC + Storage API`)
         background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
         position: 'relative',
         marginLeft: isMobile ? '0px' : '0px',
+        paddingTop: '26px',
         width: isMobile ? '100%' : 'auto'
       }}>
         {/* Chat Header */}
