@@ -103,8 +103,16 @@ async function readFromWalrus(blobId, network = 'mainnet') {
 // MEMWAL API CLIENT (via backend - no npm dependency)
 // ═══════════════════════════════════════════════════════════════
 async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {}) {
-  // Disabled
-  return null;
+  // Store directly to backend - handles Walrus blob + DB save
+  const summary = messages.slice(-3).map(m => m.content || '').join(' | ').slice(0, 500);
+  return await apiSaveMemory(walletAddress, {
+    messages: messages.slice(-20),
+    last_agent: agentId,
+    user_name: metadata.user_name || '',
+    summary: summary,
+    visited_agents: [agentId],
+    wallet_address: walletAddress
+  });
 }
 async function memwalSearch(query, limit = 5) {
   try {
