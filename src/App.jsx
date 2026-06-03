@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
-import MemoryExplorer from './MemoryExplorer'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG - PUNK PALETTE
@@ -352,7 +351,7 @@ function NameAskModal({ onSubmit, agentName }) {
 // ═══════════════════════════════════════════════════════════════
 // PROFILE SETTINGS PANEL - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
-// MEMORY SEARCH + RAW DATA HYBRID PANEL
+// MEMORY + RAW DATA HYBRID PANEL
 // ═══════════════════════════════════════════════════════════════
 function MemoryHybridPanel({ walletAddress, onClose }) {
   const [tab, setTab] = useState('search')
@@ -1502,7 +1501,6 @@ export default function App() {
   const [walrusSaved, setWalrusSaved] = useState(false)
   const [showNameAsk, setShowNameAsk] = useState(false)
   const [showMemWalSearch, setShowMemWalSearch] = useState(false)
-  const [showMemoryExplorer, setShowMemoryExplorer] = useState(false)
   const [profile, setProfile] = useState(null)
   const [selectedMemoryAgent, setSelectedMemoryAgent] = useState(null)
   const [autoSaveCount, setAutoSaveCount] = useState(0)
@@ -2040,69 +2038,11 @@ Powered by Tatum RPC + Storage API`)
         />
       )}
 
-      {/* Memory Explorer Panel */}
-      {showMemoryExplorer && (
-        <div style={{
-          position: 'fixed', top: 0, right: 0, width: '450px', height: '100vh',
-          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
-          borderLeft: '2px solid rgba(255,215,0,0.3)',
-          zIndex: 999, display: 'flex', flexDirection: 'column',
-          boxShadow: '-10px 0 40px rgba(0,0,0,0.5)'
-        }}>
-          <MemoryExplorer
-            walletHash={walletHash}
-            onBack={() => setShowMemoryExplorer(false)}
-          />
-        </div>
-      )}
 
-      {/* LEFT SIDEBAR - PUNK STYLED */}
-      <div style={{
-        width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
-        background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
-        borderRight: '2px solid rgba(255,42,109,0.3)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        transition: 'width 0.3s ease',
-        position: isMobile ? 'fixed' : 'relative',
-        zIndex: isMobile ? 998 : 'auto',
-        height: '100vh',
-        left: 0, top: 0
-      }}>
-        {/* Header */}
-        <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,42,109,0.4)' }}>
-          <h1 style={{
-            fontFamily: "'Rubik Glitch', cursive", fontSize: '26px', fontWeight: 900,
-            color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '3px', margin: 0,
-            textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
-          }}><a href="https://theriot.vercel.app" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>$RIOT</a></h1>
-          <p style={{ fontSize: '11px', color: '#a08060', marginTop: '6px', letterSpacing: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>
-            PUNK AGENTS WITH MEMORY
-          </p>
-        </div>
-
-        {/* Wallet */}
-        <div style={{ padding: '15px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
-          {connected ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 10px #2ec4b6', animation: 'pulse 2s infinite' }} />
-                <span style={{ fontSize: '12px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>CONNECTED</span>
-              </div>
               <div style={{ fontSize: '11px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={() => setShowMemoryExplorer(true)} style={{
-                  flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(255,215,0,0.08)',
-                  border: '2px solid rgba(255,215,0,0.3)',
-                  color: '#ffd700', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>
-                  <Database size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  MEMORIES
-                </button>
                 <button onClick={() => setShowMemWalSearch(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
                   background: 'rgba(46,196,182,0.08)',
