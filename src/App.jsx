@@ -106,6 +106,73 @@ async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {})
   // Disabled
   return null;
 }
+async function memwalSearch(query, limit = 5) {
+  try {
+    const res = await fetch(`${API_BASE}/api/memwal/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!res.ok) return [];
+    const result = await res.json();
+    return result.results || [];
+  } catch (err) {
+    console.error("[MemWal] Search failed:", err.message);
+    return [];
+  }
+}
+
+async function memwalAnalyze(text) {
+  try {
+    const res = await fetch(`${API_BASE}/api/memwal/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("[MemWal] Analyze failed:", err.message);
+    return null;
+  }
+}
+
+async function getMemWalStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/api/memwal/status`);
+    if (!res.ok) return { ready: false };
+    return await res.json();
+  } catch (err) {
+    return { ready: false };
+  }
+}
+
+const AGENTS = [
+  { id: 'ARCHITECT', name: 'J1 - The Architect', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00ff88', emoji: '🏛️', specialty: 'Smart contract design & system architecture', img: '/assets/J1.jpg' },
+  { id: 'ENFORCER', name: 'J2 - The Enforcer', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#ff0044', emoji: '⚔️', specialty: 'Security audits & threat detection', img: '/assets/J2.jpg' },
+  { id: 'PHANTOM', name: 'J3 - The Phantom', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#9d4edd', emoji: '👻', specialty: 'Private key management & stealth transactions', img: '/assets/J3.jpg' },
+  { id: 'REBEL', name: 'J4 - The Rebel', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', emoji: '🤘', specialty: 'DAO governance & protocol forking', img: '/assets/J4.jpg' },
+  { id: 'JESTER', name: 'J5 - The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', emoji: '🃏', specialty: 'Meme strategy & viral content generation', img: '/assets/J5.jpg' },
+  { id: 'NETWORK', name: 'J6 - The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', emoji: '🌐', specialty: 'Cross-chain bridge monitoring & routing', img: '/assets/J6.jpg' },
+  { id: 'MONK', name: 'J7 - The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', emoji: '🧘', specialty: 'Gas optimization & fee forecasting', img: '/assets/J7.jpg' },
+  { id: 'BROKER', name: 'J8 - The Broker', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#ffd700', emoji: '💼', specialty: 'DeFi yield optimization & arbitrage', img: '/assets/J8.jpg' },
+  { id: 'HISTORIAN', name: 'J9 - The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', emoji: '📜', specialty: 'Transaction history analysis & audit trails', img: '/assets/J9.jpg' },
+  { id: 'SURGEON', name: 'J10 - The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', emoji: '🔪', specialty: 'Smart contract vulnerability patching', img: '/assets/J10.jpg' },
+  { id: 'PROPHET', name: 'J11 - The Prophet', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#f4a261', emoji: '🔮', specialty: 'Market trend prediction & sentiment analysis', img: '/assets/J11.jpg' },
+  { id: 'GLITCH', name: 'J12 - The Glitch', trait: 'Erratic', desc: 'Reality is just a suggestion.', color: '#ff006e', emoji: '⚡', specialty: 'Edge case testing & fuzzing', img: '/assets/J12.jpg' },
+  { id: 'WARDEN', name: 'J13 - The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', emoji: '🛡️', specialty: 'Access control & multi-sig management', img: '/assets/J13.jpg' },
+  { id: 'ALCHEMIST', name: 'J14 - The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', emoji: '🧪', specialty: 'Tokenomics modeling & liquidity strategy', img: '/assets/J14.jpg' },
+  { id: 'SCRIBE', name: 'J15 - The Scribe', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#a8dadc', emoji: '✍️', specialty: 'Automated documentation & changelog generation', img: '/assets/J15.jpg' },
+  { id: 'VOID', name: 'J16 - The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', emoji: '🕳️', specialty: 'State cleanup & storage optimization', img: '/assets/J16.jpg' },
+  { id: 'SPARK', name: 'J17 - The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', emoji: '🔥', specialty: 'Launch strategy & initial liquidity setup', img: '/assets/J17.jpg' },
+  { id: 'ECHO', name: 'J18 - The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', emoji: '🔄', specialty: 'Agent memory recall & context synthesis', img: '/assets/J18.jpg' },
+  { id: 'CATALYST', name: 'J19 - The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', emoji: '💥', specialty: 'Protocol migration & upgrade coordination', img: '/assets/J19.jpg' },
+  { id: 'CIPHER', name: 'J20 - The Cipher', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#00ff88', emoji: '🔐', specialty: 'End-to-end encryption & zero-knowledge proofs', img: '/assets/J20.jpg' },
+  { id: 'FORGE', name: 'J21 - The Forge', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#ff6600', emoji: '🔨', specialty: 'NFT generation & metadata management', img: '/assets/J21.jpg' },
+  { id: 'ABYSS', name: 'J22 - The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', emoji: '🌀', specialty: 'Data aggregation & whale wallet tracking', img: '/assets/J22.jpg' },
+  { id: 'PRISM', name: 'J23 - The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', emoji: '🌈', specialty: 'Multi-chain data visualization & analytics', img: '/assets/J23.jpg' },
+  { id: 'ANCHOR', name: 'J24 - The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', emoji: '⚓', specialty: 'Stablecoin strategy & portfolio hedging', img: '/assets/J24.jpg' },
+  { id: 'MERIDIAN', name: 'J25 - The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', emoji: '♾️', specialty: 'Cross-protocol rebalancing & arbitrage', img: '/assets/J25.jpg' }
+]
+
+
+// ═══════════════════════════════════════════════════════════════
 // AGENT PROMPTS (client-side fallback)
 // ═══════════════════════════════════════════════════════════════
 const AGENT_PROMPTS = {
@@ -622,7 +689,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
           color: tab === 'search' ? '#ff2a6d' : '#a08060', cursor: 'pointer',
           fontSize: '12px', fontWeight: 700, fontFamily: "'Rubik Mono One', sans-serif",
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-        }}><Search size={14} /> MEMORY</button>
+        }}><Search size={14} /> SEARCH</button>
         <button onClick={() => setTab('raw')} style={{
           flex: 1, padding: '10px', borderRadius: '6px',
           background: tab === 'raw' ? 'rgba(46,196,182,0.15)' : 'rgba(255,255,255,0.03)',
@@ -1705,7 +1772,7 @@ export default function App() {
   const [showNameAsk, setShowNameAsk] = useState(false)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [showMemWalSearch, setShowMemWalSearch] = useState(false)
-  const [profile, setProfile] = useState(null)
+    const [profile, setProfile] = useState(null)
   const [selectedMemoryAgent, setSelectedMemoryAgent] = useState(null)
   const [autoSaveCount, setAutoSaveCount] = useState(0)
   const [memwalSaveCount, setMemwalSaveCount] = useState(0)
@@ -1740,7 +1807,7 @@ export default function App() {
     setEncryptPassword('')
     showToast('Encryption disabled', 'info')
   }
-  const [verifyTab, setVerifyTab] = useState('tx')
+    const [verifyTab, setVerifyTab] = useState('tx')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const messagesEndRef = useRef(null)
@@ -2218,7 +2285,7 @@ Powered by Tatum RPC + Storage API`)
           walletHash={walletHash}
           profile={profile}
           onUpdate={setProfile}
-          onClose={false}
+          onClose={() => setShowProfileSettings(false)}
         />
       )}
 
@@ -2230,7 +2297,7 @@ Powered by Tatum RPC + Storage API`)
         />
       )}
 
- {/* LEFT SIDEBAR - PUNK STYLED */}
+* LEFT SIDEBAR - PUNK STYLED */
       <div style={{
         width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
         background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
@@ -2266,8 +2333,47 @@ Powered by Tatum RPC + Storage API`)
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-
-            </div>
+                <button onClick={() => setShowProfileSettings(true)} style={{
+                  flex: 1, padding: '6px', fontSize: '10px',
+                  background: 'rgba(255,42,109,0.15)',
+                  border: '2px solid rgba(255,42,109,0.4)',
+                  color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}>
+                  <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  PROFILE
+                </button>
+                <button onClick={false} style={{
+                  flex: 1, padding: '6px', fontSize: '10px',
+                  background: 'rgba(255,215,0,0.08)',
+                  border: '2px solid rgba(255,215,0,0.3)',
+                  color: '#ffd700', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}>
+                  <Database size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  MEMORIES
+                </button>
+                <button onClick={() => setShowMemWalSearch(true)} style={{
+                  flex: 1, padding: '6px', fontSize: '10px',
+                  background: 'rgba(46,196,182,0.08)',
+                  border: '2px solid rgba(46,196,182,0.3)',
+                  color: '#2ec4b6', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}>
+                  <Search size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  SEARCH
+                </button>
+                <button onClick={disconnect} style={{
+                  padding: '6px 10px', fontSize: '10px',
+                  background: 'transparent', border: '2px solid rgba(255,255,255,0.15)',
+                  color: '#a08060', borderRadius: '4px', cursor: 'pointer',
+                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}>DISCONNECT</button>
+              </div>
             </div>
           ) : (
             <div>
@@ -2287,7 +2393,7 @@ Powered by Tatum RPC + Storage API`)
           )}
         </div>
 
- {/* API Status */}
+{/* API Status */}
         <div style={{
           padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px',
           fontSize: '11px', color: apiStatus === 'online' ? '#2ec4b6' : '#ff4444',
@@ -2302,7 +2408,7 @@ Powered by Tatum RPC + Storage API`)
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
-            const isVisited = visitedAgents.has(agent.id)
+            const isVisited = visitedAgents.has(agent.id) || visitedAgents.has(agent.id)
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -2765,12 +2871,12 @@ Powered by Tatum RPC + Storage API`)
                   }}>
                   {'< BACK TO AGENTS'}
                 </button>
-                {null}
-                              </div>
+                null
+              </div>
             ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
-                const visited = visitedAgents.has(agent.id)
+                const visited = visitedAgents.has(agent.id) || visitedAgents.has(agent.id)
                 return (
                   <div key={agent.id} onClick={() => { if (visited) setSelectedMemoryAgent(agent.id) }}
                     style={{
