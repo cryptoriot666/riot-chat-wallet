@@ -64,6 +64,7 @@
 ---
 
 ## Live Demo Links
+- **Landing Page:** https://github.com/cryptoriot666/riot-chat-wallet/blob/master/landing.html
 - **App:** https://riot-chat-wallet-temp.vercel.app
 - **Backend API:** https://riot-chat-wallet.onrender.com
 - **GitHub:** https://github.com/cryptoriot666/riot-chat-wallet
