@@ -2849,7 +2849,11 @@ Powered by Tatum RPC + Storage API`)
                   }}>
                   {'< BACK TO AGENTS'}
                 </button>
-                null
+                <div style={{ fontSize: '11px', color: '#8a7050', padding: '10px',
+                  textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '6px'
+                }}>
+                  Blob history moved. Use MEMORY button to search saved conversations.
+                </div>
               </div>
             ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
