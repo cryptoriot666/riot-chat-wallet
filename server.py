@@ -199,7 +199,17 @@ def migrate_db():
         conn.commit()
         print("[MIGRATE] Added blob_history column")
     except Exception as e:
-        print(f"[MIGRATE] Column already exists or error: {e}")
+        print(f"[MIGRATE] blob_history: {e}")
+        conn.rollback()
+    
+    # Also add latest_blob_id if missing
+    try:
+        if not USE_SQLITE:
+            c.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS latest_blob_id VARCHAR(100) DEFAULT ''")
+            conn.commit()
+            print("[MIGRATE] Added latest_blob_id column")
+    except Exception as e:
+        print(f"[MIGRATE] latest_blob_id: {e}")
         conn.rollback()
     finally:
         conn.close()
