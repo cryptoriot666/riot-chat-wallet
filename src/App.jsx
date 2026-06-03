@@ -1650,7 +1650,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
           blob_id: b.blob_id,
           agent_id: b.agent_id,
           timestamp: new Date(b.timestamp).getTime(),
-          url: `https://aggregator.walrus-mainnet.walrus.space/v1/${b.blob_id}`
+          url: `${data.latest_blob_network === 'testnet' ? WALRUS_AGGREGATOR_TESTNET : WALRUS_AGGREGATOR}/v1/blobs/${b.blob_id}`
         })))
       }
 
