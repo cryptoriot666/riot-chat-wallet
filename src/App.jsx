@@ -1821,7 +1821,6 @@ export default function App() {
   const [walrusSaved, setWalrusSaved] = useState(false)
   const [showNameAsk, setShowNameAsk] = useState(false)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
-  const [showMemWalSearch, setShowMemWalSearch] = useState(false)
     const [profile, setProfile] = useState(null)
   const [selectedMemoryAgent, setSelectedMemoryAgent] = useState(null)
   const [autoSaveCount, setAutoSaveCount] = useState(0)
@@ -2340,13 +2339,6 @@ Powered by Tatum RPC + Storage API`)
       )}
 
       {/* MemWal Memory Search Panel */}
-      {showMemWalSearch && connected && (
-        <MemoryHybridPanel
-          walletAddress={account?.address}
-          onClose={() => setShowMemWalSearch(false)}
-        />
-      )}
-
       {/* LEFT SIDEBAR - PUNK STYLED */}
       <div style={{
         width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
@@ -2383,7 +2375,7 @@ Powered by Tatum RPC + Storage API`)
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={() => setShowMemWalSearch(true)} style={{
+                <button onClick={() => setShowMemoryPanel(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
                   background: 'rgba(46,196,182,0.08)',
                   border: '2px solid rgba(46,196,182,0.3)',
@@ -2811,167 +2803,109 @@ Powered by Tatum RPC + Storage API`)
 
       {/* RIGHT: MEMORY PANEL - PUNK STYLED */}
       {showMemoryPanel && connected && memory && (
-        <div style={{
-          width: '300px',
-          background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
-          borderLeft: '2px solid rgba(255,42,109,0.2)',
-          padding: '20px', overflowY: 'auto'
-        }}>
-          <h3 style={{
-            fontFamily: "'Rubik Glitch', cursive", fontSize: '16px',
-            color: RIOT_PINK, margin: '0 0 20px 0',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            textShadow: '0 0 10px rgba(255,42,109,0.4)'
-          }}>
-            <Brain size={16} /> MEMORY ARCHIVE
-          </h3>
+  <div style={{width:'100%',maxHeight:'60vh',overflowY:'auto',padding:'15px',background:'rgba(0,0,0,0.3)',borderRadius:'12px',border:'2px solid rgba(255,42,109,0.15)',marginTop:'12px'}}>
 
-          {/* Profile */}
-          <div style={{
-            padding: '15px', background: 'rgba(255,255,255,0.02)',
-            borderRadius: '10px', border: '2px solid rgba(255,255,255,0.06)',
-            marginBottom: '20px'
-          }}>
-            <h4 style={{
-              fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
-              textTransform: 'uppercase', letterSpacing: '2px',
-              fontFamily: "'Rubik Mono One', sans-serif"
-            }}>User Profile</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <User size={12} color="#a08060" />
-                <span style={{ fontSize: '12px', color: '#c0a080' }}>
-                  Name: {memory.user_name ? <span style={{color: RIOT_PINK, fontWeight: 600}}>{memory.user_name}</span> : <span style={{ color: '#8a7050' }}>Not set</span>}
-                </span>
-              </div>
-              {profile?.bio && (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <FileText size={12} color="#a08060" />
-                  <span style={{ fontSize: '11px', color: '#a08060', lineHeight: '1.4' }}>{profile.bio}</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Hash size={12} color="#a08060" />
-                <span style={{ fontSize: '12px', color: '#c0a080', fontFamily: 'monospace' }}>ID: {walletHash}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={12} color="#a08060" />
-                <span style={{ fontSize: '12px', color: '#c0a080' }}>Sessions: {memory.visit_count || 1}</span>
-              </div>
-              {latestBlobId && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Cloud size={12} color="#2ec4b6" />
-                  <span style={{ fontSize: '10px', color: '#2ec4b6', fontFamily: 'monospace' }}>Blob: {latestBlobId.slice(0, 16)}...</span>
-                </div>
-              )}
-              {/* Social Links */}
-              {profile?.social && Object.values(profile.social).some(v => v) && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>
-                  {profile.social.twitter && <span style={{fontSize: '10px', color: '#2ec4b6'}}>🐦 {profile.social.twitter}</span>}
-                  {profile.social.discord && <span style={{fontSize: '10px', color: '#5865F2'}}>💬 {profile.social.discord}</span>}
-                  {profile.social.telegram && <span style={{fontSize: '10px', color: '#0088cc'}}>✈️ {profile.social.telegram}</span>}
-                  {profile.social.instagram && <span style={{fontSize: '10px', color: '#E1306C'}}>📷 {profile.social.instagram}</span>}
-                  {profile.social.website && <span style={{fontSize: '10px', color: '#00b4d8'}}>🌐 {profile.social.website}</span>}
-                </div>
-              )}
-            </div>
-          </div>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'15px'}}>
+      <h3 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:'16px',color:RIOT_PINK,margin:0,textShadow:'0 0 10px rgba(255,42,109,0.4)'}}>
+        <Brain size={16} /> MEMORY ARCHIVE
+      </h3>
+      <button onClick={() => setShowMemoryPanel(false)} style={{background:'none',border:'none',color:'#a08060',cursor:'pointer',padding:'5px'}}><X size={18} /></button>
+    </div>
 
-          {/* Visited Agents */}
-          <div style={{
-            padding: '15px', background: 'rgba(255,255,255,0.02)',
-            borderRadius: '10px', border: '2px solid rgba(255,255,255,0.06)',
-            marginBottom: '20px'
-          }}>
-            <h4 style={{
-              fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
-              textTransform: 'uppercase', letterSpacing: '2px',
-              fontFamily: "'Rubik Mono One', sans-serif"
-            }}>Visited Agents ({visitedAgents.size}/25)</h4>
-            {selectedMemoryAgent ? (
-              // Agent detail view
-              <div>
-                <button onClick={() => setSelectedMemoryAgent(null)}
-                  style={{
-                    background: 'none', border: 'none', color: '#a08060', cursor: 'pointer',
-                    fontSize: '11px', fontFamily: "'Rubik Mono One', sans-serif",
-                    marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px', padding: 0
-                  }}>
-                  {'< BACK TO AGENTS'}
-                </button>
-                <div style={{ fontSize: '11px', color: '#8a7050', padding: '10px',
-                  textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '6px'
-                }}>
-                  Blob history moved. Use MEMORY button to search saved conversations.
-                </div>
-              </div>
-            ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {AGENTS.map(agent => {
-                const visited = visitedAgents.has(agent.id) || visitedAgents.has(agent.id)
-                return (
-                  <div key={agent.id} onClick={() => { if (visited) setSelectedMemoryAgent(agent.id) }}
-                    style={{
-                    padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
-                    cursor: visited ? 'pointer' : 'default',
-                    background: visited ? `${agent.color}22` : 'rgba(255,255,255,0.03)',
-                    color: visited ? agent.color : '#8a7050',
-                    border: visited ? `2px solid ${agent.color}44` : '2px solid rgba(255,255,255,0.05)',
-                    boxShadow: visited ? `0 0 8px ${agent.color}22` : 'none',
-                    transition: 'all 0.2s'
-                  }}>{agent.id}</div>
-                )
-              })}
-            </div>
-            )}
-          </div>
+    {/* User Profile */}
+    <div style={{padding:'12px',background:'rgba(255,255,255,0.02)',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.06)',marginBottom:'12px'}}>
+      <div style={{fontSize:'11px',color:'#a08060'}}>
+        Name: <span style={{color:RIOT_PINK,fontWeight:600}}>{memory.user_name || 'Not set'}</span>
+        &nbsp;·&nbsp; Sessions: {memory.visit_count || 1}
+        {latestBlobId && <span style={{fontFamily:'monospace',fontSize:'9px',color:'#2ec4b6',marginLeft:'8px'}}>Blob: {latestBlobId.slice(0,16)}...</span>}
+      </div>
+    </div>
 
-          {/* Session Summary */}
-          <div style={{
-            padding: '15px', background: 'rgba(255,255,255,0.02)',
-            borderRadius: '10px', border: '2px solid rgba(255,255,255,0.06)'
-          }}>
-            <h4 style={{
-              fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
-              textTransform: 'uppercase', letterSpacing: '2px',
-              fontFamily: "'Rubik Mono One', sans-serif"
-            }}>Session Summary</h4>
-            <SessionSummary summary={memory.summary || 'No summary yet. Start chatting to build your memory.'} />
-          </div>
-
-          {/* On-Chain Status */}
-          <div style={{
-            marginTop: '20px', padding: '12px',
-            background: 'rgba(46,196,182,0.05)',
-            borderRadius: '8px',
-            border: '2px solid rgba(46,196,182,0.15)',
-            display: 'flex', flexDirection: 'column', gap: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Shield size={12} color="#2ec4b6" />
-              <span style={{ fontSize: '11px', color: '#2ec4b6', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
-                Move Contract: Active
-              </span>
-            </div>
-            <div style={{ fontSize: '10px', color: '#a08060', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              Package: 0x1674e28b68c5928f60f39...
-            </div>
-            {moveObjectId && (
-              <div style={{ fontSize: '10px', color: '#2ec4b6', fontFamily: 'monospace' }}>
-                Object: {moveObjectId.slice(0, 20)}...
-              </div>
-            )}
-            {latestBlobId && (
-              <div style={{ fontSize: '10px', color: '#00b4d8', fontFamily: 'monospace' }}>
-                Walrus Blob: {latestBlobId.slice(0, 20)}...
-              </div>
-            )}
-          </div>
+    {/* Visited Agents */}
+    {memory.visited_agents && memory.visited_agents.length > 0 && (
+      <>
+        <div style={{marginBottom:'8px',fontSize:'11px',color:'#ffd700',fontFamily:"'Rubik Mono One',sans-serif"}}>
+          VISITED AGENTS ({memory.visited_agents.length}/{AGENTS.length})
         </div>
-      )}
+        <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'12px'}}>
+          {AGENTS.map(agent => {
+            const visited = memory.visited_agents.includes(agent.id);
+            const hasBlobs = (memory.blob_history || []).some(h => h.agent_id === agent.id);
+            return (
+              <button key={agent.id} onClick={() => setSelectedMemoryAgent(agent.id)}
+                style={{
+                  padding:'4px 8px',borderRadius:'4px',fontSize:'10px',
+                  fontFamily:"'Rubik Mono One',sans-serif",
+                  background: visited ? agent.color + '22' : 'rgba(255,255,255,0.02)',
+                  border: hasBlobs ? '2px solid ' + agent.color : '2px solid transparent',
+                  color: visited ? agent.color : '#555',
+                  cursor:'pointer',transition:'all 0.15s'
+              }}>{agent.emoji} {agent.id}</button>
+            );
+          })}
+        </div>
+      </>
+    )}
 
-      {/* RIGHT: VERIFICATION PANEL - PUNK STYLED */}
-      {showVerificationPanel && connected && (
+    {/* Selected Agent Blob History */}
+    {selectedMemoryAgent && (
+      <div style={{marginBottom:'12px'}}>
+        <button onClick={() => setSelectedMemoryAgent(null)}
+          style={{background:'none',border:'none',color:'#a08060',cursor:'pointer',fontSize:'10px',fontFamily:"'Rubik Mono One',sans-serif",marginBottom:'6px',padding:0}}>
+          {'< BACK TO AGENTS'}
+        </button>
+        {(memory.blob_history || []).filter(h => h.agent_id === selectedMemoryAgent).length === 0 ? (
+          <div style={{fontSize:'11px',color:'#8a7050',padding:'10px',textAlign:'center',border:'1px dashed rgba(255,255,255,0.1)',borderRadius:'6px'}}>
+            No blobs for {selectedMemoryAgent}
+          </div>
+        ) : (
+          <div style={{display:'flex',flexDirection:'column',gap:'3px',maxHeight:'150px',overflowY:'auto'}}>
+            {(memory.blob_history || []).filter(h => h.agent_id === selectedMemoryAgent).slice().reverse().map((item,i) => (
+              <div key={i} style={{padding:'5px',borderRadius:'3px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',fontSize:'9px'}}>
+                <div style={{fontSize:'8px',color:'#666'}}>{new Date(item.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+                <div style={{fontFamily:'monospace',color:'#2ec4b6',wordBreak:'break-all',fontSize:'8px'}}>{item.blob_id}
+                  <a href={'https://aggregator.walrus-testnet.walrus.space/v1/blobs/'+item.blob_id} target='_blank' rel='noopener' style={{fontSize:'9px',color:'#00b4d8',textDecoration:'underline',marginLeft:'4px'}}>View &nearr;</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Summary */}
+    {memory.summary && (
+      <div style={{padding:'10px',background:'rgba(46,196,182,0.03)',borderRadius:'6px',border:'1px solid rgba(46,196,182,0.15)',marginBottom:'10px'}}>
+        <div style={{fontSize:'9px',color:'#2ec4b6',marginBottom:'3px',fontFamily:"'Rubik Mono One',sans-serif"}}>SESSION SUMMARY</div>
+        <div style={{fontSize:'10px',color:'#a08060',lineHeight:'1.5',maxHeight:'60px',overflow:'hidden'}}>
+          {memory.summary.slice(0,250)}{memory.summary.length > 250 ? '...' : ''}
+        </div>
+      </div>
+    )}
+
+    {/* All Blobs */}
+    {memory.blob_history && memory.blob_history.length > 0 && !selectedMemoryAgent && (
+      <>
+        <div style={{marginBottom:'4px',fontSize:'10px',color:'#ffd700',fontFamily:"'Rubik Mono One',sans-serif"}}>
+          ALL BLOBS ({memory.blob_history.length})
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'3px',maxHeight:'25vh',overflowY:'auto'}}>
+          {memory.blob_history.slice().reverse().map((item,i) => (
+            <div key={i} style={{padding:'5px',borderRadius:'3px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',fontSize:'9px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1px'}}>
+                <span style={{color:'#ffd700',fontWeight:600}}>{item.agent_id}</span>
+                <span style={{color:'#666',fontSize:'8px'}}>{new Date(item.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+              </div>
+              <div style={{fontFamily:'monospace',color:'#2ec4b6',wordBreak:'break-all',fontSize:'8px'}}>{item.blob_id}
+                <a href={'https://aggregator.walrus-testnet.walrus.space/v1/blobs/'+item.blob_id} target='_blank' rel='noopener' style={{fontSize:'9px',color:'#00b4d8',textDecoration:'underline',marginLeft:'4px'}}>View &nearr;</a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
+)}{showVerificationPanel && connected && (
         <div style={{
           width: '300px',
           background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
