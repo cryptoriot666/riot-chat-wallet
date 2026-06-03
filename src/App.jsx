@@ -2375,17 +2375,6 @@ Powered by Tatum RPC + Storage API`)
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={() => setShowMemoryPanel(true)} style={{
-                  flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(46,196,182,0.08)',
-                  border: '2px solid rgba(46,196,182,0.3)',
-                  color: '#2ec4b6', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>
-                  <Search size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  MEMORY
-                </button>
                 <button onClick={disconnect} style={{
                   padding: '6px 10px', fontSize: '10px',
                   background: 'transparent', border: '2px solid rgba(255,255,255,0.15)',
@@ -2803,7 +2792,7 @@ Powered by Tatum RPC + Storage API`)
 
       {/* RIGHT: MEMORY PANEL - PUNK STYLED */}
       {showMemoryPanel && connected && memory && (
-  <div style={{width:'90%',maxWidth:'500px',maxHeight:'60vh',overflowY:'auto',padding:'15px',background:'rgba(0,0,0,0.3)',borderRadius:'12px',border:'2px solid rgba(255,42,109,0.15)',marginTop:'12px'}}>
+  <div style={{width:'90%',maxHeight:'40vh',overflowY:'auto',padding:'12px',background:'rgba(0,0,0,0.3)',borderRadius:'12px',border:'2px solid rgba(255,42,109,0.15)',marginTop:'12px'}}>
 
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'15px'}}>
       <h3 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:'16px',color:RIOT_PINK,margin:0,textShadow:'0 0 10px rgba(255,42,109,0.4)'}}>
