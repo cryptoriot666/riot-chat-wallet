@@ -1,69 +1,69 @@
 # $RIOT Chat Wallet - Demo Script
 
-## Judging Demo Flow (3-5 menit)
+## Judging Demo Flow (3-5 minutes)
 
-### Step 1: Connect Wallet (30 detik)
-1. Buka [riot-chat-wallet-temp.vercel.app](https://riot-chat-wallet-temp.vercel.app)
-2. Klik **CONNECT WALLET** → pilih Sui wallet (Sui Wallet / Martian / OKX)
+### Step 1: Connect Wallet (30 seconds)
+1. Open [riot-chat-wallet-temp.vercel.app](https://riot-chat-wallet-temp.vercel.app)
+2. Click **CONNECT WALLET** → select Sui wallet (Sui Wallet / Martian / OKX)
 3. Accept connection
-4. ✅ Wallet address muncul di sidebar kiri, balance otomatis terdeteksi
+4. ✅ Wallet address appears in the left sidebar, balance auto-detected
 
-### Step 2: Chat dengan Agent (1 menit)
-1. Dari sidebar kiri, klik agent **🌐 J6 - The Network**
-2. Tulis: `"check current SUI price and recent cross-chain activity"`
-3. Agent merespon dengan data real-time dari blockchain
-4. Kirim 2-3 pesan lagi untuk membangun memori
-5. Ganti agent ke **💼 J8 - The Broker**
-6. Tulis: `"what's the best DeFi yield strategy right now?"`
+### Step 2: Chat with an Agent (1 minute)
+1. From the left sidebar, click agent **🌐 J6 - The Network**
+2. Type: `"check current SUI price and recent cross-chain activity"`
+3. Agent responds with real-time blockchain data
+4. Send 2-3 more messages to build memory context
+5. Switch agent to **💼 J8 - The Broker**
+6. Type: `"what's the best DeFi yield strategy right now?"`
 
-### Step 3: Bukti Tatum Integration (30 detik)
-1. Klik **BLOCKCHAIN VERIFY** di panel bawah
-2. Lihat balance wallet SUI terdeteksi via Tatum RPC
-3. (Jika ada TX history) Lihat transaksi dari wallet
-4. > Tatum API key telah digunakan 100k/100k credits — integrasi nyata dan penuh
+### Step 3: Show Tatum Integration (30 seconds)
+1. Click **BLOCKCHAIN VERIFY** in the bottom panel
+2. SUI wallet balance displayed via Tatum RPC
+3. (If TX history exists) View wallet transactions
+4. > Tatum API key has used 100k/100k credits — full, real integration
 
-### Step 4: Walrus Memory Archive (1 menit)
-1. Klik **SHOW MEMORY** di panel bawah
-2. **User Profile** — lihat nama wallet, jumlah session, blob ID terakhir
-3. **Visited Agents** — lihat agent Network (J6) dan Broker (J8) terhighlight
-4. Klik agent Network → lihat semua blobs yang tersimpan di Walrus untuk agent ini
-5. Klik link **View ↗** pada blob ID → buka aggregator Walrus testnet, buktikan data tersimpan on-chain
-6. Klik **< BACK TO AGENTS**
-7. Scroll ke **ALL BLOBS** — lihat semua blobs dari semua agents dalam urutan kronologis
+### Step 4: Walrus Memory Archive (1 minute)
+1. Click **SHOW MEMORY** in the bottom panel
+2. **User Profile** — see wallet name, session count, latest blob ID
+3. **Visited Agents** — see Network (J6) and Broker (J8) highlighted
+4. Click agent Network → view all blobs stored on Walrus for this agent
+5. Click **View ↗** on a blob ID → opens Walrus testnet aggregator, proving data is stored on-chain
+6. Click **< BACK TO AGENTS**
+7. Scroll to **ALL BLOBS** — chronological view of all stored blobs across all agents
 
-### Step 5: Search Memory (30 detik)
-1. (Jika search bar ada) Ketik nama agent di search
-2. Lihat hasil filter — hanya blobs agent tersebut
+### Step 5: Search Memory (30 seconds)
+1. (If search bar is present) Type an agent name in the search field
+2. Results filter to show only matching agent blobs
 
-### Step 6: Walrus On-Chain Verification (30 detik)
-1. Buka [Walrus Testnet Aggregator](https://aggregator.walrus-testnet.walrus.space)
-2. Paste salah satu blob_id dari MEMORY ARCHIVE
-3. ✅ Lihat data chat terenkripsi tersimpan di Walrus — desentralisasi, permanen
+### Step 6: Walrus On-Chain Verification (30 seconds)
+1. Open [Walrus Testnet Aggregator](https://aggregator.walrus-testnet.walrus.space)
+2. Paste a blob_id from MEMORY ARCHIVE
+3. ✅ View encrypted chat data stored on Walrus — decentralized, permanent
 
 ---
 
-## Key Talking Points untuk Juri
+## Key Talking Points for Judges
 
 ### "Why Walrus?"
-- Setiap percakapan chat **auto-save ke Walrus** sebagai blob
-- Blob dapat diverifikasi publik via aggregator
-- Data tidak hilang — Walrus menjamin ketersediaan
-- **Blob history** — semua interaksi agent terekam on-chain
+- Every chat conversation is **auto-saved to Walrus** as a blob
+- Blobs are publicly verifiable via the aggregator
+- Data never lost — Walrus guarantees availability
+- **Blob history** — all agent interactions recorded on-chain
 
 ### "Why Tatum?"
-- **Tatum RPC** — balance wallet real-time di berbagai chain
-- **100k credits digunakan penuh** — integrasi mendalam (RPC + AI) 
-- Satu API untuk semua chain — efisiensi developer
+- **Tatum RPC** — real-time wallet balance across multiple chains
+- **100k credits fully consumed** — deep integration (RPC + calling patterns)
+- Single API for all chains — developer efficiency
 
 ### "Why $RIOT?"
-- **25 agent AI** dengan personality unik — bukan chatbot biasa
-- **Memory per-wallet** — setiap user punya konteks sendiri
-- **Cyberpunk aesthetic** — UI/UX yang memorable
-- **Modular** — agents bisa ditambah, diganti, di-customize
+- **25 AI agents** with unique personalities — not just another chatbot
+- **Per-wallet memory** — each user has their own context
+- **Cyberpunk aesthetic** — memorable UI/UX
+- **Modular** — agents can be added, swapped, customized
 
 ---
 
-## Live Demo Link
+## Live Demo Links
 - **App:** https://riot-chat-wallet-temp.vercel.app
 - **Backend API:** https://riot-chat-wallet.onrender.com
 - **GitHub:** https://github.com/cryptoriot666/riot-chat-wallet
@@ -71,9 +71,9 @@
 
 ---
 
-## Jika Juri Ingin Mencoba Sendiri
+## If Judges Want to Try It Themselves
 1. Install Sui Wallet extension
-2. Switch ke Testnet
-3. Dapatkan test SUI dari faucet
-4. Buka app, connect wallet, mulai chat
-5. Setelah 5+ pesan, buka MEMORY → lihat blobs tersimpan
+2. Switch to Testnet
+3. Get test SUI from faucet
+4. Open the app, connect wallet, start chatting
+5. After 5+ messages, open MEMORY → see stored blobs
