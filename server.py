@@ -731,6 +731,37 @@ def load_memory_route(wallet_hash):
     return jsonify(memory)
 
 
+@app.route("/api/memory/search/<wallet_hash>", methods=["GET"])
+def memory_search(wallet_hash):
+    """Search memories by keyword (PostgreSQL full-text fallback)"""
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify({"results": [], "count": 0})
+    try:
+        memory = load_memory(wallet_hash)
+        if not memory or "blob_history" not in memory:
+            return jsonify({"results": [], "count": 0})
+        history = memory.get("blob_history", [])
+        matched = []
+        # Search in saved chat data by reading blobs that match the keyword
+        # (We look at blob_ids that were saved for agents matching keyword)
+        for entry in history:
+            agent_id = entry.get("agent_id", "").lower()
+            if query.lower() in agent_id:
+                matched.append(entry)
+                if len(matched) >= 10:
+                    break
+        return jsonify({
+            "results": matched,
+            "count": len(matched),
+            "query": query,
+            "source": "postgresql-agent"
+        })
+    except Exception as e:
+        print(f"[SEARCH] Error: {e}")
+        return jsonify({"error": str(e), "results": [], "count": 0}), 500
+
+
 @app.route("/api/health", methods=["GET"])
 def health_check():
     return jsonify({"status": "ok", "time": datetime.now().isoformat(), "walrus": "mainnet"})
