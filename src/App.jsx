@@ -624,10 +624,12 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 // MEMORY SEARCH + RAW DATA HYBRID PANEL
 // ═══════════════════════════════════════════════════════════════
 
+
 function MemoryHybridPanel({ walletAddress, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedAgentBlobs, setSelectedAgentBlobs] = useState(null);
   const WALRUS_AGG = "https://aggregator.walrus-testnet.walrus.space";
 
   useEffect(() => { loadData(); }, []);
@@ -638,15 +640,19 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
       const wc = localStorage.getItem("last_wallet_hash") || walletAddress || "nanda";
       const res = await fetch(API_BASE + "/api/memory/load/" + wc);
       if (!res.ok) throw new Error("HTTP " + res.status);
-      setData(await res.json());
+      const d = await res.json();
+      setData(d);
+      setSelectedAgentBlobs(null);
     } catch (e) { setError(e.message); }
     setLoading(false);
   };
 
+  const findAgent = (id) => AGENTS.find(a => a.id === id);
+
   if (loading) {
     return React.createElement("div", {
       style: {position:"fixed",top:0,right:0,width:"420px",height:"100vh",background:"linear-gradient(180deg,#0d0a07 0%,#1a1209 100%)",borderLeft:"2px solid rgba(255,42,109,0.3)",padding:"25px",overflowY:"auto",zIndex:100,boxShadow:"-10px 0 30px rgba(0,0,0,0.8)"}
-    }, React.createElement("p", {style:{color:"#666",fontSize:"13px",textAlign:"center",padding:"40px"}}, "Loading memory data..."));
+    }, React.createElement("p", {style:{color:"#666",fontSize:"13px",textAlign:"center",padding:"40px"}}, "Loading memory archive..."));
   }
 
   if (error) {
@@ -659,60 +665,133 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
 
   const history = data?.blob_history || [];
   const summary = data?.summary || "";
+  const visitedIds = data?.visited_agents || [];
+  const agentBlobs = selectedAgentBlobs
+    ? history.filter(h => h.agent_id === selectedAgentBlobs)
+    : [];
 
   return (
     <div style={{position:"fixed",top:0,right:0,width:"420px",height:"100vh",background:"linear-gradient(180deg,#0d0a07 0%,#1a1209 100%)",borderLeft:"2px solid rgba(255,42,109,0.3)",padding:"25px",overflowY:"auto",zIndex:100,boxShadow:"-10px 0 30px rgba(0,0,0,0.8)"}}>
+
+      {/* HEADER */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
         <h2 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:"18px",color:RIOT_PINK,margin:0,display:"flex",alignItems:"center",gap:"8px",textShadow:"0 0 10px rgba(255,42,109,0.4)"}}>
-          <Database size={18} /> BLOB HISTORY
+          <Brain size={18} /> MEMORY ARCHIVE
         </h2>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#a08060",cursor:"pointer",padding:"5px"}}><X size={20} /></button>
       </div>
-      <div style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
-        <div style={{flex:1,fontSize:"11px",color:"#c0a080"}}>
-          <div style={{color:RIOT_PINK,fontWeight:600}}>{data?.user_name || "Unknown"}</div>
-          <div style={{color:"#666",fontSize:"10px",wordBreak:"break-all"}}>Wallet: {data?.wallet_hash}</div>
-          <div style={{color:"#666",fontSize:"10px"}}>Sessions: {data?.visit_count}</div>
-        </div>
-        {data?.latest_blob_id && (
-          <div style={{fontSize:"10px",color:"#2ec4b6",fontFamily:"monospace",textAlign:"right"}}>
-            Latest: {data.latest_blob_id.slice(0,16)}...
+
+      {/* USER PROFILE */}
+      <div style={{padding:"12px",background:"rgba(255,255,255,0.02)",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.06)",marginBottom:"14px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
+          <div>
+            <div style={{fontSize:"13px",color:RIOT_PINK,fontWeight:600}}>User Profile</div>
+            <div style={{fontSize:"11px",color:"#a08060"}}>Name: {data?.user_name || "nanda"}</div>
+            <div style={{fontSize:"10px",color:"#666",wordBreak:"break-all",fontFamily:"monospace"}}>ID: {data?.wallet_hash}</div>
+            <div style={{fontSize:"10px",color:"#666"}}>Sessions: {data?.visit_count}</div>
           </div>
-        )}
+          {data?.latest_blob_id && (
+            <div style={{fontSize:"9px",color:"#2ec4b6",fontFamily:"monospace",textAlign:"right"}}>
+              Blob: {data.latest_blob_id.slice(0,16)}...
+            </div>
+          )}
+        </div>
       </div>
-      {summary && (
-        <div style={{marginBottom:"14px",padding:"10px",background:"rgba(46,196,182,0.03)",borderRadius:"6px",border:"1px solid rgba(46,196,182,0.15)"}}>
-          <div style={{fontSize:"10px",color:"#2ec4b6",marginBottom:"4px",fontFamily:"'Rubik Mono One',sans-serif"}}>SUMMARY</div>
-          <div style={{fontSize:"11px",color:"#a08060",lineHeight:"1.5",maxHeight:"60px",overflow:"hidden"}}>
-            {summary.slice(0,200)}{summary.length > 200 ? "..." : ""}
-          </div>
-        </div>
-      )}
+
+      {/* VISITED AGENTS */}
       <div style={{marginBottom:"8px",fontSize:"12px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
-        SAVED BLOBS ({history.length})
+        VISITED AGENTS ({selectedAgentBlobs ? selectedAgentBlobs : visitedIds.length}/{AGENTS.length})
       </div>
-      {history.length === 0 ? (
-        <div style={{fontSize:"11px",color:"#8a7050",padding:"12px",textAlign:"center",border:"1px dashed rgba(255,255,255,0.1)",borderRadius:"6px"}}>
-          No blobs saved yet. Start chatting with agents!
+
+      {!selectedAgentBlobs ? (
+        /* AGENT GRID */
+        <div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"14px"}}>
+          {AGENTS.map(agent => {
+            const visited = visitedIds.includes(agent.id);
+            return (
+              <button key={agent.id} onClick={() => setSelectedAgentBlobs(agent.id)}
+                style={{
+                  padding:"4px 8px",borderRadius:"4px",fontSize:"10px",
+                  fontFamily:"'Rubik Mono One',sans-serif",
+                  background: visited ? agent.color + "22" : "rgba(255,255,255,0.02)",
+                  border: visited ? "2px solid " + agent.color : "2px solid transparent",
+                  color: visited ? agent.color : "#555",
+                  cursor:"pointer",transition:"all 0.15s"
+              }}>{agent.emoji} {agent.id}</button>
+            );
+          })}
         </div>
       ) : (
-        <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"55vh",overflowY:"auto"}}>
-          {history.slice().reverse().map((item, i) => (
-            <div key={i} style={{padding:"8px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"10px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2px"}}>
-                <span style={{color:"#ffd700",fontWeight:600}}>{item.agent_id}</span>
-                <span style={{color:"#666"}}>{new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
-              </div>
-              <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px",marginBottom:"2px"}}>{item.blob_id}</div>
-              <a href={WALRUS_AGG + "/v1/blobs/" + item.blob_id} target="_blank" rel="noopener"
-                style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline"}}>
-                View on Walrus &nearr;
-              </a>
+        /* AGENT BLOB HISTORY */
+        <div style={{marginBottom:"14px"}}>
+          <button onClick={() => setSelectedAgentBlobs(null)}
+            style={{
+              background:"none",border:"none",color:"#a08060",cursor:"pointer",
+              fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif",
+              marginBottom:"8px",display:"flex",alignItems:"center",gap:"4px",padding:0
+            }}>
+            {'< BACK TO AGENTS'}
+          </button>
+          {agentBlobs.length === 0 ? (
+            <div style={{fontSize:"11px",color:"#8a7050",padding:"10px",textAlign:"center",border:"1px dashed rgba(255,255,255,0.1)",borderRadius:"6px"}}>
+              No blobs saved for {selectedAgentBlobs} yet.
             </div>
-          ))}
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"200px",overflowY:"auto"}}>
+              {agentBlobs.slice().reverse().map((item,i) => (
+                <div key={i} style={{padding:"6px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"10px"}}>
+                  <div style={{fontSize:"9px",color:"#666",marginBottom:"2px"}}>
+                    {new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                  <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px",marginBottom:"2px"}}>{item.blob_id}</div>
+                  <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener"
+                    style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline"}}>
+                    View on Walrus &nearr;
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
-      <button onClick={loadData} style={{width:"100%",padding:"10px",marginTop:"12px",background:"rgba(46,196,182,0.08)",border:"2px solid rgba(46,196,182,0.3)",color:"#2ec4b6",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif"}}>
+
+      {/* SUMMARY */}
+      {summary && (
+        <div style={{marginBottom:"14px",padding:"10px",background:"rgba(46,196,182,0.03)",borderRadius:"6px",border:"1px solid rgba(46,196,182,0.15)"}}>
+          <div style={{fontSize:"10px",color:"#2ec4b6",marginBottom:"4px",fontFamily:"'Rubik Mono One',sans-serif"}}>SESSION SUMMARY</div>
+          <div style={{fontSize:"11px",color:"#a08060",lineHeight:"1.5",maxHeight:"72px",overflow:"hidden"}}>
+            {summary.slice(0,250)}{summary.length > 250 ? "..." : ""}
+          </div>
+        </div>
+      )}
+
+      {/* ALL BLOBS */}
+      {history.length > 0 && !selectedAgentBlobs && (
+        <>
+          <div style={{marginBottom:"6px",fontSize:"11px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
+            ALL BLOBS ({history.length})
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"25vh",overflowY:"auto"}}>
+            {history.slice().reverse().map((item,i) => (
+              <div key={i} style={{padding:"6px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"10px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2px"}}>
+                  <span style={{color:"#ffd700",fontWeight:600}}>{item.agent_id}</span>
+                  <span style={{color:"#666",fontSize:"9px"}}>
+                    {new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+                  </span>
+                </div>
+                <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px",marginBottom:"2px"}}>{item.blob_id}</div>
+                <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener"
+                  style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline"}}>
+                  View on Walrus &nearr;
+                </a>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <button onClick={loadData} style={{width:"100%",padding:"8px",marginTop:"10px",background:"rgba(46,196,182,0.08)",border:"2px solid rgba(46,196,182,0.3)",color:"#2ec4b6",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif"}}>
         <Database size={12} style={{marginRight:"6px",verticalAlign:"middle"}} /> REFRESH
       </button>
     </div>
