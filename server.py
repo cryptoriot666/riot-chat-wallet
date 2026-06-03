@@ -755,9 +755,7 @@ def save_memory(wallet_hash, data):
     except Exception as e:
         print(f"[SAVE_MEMORY] Profile update failed (non-fatal): {e}")
 
-    # Store to Walrus via direct publisher call
-    blob_id = ""
-    blob_network = "mainnet"
+    # Build Walrus payload
     walrus_payload = {
         "wallet_hash": wallet_hash,
         "wallet_address": str(data.get("wallet_address", "")),
@@ -771,30 +769,42 @@ def save_memory(wallet_hash, data):
         "version": "2.0"
     }
 
+    # Store to Walrus via direct publisher call (PUT /v1/blobs, encrypt + octet-stream)
+    blob_id = ""
+    blob_network = "mainnet"
     try:
         print(f"[SAVE_MEMORY] Storing to Walrus for {wallet_hash}...")
-        # Try mainnet first, fallback to testnet
-        for url in [
-            "https://publisher.walrus-mainnet.walrus.space/v1/store?epochs=5",
-            "https://publisher.walrus-testnet.walrus.space/v1/store?epochs=5"
-        ]:
+        payload_str = json.dumps(walrus_payload)
+        encrypted = encrypt(payload_str)
+        payload_bytes = encrypted.encode("utf-8")
+
+        for publisher, label in [(WALRUS_PUBLISHER_MAINNET, "mainnet"), (WALRUS_PUBLISHER_TESTNET, "testnet")]:
             try:
-                resp = requests.post(url, json=walrus_payload, timeout=15)
-                if resp.status_code == 200:
-                    result = resp.json()
+                res = requests.put(
+                    f"{publisher}/v1/blobs?epochs=5",
+                    data=payload_bytes,
+                    headers={"Content-Type": "application/octet-stream"},
+                    timeout=15
+                )
+                if res.status_code in [200, 202]:
+                    result = res.json()
                     if "newlyCreated" in result:
                         blob_id = result["newlyCreated"]["blobObject"]["blobId"]
-                        print(f"[SAVE_MEMORY] Stored new blob: {blob_id}")
+                        blob_network = label
+                        print(f"[SAVE_MEMORY] ✓ {label}: {blob_id[:20]}...")
+                        break
                     elif "alreadyCertified" in result:
                         blob_id = result["alreadyCertified"]["blobId"]
-                        print(f"[SAVE_MEMORY] Already certified: {blob_id}")
-                    if blob_id:
+                        blob_network = label
+                        print(f"[SAVE_MEMORY] ✓ {label} existing: {blob_id[:20]}...")
                         break
                 else:
-                    print(f"[SAVE_MEMORY] Walrus HTTP {resp.status_code} from {url}")
+                    print(f"[SAVE_MEMORY] {label} HTTP {res.status_code}")
             except Exception as e2:
-                print(f"[SAVE_MEMORY] {url} failed: {e2}")
+                print(f"[SAVE_MEMORY] {label}: {e2}")
                 continue
+        if blob_id:
+            print(f"[SAVE_MEMORY] Stored: {blob_id}")
     except Exception as e:
         print(f"[SAVE_MEMORY] Walrus store failed: {e}")
 
