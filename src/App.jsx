@@ -2333,28 +2333,6 @@ Powered by Tatum RPC + Storage API`)
                 {account?.address?.slice(0, 12)}...{account?.address?.slice(-6)}
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={() => setShowProfileSettings(true)} style={{
-                  flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(255,42,109,0.15)',
-                  border: '2px solid rgba(255,42,109,0.4)',
-                  color: RIOT_PINK, borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>
-                  <User size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  PROFILE
-                </button>
-                <button onClick={false} style={{
-                  flex: 1, padding: '6px', fontSize: '10px',
-                  background: 'rgba(255,215,0,0.08)',
-                  border: '2px solid rgba(255,215,0,0.3)',
-                  color: '#ffd700', borderRadius: '4px', cursor: 'pointer',
-                  fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}>
-                  <Database size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  MEMORIES
-                </button>
                 <button onClick={() => setShowMemWalSearch(true)} style={{
                   flex: 1, padding: '6px', fontSize: '10px',
                   background: 'rgba(46,196,182,0.08)',
@@ -2364,7 +2342,7 @@ Powered by Tatum RPC + Storage API`)
                   transition: 'all 0.2s'
                 }}>
                   <Search size={10} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  SEARCH
+                  MEMORY
                 </button>
                 <button onClick={disconnect} style={{
                   padding: '6px 10px', fontSize: '10px',
