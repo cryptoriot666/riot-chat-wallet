@@ -623,170 +623,101 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 // MEMORY SEARCH + RAW DATA HYBRID PANEL
 // ═══════════════════════════════════════════════════════════════
+
 function MemoryHybridPanel({ walletAddress, onClose }) {
-  const [tab, setTab] = useState('search')
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [rawData, setRawData] = useState(null)
-  const [rawLoading, setRawLoading] = useState(false)
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const WALRUS_AGG = "https://aggregator.walrus-testnet.walrus.space";
 
-  useEffect(() => {
-    if (tab === 'raw') loadRawData()
-  }, [tab])
+  useEffect(() => { loadData(); }, []);
 
-  const loadRawData = async () => {
-    setRawLoading(true)
+  const loadData = async () => {
+    setLoading(true); setError(null);
     try {
-      const wc = localStorage.getItem('last_wallet_hash') || walletAddress || 'nanda'
-      const res = await fetch(API_BASE + '/api/memory/load/' + wc)
-      setRawData(await res.json())
-    } catch (e) { setRawData({error: e.message}) }
-    setRawLoading(false)
+      const wc = localStorage.getItem("last_wallet_hash") || walletAddress || "nanda";
+      const res = await fetch(API_BASE + "/api/memory/load/" + wc);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      setData(await res.json());
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return React.createElement("div", {
+      style: {position:"fixed",top:0,right:0,width:"420px",height:"100vh",background:"linear-gradient(180deg,#0d0a07 0%,#1a1209 100%)",borderLeft:"2px solid rgba(255,42,109,0.3)",padding:"25px",overflowY:"auto",zIndex:100,boxShadow:"-10px 0 30px rgba(0,0,0,0.8)"}
+    }, React.createElement("p", {style:{color:"#666",fontSize:"13px",textAlign:"center",padding:"40px"}}, "Loading memory data..."));
   }
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!query.trim()) return
-    setLoading(true)
-    try {
-      const res = await fetch(API_BASE + '/api/memwal/search', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({query, wallet_hash: walletAddress || '', limit: 10})
-      })
-      setResults((await res.json()).results || [])
-    } catch (e) { setResults([]) }
-    setLoading(false)
+  if (error) {
+    return React.createElement("div", { style: {position:"fixed",top:0,right:0,width:"420px",height:"100vh",background:"linear-gradient(180deg,#0d0a07 0%,#1a1209 100%)",borderLeft:"2px solid rgba(255,42,109,0.3)",padding:"25px",overflowY:"auto",zIndex:100,boxShadow:"-10px 0 30px rgba(0,0,0,0.8)"}},
+      React.createElement("p", {style:{color:"#ff4444",fontSize:"13px",textAlign:"center",padding:"40px"}}, "Error: " + error),
+      React.createElement("button", {onClick:loadData,style:{display:"block",margin:"0 auto",padding:"10px 16px",background:"rgba(255,42,109,0.1)",border:"2px solid rgba(255,42,109,0.3)",color:"#ff2a6d",borderRadius:"8px",cursor:"pointer",fontSize:"12px",fontFamily:"'Rubik Mono One', sans-serif"}}, "RETRY"),
+      React.createElement("button", {onClick:onClose,style:{display:"block",margin:"10px auto",padding:"10px 16px",background:"transparent",border:"1px solid rgba(255,255,255,0.15)",color:"#a08060",borderRadius:"8px",cursor:"pointer",fontSize:"12px",fontFamily:"'Rubik Mono One', sans-serif"}}, "CLOSE")
+    );
   }
+
+  const history = data?.blob_history || [];
+  const summary = data?.summary || "";
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, right: 0, width: '420px', height: '100vh',
-      background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
-      borderLeft: '2px solid rgba(255,42,109,0.3)',
-      padding: '25px', overflowY: 'auto', zIndex: 100,
-      boxShadow: '-10px 0 30px rgba(0,0,0,0.8)'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2 style={{
-          fontFamily: "'Rubik Glitch', cursive", fontSize: '18px',
-          color: RIOT_PINK, margin: 0, display: 'flex', alignItems: 'center', gap: '10px',
-          textShadow: '0 0 10px rgba(255,42,109,0.4)'
-        }}>
-          <Brain size={18} /> MEMORY
+    <div style={{position:"fixed",top:0,right:0,width:"420px",height:"100vh",background:"linear-gradient(180deg,#0d0a07 0%,#1a1209 100%)",borderLeft:"2px solid rgba(255,42,109,0.3)",padding:"25px",overflowY:"auto",zIndex:100,boxShadow:"-10px 0 30px rgba(0,0,0,0.8)"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+        <h2 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:"18px",color:RIOT_PINK,margin:0,display:"flex",alignItems:"center",gap:"8px",textShadow:"0 0 10px rgba(255,42,109,0.4)"}}>
+          <Database size={18} /> BLOB HISTORY
         </h2>
-        <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#a08060', cursor: 'pointer', padding: '5px'
-        }}><X size={20} /></button>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#a08060",cursor:"pointer",padding:"5px"}}><X size={20} /></button>
       </div>
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        <button onClick={() => setTab('search')} style={{
-          flex: 1, padding: '10px', borderRadius: '6px',
-          background: tab === 'search' ? 'rgba(255,42,109,0.15)' : 'rgba(255,255,255,0.03)',
-          border: tab === 'search' ? '2px solid rgba(255,42,109,0.3)' : '2px solid transparent',
-          color: tab === 'search' ? '#ff2a6d' : '#a08060', cursor: 'pointer',
-          fontSize: '12px', fontWeight: 700, fontFamily: "'Rubik Mono One', sans-serif",
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-        }}><Search size={14} /> SEARCH</button>
-        <button onClick={() => setTab('raw')} style={{
-          flex: 1, padding: '10px', borderRadius: '6px',
-          background: tab === 'raw' ? 'rgba(46,196,182,0.15)' : 'rgba(255,255,255,0.03)',
-          border: tab === 'raw' ? '2px solid rgba(46,196,182,0.3)' : '2px solid transparent',
-          color: tab === 'raw' ? '#2ec4b6' : '#a08060', cursor: 'pointer',
-          fontSize: '12px', fontWeight: 700, fontFamily: "'Rubik Mono One', sans-serif",
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-        }}><Database size={14} /> RAW DATA</button>
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
+        <div style={{flex:1,fontSize:"11px",color:"#c0a080"}}>
+          <div style={{color:RIOT_PINK,fontWeight:600}}>{data?.user_name || "Unknown"}</div>
+          <div style={{color:"#666",fontSize:"10px",wordBreak:"break-all"}}>Wallet: {data?.wallet_hash}</div>
+          <div style={{color:"#666",fontSize:"10px"}}>Sessions: {data?.visit_count}</div>
+        </div>
+        {data?.latest_blob_id && (
+          <div style={{fontSize:"10px",color:"#2ec4b6",fontFamily:"monospace",textAlign:"right"}}>
+            Latest: {data.latest_blob_id.slice(0,16)}...
+          </div>
+        )}
       </div>
-
-      {tab === 'search' && (
-        <>
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <input type="text" value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search conversations... (e.g., Bitcoin)"
-              style={{ flex: 1, padding: '12px 14px', background: 'rgba(255,255,255,0.03)',
-                border: '2px solid rgba(255,255,255,0.08)', color: '#fff',
-                borderRadius: '8px', fontSize: '13px', outline: 'none',
-                fontFamily: "'Permanent Marker', cursive" }}
-              onFocus={e => e.target.style.borderColor = 'rgba(255,42,109,0.5)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
-            <button type="submit" disabled={loading || !query.trim()} style={{
-              padding: '12px 16px',
-              background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-              border: 'none', color: '#fff', borderRadius: '8px',
-              cursor: loading ? 'wait' : 'pointer', fontSize: '12px',
-              fontFamily: "'Rubik Mono One', sans-serif", fontWeight: 600,
-              boxShadow: loading ? 'none' : '0 0 15px rgba(255,42,109,0.3)'
-            }}>{loading ? '...' : <Search size={14} />}</button>
-          </form>
-
-          {results.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {results.map((r, i) => (
-                <div key={i} style={{ padding: '14px', background: 'rgba(255,255,255,0.02)',
-                  borderRadius: '10px', border: '2px solid rgba(255,255,255,0.08)' }}>
-                  <div style={{ fontSize: '12px', color: '#d0b090', lineHeight: '1.6' }}>
-                    {r.text?.slice(0, 300)}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#666', marginTop: '8px' }}>
-                    Score: {Math.round((1 - (r.distance || 0)) * 100)}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {results.length === 0 && !loading && query && (
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <Search size={32} color="#333" />
-              <p style={{ color: '#666', fontSize: '13px', marginTop: '12px' }}>No memories found.</p>
-            </div>
-          )}
-
-          {!query && !loading && (
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <Brain size={32} color="#333" />
-              <p style={{ color: '#666', fontSize: '13px', marginTop: '12px' }}>Search your memories</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {tab === 'raw' && (
-        <div>
-          {rawLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <p style={{ color: '#666', fontSize: '13px' }}>Loading raw data...</p>
-            </div>
-          ) : rawData ? (
-            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '8px',
-              padding: '16px', overflowX: 'auto' }}>
-              <pre style={{ fontSize: '11px', color: '#2ec4b6', lineHeight: '1.6',
-                fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>
-                {JSON.stringify(rawData, null, 2)}
-              </pre>
-            </div>
-          ) : (
-            <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '40px' }}>No data.</p>
-          )}
-          <button onClick={loadRawData} style={{
-            marginTop: '12px', padding: '10px 16px',
-            background: 'rgba(46,196,182,0.1)', border: '2px solid rgba(46,196,182,0.3)',
-            color: '#2ec4b6', borderRadius: '8px', cursor: 'pointer',
-            fontSize: '12px', fontFamily: "'Rubik Mono One', sans-serif"
-          }}><Database size={12} style={{marginRight: '6px'}} /> REFRESH</button>
+      {summary && (
+        <div style={{marginBottom:"14px",padding:"10px",background:"rgba(46,196,182,0.03)",borderRadius:"6px",border:"1px solid rgba(46,196,182,0.15)"}}>
+          <div style={{fontSize:"10px",color:"#2ec4b6",marginBottom:"4px",fontFamily:"'Rubik Mono One',sans-serif"}}>SUMMARY</div>
+          <div style={{fontSize:"11px",color:"#a08060",lineHeight:"1.5",maxHeight:"60px",overflow:"hidden"}}>
+            {summary.slice(0,200)}{summary.length > 200 ? "..." : ""}
+          </div>
         </div>
       )}
+      <div style={{marginBottom:"8px",fontSize:"12px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
+        SAVED BLOBS ({history.length})
+      </div>
+      {history.length === 0 ? (
+        <div style={{fontSize:"11px",color:"#8a7050",padding:"12px",textAlign:"center",border:"1px dashed rgba(255,255,255,0.1)",borderRadius:"6px"}}>
+          No blobs saved yet. Start chatting with agents!
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"55vh",overflowY:"auto"}}>
+          {history.slice().reverse().map((item, i) => (
+            <div key={i} style={{padding:"8px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"10px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2px"}}>
+                <span style={{color:"#ffd700",fontWeight:600}}>{item.agent_id}</span>
+                <span style={{color:"#666"}}>{new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+              </div>
+              <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"9px",marginBottom:"2px"}}>{item.blob_id}</div>
+              <a href={WALRUS_AGG + "/v1/blobs/" + item.blob_id} target="_blank" rel="noopener"
+                style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline"}}>
+                View on Walrus &nearr;
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+      <button onClick={loadData} style={{width:"100%",padding:"10px",marginTop:"12px",background:"rgba(46,196,182,0.08)",border:"2px solid rgba(46,196,182,0.3)",color:"#2ec4b6",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"'Rubik Mono One',sans-serif"}}>
+        <Database size={12} style={{marginRight:"6px",verticalAlign:"middle"}} /> REFRESH
+      </button>
     </div>
-  )
+  );
 }
-
-// ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// MEMWAL BADGE COMPONENT - PUNK STYLED
-// ═══════════════════════════════════════════════════════════════
 function MemWalBadge({ count }) {
   const [ready, setReady] = useState(false)
 
