@@ -2297,7 +2297,7 @@ Powered by Tatum RPC + Storage API`)
         />
       )}
 
-* LEFT SIDEBAR - PUNK STYLED */
+      {/* LEFT SIDEBAR - PUNK STYLED */}
       <div style={{
         width: isMobile ? (sidebarOpen ? '280px' : '0px') : '280px',
         background: 'linear-gradient(180deg, #0d0a07 0%, #1a1209 100%)',
