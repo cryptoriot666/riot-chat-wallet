@@ -515,40 +515,6 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
 
 // ═══════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
-// MEMWAL BADGE COMPONENT - PUNK STYLED
-// ═══════════════════════════════════════════════════════════════
-function MemWalBadge({ count }) {
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    const check = async () => {
-      const mw = await getMemWalStatus()
-      setReady(!!mw)
-    }
-    check()
-  }, [])
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '6px',
-      padding: '6px 12px', borderRadius: '6px',
-      background: ready ? 'rgba(46,196,182,0.1)' : 'rgba(255,68,68,0.1)',
-      border: ready ? '2px solid rgba(46,196,182,0.3)' : '2px solid rgba(255,68,68,0.3)',
-      boxShadow: ready ? '0 0 10px rgba(46,196,182,0.1)' : 'none'
-    }}>
-      <div style={{
-        width: '6px', height: '6px', borderRadius: '50%',
-        background: ready ? '#2ec4b6' : '#ff4444',
-        boxShadow: ready ? '0 0 8px #2ec4b6' : 'none',
-        animation: ready ? 'pulse 2s infinite' : 'none'
-      }} />
-      <span style={{ fontSize: '11px', color: ready ? '#2ec4b6' : '#ff4444', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
-        {ready ? `🧠 MEMWAL ON${count > 0 ? ` • ${count} saved` : ''}` : '⚠️ MEMWAL OFF'}
-      </span>
-    </div>
-  )
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ON-CHAIN BADGE - PUNK STYLED
 // ═══════════════════════════════════════════════════════════════
@@ -1536,7 +1502,6 @@ export default function App() {
     setEncryptPassword('')
     showToast('Encryption disabled', 'info')
   }
-  const [walrusHistory, setWalrusHistory] = useState([])
   const [verifyTab, setVerifyTab] = useState('tx')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -1642,15 +1607,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setMemory(data)
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
       if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
-      // Load blob_history from backend into walrusHistory
-      if (data.blob_history && data.blob_history.length > 0) {
-        setWalrusHistory(data.blob_history.map(b => ({
-          blob_id: b.blob_id,
-          agent_id: b.agent_id,
-          timestamp: new Date(b.timestamp).getTime(),
-          url: `${data.latest_blob_network === 'testnet' ? WALRUS_AGGREGATOR_TESTNET : WALRUS_AGGREGATOR}/v1/blobs/${b.blob_id}`
-        })))
-      }
+
 
       const profileData = await apiGetProfile(walletHash)
       if (profileData?.success && profileData.exists) {
@@ -1721,7 +1678,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }])
 
     if (connected && walletHash) {
-      const newVisited = new Set([...visitedAgents, agent.id])
+      const newVisited = new Set([...visitedAgentsagent.id])
       apiSaveMemory(walletHash, {
         visited_agents: Array.from(newVisited),
         last_agent: agent.id,
@@ -1749,7 +1706,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       await apiSaveMemory(walletHash, {
         user_name: extractedName,
         summary: `User introduced as ${extractedName}`,
-        visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
+        visited_agents: Array.from(new Set([...visitedAgentsselectedAgent.id])),
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-3)
@@ -1804,7 +1761,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       await apiSaveMemory(walletHash, {
         summary: summary.substring(0, 500),
         user_name: memory?.user_name || extractedName,
-        visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
+        visited_agents: Array.from(new Set([...visitedAgentsselectedAgent.id])),
         last_agent: selectedAgent.id,
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-5)
@@ -1873,16 +1830,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       setLatestBlobNetwork(result.network || 'mainnet')
       setWalrusSaved(true)
 
-      // Add to history
-      setWalrusHistory(prev => [...prev, {
-        blob_id: result.blob_id,
-        timestamp: Date.now(),
-        cost_sui: result.cost_sui,
-        cost_mist: result.cost_mist,
-        is_new: result.is_new,
-        url: result.url,
-        agent_id: currentAgentId
-      }])
+      // Walrus history removed
 
 
       setSaveStatus('Saved to Walrus!')
@@ -2088,35 +2036,6 @@ Powered by Tatum RPC + Storage API`)
           </div>
         )}
 
-        {/* Walrus History */}
-        {walrusHistory.length > 0 && (
-          <div style={{ padding: '15px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: '11px', color: '#00b4d8', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '8px' }}>
-              <Cloud size={12} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-              WALRUS SAVES ({walrusHistory.length})
-            </div>
-            {walrusHistory.slice(-3).map((item, i) => (
-  <div key={i} style={{
-    fontSize: '10px', color: '#a08060', fontFamily: 'monospace',
-    marginBottom: '4px', wordBreak: 'break-all'
-  }}>
-    <a href={item.url} target="_blank" rel="noopener" style={{ color: '#00b4d8', textDecoration: 'none' }}>
-      {item.blob_id.slice(0, 16)}...
-    </a>
-    <span style={{
-      color: item.network === 'mainnet' ? '#2ec4b6' : '#ffb703',
-      marginLeft: '6px',
-      fontSize: '9px',
-      fontFamily: "'Rubik Mono One', sans-serif"
-    }}>
-      {item.network === 'mainnet' ? '● MAINNET' : '● TESTNET'}
-    </span>
-    <span style={{ color: '#666', marginLeft: '6px' }}>({item.cost_sui?.toFixed(4)} SUI)</span>
-  </div>
-))}
-          </div>
-        )}
-
         {/* API Status */}
         <div style={{
           padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px',
@@ -2132,7 +2051,7 @@ Powered by Tatum RPC + Storage API`)
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
-            const isVisited = visitedAgents.has(agent.id) || walrusHistory.some(h => h.agent_id === agent.id)
+            const isVisited = visitedAgents.has(agent.id) 
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -2274,7 +2193,7 @@ Powered by Tatum RPC + Storage API`)
                 <Database size={12} color="#2ec4b6" />
                 <span style={{ color: '#2ec4b6' }}>Memory: {memory.visit_count || 1} sessions</span>
                 <span style={{ color: '#a08060' }}>|</span>
-                <span style={{ color: '#c0a080' }}>Agents: {new Set([...visitedAgents, ...walrusHistory.map(h => h.agent_id).filter(Boolean)]).size}/25</span>
+                <span style={{ color: '#c0a080' }}>Agents: {new Set([...visitedAgents...]).size}/25</span>
                 {memory.user_name && (
                   <>
                     <span style={{ color: '#a08060' }}>|</span>
@@ -2583,7 +2502,7 @@ Powered by Tatum RPC + Storage API`)
               fontSize: '12px', color: '#a08060', margin: '0 0 10px 0',
               textTransform: 'uppercase', letterSpacing: '2px',
               fontFamily: "'Rubik Mono One', sans-serif"
-            }}>Visited Agents ({new Set([...visitedAgents, ...walrusHistory.map(h => h.agent_id).filter(Boolean)]).size}/25)</h4>
+            }}>Visited Agents ({new Set([...visitedAgents...]).size}/25)</h4>
             {selectedMemoryAgent ? (
               // Agent detail view
               <div>
@@ -2598,7 +2517,7 @@ Powered by Tatum RPC + Storage API`)
                 {(() => {
                   const agent = AGENTS.find(a => a.id === selectedMemoryAgent)
                   if (!agent) return null
-                  const agentHistory = walrusHistory.filter(h => h.agent_id === agent.id)
+                  const 
                   return (
                     <div>
                       <div style={{
@@ -2611,7 +2530,7 @@ Powered by Tatum RPC + Storage API`)
                           <div style={{ fontSize: '10px', color: '#a08060' }}>{agent.trait}</div>
                         </div>
                       </div>
-                      {agentHistory.length === 0 ? (
+                      {0 === 0 ? (
                         <div style={{ fontSize: '11px', color: '#8a7050', padding: '10px',
                           textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '6px'
                         }}>
@@ -2643,7 +2562,7 @@ Powered by Tatum RPC + Storage API`)
                         </div>
                       )}
                       <div style={{ marginTop: '10px', fontSize: '10px', color: '#8a7050', textAlign: 'center' }}>
-                        {agentHistory.length} blob{agentHistory.length !== 1 ? 's' : ''} saved
+                        {0} blob{0 !== 1 ? 's' : ''} saved
                       </div>
                     </div>
                   )
@@ -2652,7 +2571,7 @@ Powered by Tatum RPC + Storage API`)
             ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {AGENTS.map(agent => {
-                const visited = visitedAgents.has(agent.id) || walrusHistory.some(h => h.agent_id === agent.id)
+                const visited = visitedAgents.has(agent.id) 
                 return (
                   <div key={agent.id} onClick={() => { if (visited) setSelectedMemoryAgent(agent.id) }}
                     style={{
