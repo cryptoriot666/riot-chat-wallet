@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriLatam - Real-World Verification Across Latin America</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .logo span {
+            color: #764ba2;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .hero {
+            padding: 180px 0 100px;
+            text-align: center;
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            font-weight: 800;
+        }
+        
+        .hero p {
+            font-size: 20px;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            opacity: 0.9;
+        }
+        
+        .services {
+            background: white;
+            padding: 100px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .section-title p {
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+        
+        .service-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .service-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .service-card h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .service-card p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .price {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+        
+        .countries {
+            background: #f8f9fa;
+            padding: 100px 0;
+        }
+        
+        .country-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .country-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 100px 0;
+            text-align: center;
+            color: white;
+        }
+        
+        .cta-section h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        
+        .calendly-inline-widget {
+            margin: 40px auto;
+            max-width: 800px;
+            height: 700px;
+        }
+        
+        footer {
+            background: #333;
+            color: white;
+            padding: 60px 0 30px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+            
+            .hero p {
+                font-size: 18px;
+            }
+            
+            .service-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!-- Calendly link widget -->
+    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+    <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript" async></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="nav-container">
+                <a href="#" class="logo">Veri<span>Latam</span></a>
+                <a href="#contact" class="cta-button" onclick="Calendly.initPopupWidget({url: 'https://calendly.com/verilatam/30min'});return false;">Book a Free Consultation</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Real-World Verification Across Latin America</h1>
+            <p>Get on-ground verification, photos, and data from any city in Latin America within 24 hours. Perfect for franchises, e-commerce, and market research.</p>
+            <a href="#contact" class="cta-button" onclick="Calendly.initPopupWidget({url: 'https://calendly.com/verilatam/30min'});return false;">Start Your First Project</a>
+        </div>
+    </section>
+
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-title">
+                <h2>Our Services</h2>
+                <p>Professional on-ground services across 10+ Latin American countries</p>
+            </div>
+            
+            <div class="service-grid">
+                <div class="service-card">
+                    <div class="service-icon">📍</div>
+                    <h3>Basic Verification</h3>
+                    <p>Verify business status, hours, and location with 3 photos</p>
+                    <div class="price">$49</div>
+                    <a href="#contact" class="cta-button" onclick="Calendly.initPopupWidget({url: 'https://calendly.com/verilatam/30min'});return false;">Get Started</a>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">📸</div>
+                    <h3>Photo Documentation</h3>
+                    <p>5-8 high-quality photos of products, menus, or locations</p>
+                    <div class="price">$79</div>
+                    <a href="#contact" class="cta-button" onclick="Calendly.initPopupWidget({url: 'https://calendly.com/verilatam/30min'});return false;">Get Started</a>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">🕵️</div>
+                    <h3>Mystery Shopping</h3>
+                    <p>Service quality assessment with detailed report</p>
+                    <div class="price">$129</div>
+                    <a href="#contact" class="cta-button" onclick="Calendly.initPopupWidget({url: 'https://calendly.com/verilatam/30min'});return false;">Get Started</a>
+                </div>
+                
+                <div class="service-card">
+                    <div class="service-icon">📊</div>
+                    <h3>Market Survey</h3>
+                    <p>Competitor price analysis and market data collection</p>
+                    <div class="price">$199</div>
+                    <a href="#contact" class="cta-button" onclick="Calendly.initPopupWidget({url: 'https://calendly.com/verilatam/30min'});return false;">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="countries">
+        <div class="container">
+            <div class="section-title">
+                <h2>Coverage Across Latin America</h2>
+                <p>We have verified humans in major cities across 10+ countries</p>
+            </div>
+            
+            <div class="country-grid">
+                <div class="country-item">🇲🇽 Mexico</div>
+                <div class="country-item">🇧🇷 Brazil</div>
+                <div class="country-item">🇦🇷 Argentina</div>
+                <div class="country-item">🇨🇴 Colombia</div>
+                <div class="country-item">🇵🇪 Peru</div>
+                <div class="country-item">🇨🇱 Chile</div>
+                <div class="country-item">🇪🇨 Ecuador</div>
+                <div class="country-item">🇺🇾 Uruguay</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section" id="contact">
+        <div class="container">
+            <h2>Ready to Verify Your Business in Latin America?</h2>
+            <p>Book a free 30-minute consultation to discuss your needs</p>
+            
+            <!-- Calendly inline widget -->
+            <div class="calendly-inline-widget" data-url="https://calendly.com/verilatam/30min" style="min-width:320px;height:700px;"></div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2026 VeriLatam. All rights reserved.</p>
+            <p>Contact: hello@verilatam.com | +1 (555) 123-4567</p>
+            <p style="margin-top: 20px; font-size: 14px; opacity: 0.7;">Powered by RentaUnHumano Technology</p>
+        </div>
+    </footer>
+
+    <script type="text/javascript">
+        // Initialize Calendly
+        window.onload = function() {
+            Calendly.initBadgeWidget({
+                url: 'https://calendly.com/verilatam/30min',
+                text: 'Schedule time with me',
+                color: '#667eea',
+                textColor: '#ffffff',
+                branding: true
+            });
+        };
+    </script>
+</body>
+</html>
