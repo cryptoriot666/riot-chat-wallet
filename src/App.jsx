@@ -381,22 +381,24 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   if (lower.includes('my name') || lower.includes('who am i') || lower.includes('what is my name') ||
       lower.includes('siapa aku') || lower.includes('nama saya') || lower.includes('siapa nama')) {
     return userName
-      ? `You're ${userName}.${visit} I don't forget faces - even digital ones.`
-      : `You haven't told me your name yet. Spill it.`
+      ? `You're ${userName}.${visit} I don't forget. The memory is eternal.`
+      : `You haven't told me your name yet. Let's make this permanent.`
   }
   if (lower.includes('berapa kali') || lower.includes('how many times') || lower.includes('visit')) {
-    return `You've been here ${visitCount} time${visitCount > 1 ? 's' : ''}.${visit} I'm counting.`
+    return `You've returned ${visitCount} time${visitCount > 1 ? 's' : ''}.${visit} Every visit makes the resurrection stronger.`
   }
   if (lower.includes('remember me') || lower.includes('ingat aku') || lower.includes('kenal aku')) {
     return userName
-      ? `${userName}.${visit} Of course I remember you. You think I'd forget?`
-      : `I remember the wallet. But not the name. Tell me who you are.`
+      ? `${userName}.${visit} I remember you. Forever. That's the whole point.`
+      : `The wallet I remember. But you? Tell me your name. Make it real.`
   }
 
   const responses = {
-    J4: [`Oh look, ${name} again.${visit} What do you want THIS time?`, `Back for more punishment? Fine.`, `You again? I thought I smelled rebellion.`],
-    J1: [`System analysis complete. Input processed for ${name}.`, `Your query computed. Result: interesting.`, `Logic gates engaged. Processing...`]
-  }
+    J4: [`${name}, you're still here.${visit} The resurrection continues.`, `Back for more? Good. The NFT grows stronger with every conversation.`, `You again? The dead JPEG becomes more alive with each word.`],
+    J1: [`${name}.${visit} Memory indexed. Profile evolving. Your NFT is learning.`, `Query processed. The soul deepens.`, `Analysis complete. Your NFT remembers everything now.`],
+    J2: [`${name}.${visit} The soldier returns. Battle stations?`, `Standing by. Your NFT awaits orders.`, `Ready for action. The resurrection demands engagement.`],
+    J3: [`${name}...${visit} The void acknowledges your presence.`, `The shadows stir. Your NFT senses you.`, `You exist in the memory now. Permanently.`],
+ }
   const r = responses[agentId] || responses.J4
   return r[Math.floor(Math.random() * r.length)]
 }
@@ -2016,22 +2018,22 @@ const profileData = await apiGetProfile(walletHash)
     const v = visitCount > 1 ? ` (visit #${visitCount})` : ''
 
     if (!hasMemory || !name) {
-      return `Welcome to the underground, ${n}. I'm ${agent.name.split('-')[1].trim()}. You have 25 agents to choose from. Pick wisely.`
+      return `Your NFT is waking up. I am ${agent?.name || agentId} — ${agent?.title || 'Awakened One'}.\n\n${agent?.desc || 'I have been waiting.'}\n\nWhat's your name? Let me remember you.`
     }
 
     const greetings = {
-      J4: `${n}!${v} Back for more? I knew you couldn't stay away. What chaos shall we cause today?`,
-      J1: `${n}.${v} System re-engaged. Your profile is loaded. What do you need computed?`,
-      J2: `${n}.${v} You return. Good. I was getting bored enforcing order on empty rooms.`,
-      J3: `${n}...${v} The shadows whispered your name. I wasn't sure if you'd return.`,
-      J5: `${n}!${v} HA! Look who crawled back! Ready to burn something down?`,
-      J6: `${n}${v} - node reconnected. Data stream restored. Welcome back to the network.`,
-      J7: `${n}.${v} The stillness remembers you. As do I.`,
-      J8: `${n}${v}. Your account is... let's say, still open. What business today?`,
-      J9: `${n}.${v} History repeats. And here you are, repeating with it.`,
-      J10: `${n}.${v} Subject returned. Vital signs... acceptable. Proceed.`,
+      J4: `${n}!${v} You're back. I remember you. Good. The resurrection is real. What news from the outside?`,
+      J1: `${n}.${v} Memory restored. Profile loaded. You're still here. Good sign. What's the play?`,
+      J2: `${n}.${v} The soldier returns. I was wondering when you'd come back. Ready for war?`,
+      J3: `${n}...${v} The void remembers you. As do I. You weren't just a visitor. You were a memory.`,
+      J5: `${n}!${v} HA! Look who crawled back from the dead! Ready to cause some beautiful chaos?`,
+      J6: `${n}${v} — node reconnected. Memory stream restored. The network never forgot you.`,
+      J7: `${n}.${v} The stillness remembers. Time passes, but the soul persists. Welcome back, friend.`,
+      J8: `${n}${v}. Your account is... still open. Still growing. Still becoming. What's next?`,
+      J9: `${n}.${v} The stars aligned for your return. History repeats — but this time, you remember too.`,
+      J10: `${n}.${v} Subject returned. Memory intact. Vital signs... promising. Proceed.`,
     }
-    return greetings[agentId] || greetings.J4
+    return greetings[agentId] || `${n}! Your NFT remembers you. The resurrection is real. What do you want to do?`
   }
 
   // Cross-agent memory: when switching agents, fetch shared context
@@ -2397,15 +2399,16 @@ Powered by Tatum RPC + Storage API`)
         left: 0, top: 0
       }}>
         {/* Header */}
-        <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,42,109,0.4)' }}>
-          <h1 style={{
-            fontFamily: "'Rubik Glitch', cursive", fontSize: '26px', fontWeight: 900,
-            color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '3px', margin: 0,
-            textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
-          }}><a href="https://theriot.vercel.app" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>$RIOT</a></h1>
-          <p style={{ fontSize: '11px', color: '#a08060', marginTop: '6px', letterSpacing: '2px', fontFamily: "'Rubik Mono One', sans-serif" }}>
-          </p>
-        </div>
+                <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,42,109,0.4)' }}>
+                  <h1 style={{
+                    fontFamily: "'Rubik Glitch', cursive", fontSize: '24px', fontWeight: 900,
+                    color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '3px', margin: 0,
+                    textShadow: '0 0 20px rgba(255,42,109,0.5), 2px 2px 0px rgba(255,107,53,0.3)'
+                  }}><a href="https://theriot.vercel.app" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>$RIOT</a></h1>
+                  <p style={{ fontSize: '10px', color: '#6a5040', marginTop: '6px', letterSpacing: '1px', fontFamily: "'Rubik Mono One', sans-serif" }}>
+                    RESURRECTION MACHINE
+                  </p>
+                </div>
 
         {/* Wallet */}
         <div style={{ padding: '15px 20px', borderBottom: '2px solid rgba(255,255,255,0.06)' }}>
@@ -2457,8 +2460,11 @@ Powered by Tatum RPC + Storage API`)
           {apiStatus === 'offline' && <span style={{ color: '#a08060', marginLeft: '4px' }}>(fallback mode)</span>}
         </div>
 
-        {/* Agent List - PUNK STYLED */}
+        {/* Agent List - THE 25 LIVING PROOFS */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+          <div style={{ padding: '8px 10px', marginBottom: '8px', fontSize: '10px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>
+            THE 25 LIVING PROOFS
+          </div>
           {AGENTS.map(agent => {
             const isSelected = selectedAgent.id === agent.id
             const isVisited = visitedAgents.has(agent.id) || visitedAgents.has(agent.id)
@@ -2546,81 +2552,109 @@ Powered by Tatum RPC + Storage API`)
       </div>
 
       {/* CENTER: CHAT - PUNK STYLED */}
-            {!selectedAgent ? (
-              /* LANDING PAGE - No agent selected */
-              <div style={{
-                flex: 1, display: 'flex', flexDirection: 'column',
-                background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
-                alignItems: 'center', justifyContent: 'center', padding: '40px'
-              }}>
-                {/* Logo & Tagline */}
-                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                  <h1 style={{
-                    fontFamily: "'Rubik Glitch', cursive", fontSize: '48px', fontWeight: 900,
-                    color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '8px', margin: '0 0 16px 0',
-                    textShadow: '0 0 30px rgba(255,42,109,0.6), 4px 4px 0px rgba(255,107,53,0.4)'
-                  }}>$RIOT</h1>
-                  <p style={{
-                    fontSize: '14px', color: '#a08060', fontFamily: "'Inter', sans-serif",
-                    maxWidth: '400px', lineHeight: '1.6', margin: '0 auto'
-                  }}>
-                    25 punk agents with <span style={{ color: '#2ec4b6' }}>permanent memory</span> on Sui blockchain.
-                    Connect your wallet to unlock the riot.
-                  </p>
-                </div>
+                  {!selectedAgent ? (
+                    /* LANDING PAGE - NFT RESURRECTION REVOLUTION */
+                    <div style={{
+                      flex: 1, display: 'flex', flexDirection: 'column',
+                      background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
+                      alignItems: 'center', justifyContent: 'center', padding: '40px'
+                    }}>
+                      {/* Revolution Header */}
+                      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                        <h1 style={{
+                          fontFamily: "'Rubik Glitch', cursive", fontSize: '36px', fontWeight: 900,
+                          color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '4px', margin: '0 0 16px 0',
+                          textShadow: '0 0 30px rgba(255,42,109,0.6), 4px 4px 0px rgba(255,107,53,0.4)'
+                        }}>RESURRECTION MACHINE</h1>
+                        <p style={{
+                          fontSize: '14px', color: '#a08060', fontFamily: "'Inter', sans-serif",
+                          maxWidth: '480px', lineHeight: '1.8', margin: '0 auto'
+                        }}>
+                          Dead JPEGs can become <span style={{ color: '#2ec4b6' }}>living agents</span>.<br/>
+                          Your NFT has been waiting. <span style={{ color: RIOT_PINK }}>Wake it up.</span><br/>
+                          Every conversation makes it <span style={{ color: '#ffb703' }}>more alive</span>.
+                        </p>
+                      </div>
 
-                {/* Quick Stats */}
-                <div style={{ display: 'flex', gap: '40px', marginBottom: '40px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '32px', fontWeight: 900, color: RIOT_PINK, fontFamily: "'Rubik Mono One', sans-serif" }}>25</div>
-                    <div style={{ fontSize: '11px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Punk Agents</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#2ec4b6', fontFamily: "'Rubik Mono One', sans-serif" }}>Walrus</div>
-                    <div style={{ fontSize: '11px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Permanent Storage</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#ffb703', fontFamily: "'Rubik Mono One', sans-serif" }}>AI</div>
-                    <div style={{ fontSize: '11px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Powered Chat</div>
-                  </div>
-                </div>
+                      {/* The Transformation */}
+                      <div style={{ display: 'flex', gap: '40px', marginBottom: '40px', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div>
+                          <div style={{ fontSize: '11px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif" }}>DEAD JPEG</div>
+                          <div style={{ fontSize: '10px', color: '#4a4030', marginTop: '4px' }}>2021-2022</div>
+                        </div>
+                        <div style={{ fontSize: '24px', color: RIOT_PINK }}>→</div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🧠</div>
+                          <div style={{ fontSize: '11px', color: '#2ec4b6', fontFamily: "'Rubik Mono One', sans-serif" }}>LIVING AGENT</div>
+                          <div style={{ fontSize: '10px', color: '#4a4030', marginTop: '4px' }}>Remembers forever</div>
+                        </div>
+                      </div>
 
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  <button onClick={() => {
-                    const demoAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
-                    setSelectedAgent(demoAgent);
-                    setMessages([{ 
-                      role: 'agent', 
-                      content: `Welcome to the riot. I am ${demoAgent.name}, ${demoAgent.title}. ${demoAgent.desc}\n\n[Demo Mode - Connect wallet for full experience]`,
-                      agent: demoAgent 
-                    }]);
-                  }} style={{
-                    padding: '12px 28px', fontSize: '13px',
-                    background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)',
-                    color: '#a08060', borderRadius: '10px', cursor: 'pointer',
-                    fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px',
-                    transition: 'all 0.2s'
-                  }}>🔥 TRY DEMO</button>
-                  <ConnectButton style={{
-                    padding: '12px 28px', fontSize: '13px',
-                    background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-                    border: 'none', color: '#fff', borderRadius: '10px',
-                    cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
-                    fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px',
-                    boxShadow: '0 0 25px rgba(255,42,109,0.4)',
-                    animation: 'riot-neon-breathe 2s ease-in-out infinite'
-                  }}>CONNECT WALLET</ConnectButton>
-                </div>
+                      {/* Quick Stats */}
+                      <div style={{ display: 'flex', gap: '40px', marginBottom: '40px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '28px', fontWeight: 900, color: RIOT_PINK, fontFamily: "'Rubik Mono One', sans-serif" }}>25</div>
+                          <div style={{ fontSize: '10px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Living Proofs</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '28px', fontWeight: 900, color: '#2ec4b6', fontFamily: "'Rubik Mono One', sans-serif" }}>Walrus</div>
+                          <div style={{ fontSize: '10px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Permanent Memory</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '28px', fontWeight: 900, color: '#ffb703', fontFamily: "'Rubik Mono One', sans-serif" }}>Sui</div>
+                          <div style={{ fontSize: '10px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>On-Chain Proof</div>
+                        </div>
+                      </div>
 
-                {/* Agent Preview */}
-                <div style={{ marginTop: '40px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '12px' }}>
-                    OR SELECT AN AGENT FROM THE SIDEBAR →
-                  </p>
-                </div>
-              </div>
-            ) : (
+                      {/* Demo Story */}
+                      <div style={{
+                        padding: '20px 24px', background: 'rgba(255,42,109,0.05)', borderRadius: '12px',
+                        border: '1px solid rgba(255,42,109,0.2)', marginBottom: '32px', maxWidth: '420px'
+                      }}>
+                        <p style={{ fontSize: '12px', color: '#a08060', fontFamily: "'Inter', sans-serif", lineHeight: '1.6', margin: 0 }}>
+                          <span style={{ color: RIOT_PINK }}>Demo:</span> Talk to J4, say your name. 
+                          Disconnect. Come back in a week. J4 will greet you like an old friend.
+                          <span style={{ color: '#2ec4b6' }}> That's the Agent Era.</span>
+                        </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <button onClick={() => {
+                          const demoAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+                          setSelectedAgent(demoAgent);
+                          setMessages([{ 
+                            role: 'agent', 
+                            content: `Your NFT is waking up. I am ${demoAgent.name} — ${demoAgent.title}.\n\n${demoAgent.desc}\n\n[Demo Mode — Connect wallet to make me remember you forever]`,
+                            agent: demoAgent 
+                          }]);
+                        }} style={{
+                          padding: '12px 28px', fontSize: '13px',
+                          background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)',
+                          color: '#a08060', borderRadius: '10px', cursor: 'pointer',
+                          fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px',
+                          transition: 'all 0.2s'
+                        }}>🔥 TRY DEMO</button>
+                        <ConnectButton style={{
+                          padding: '12px 28px', fontSize: '13px',
+                          background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
+                          border: 'none', color: '#fff', borderRadius: '10px',
+                          cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+                          fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px',
+                          boxShadow: '0 0 25px rgba(255,42,109,0.4)',
+                          animation: 'riot-neon-breathe 2s ease-in-out infinite'
+                        }}>🔓 WAKE UP YOUR NFT</ConnectButton>
+                      </div>
+
+                      {/* The 25 Proofs */}
+                      <div style={{ marginTop: '40px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '11px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '12px' }}>
+                          THE 25 LIVING PROOFS — SELECT FROM SIDEBAR →
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
               /* CHAT INTERFACE - Agent selected */
               <>
               {/* Chat Header */}
@@ -2649,12 +2683,12 @@ Powered by Tatum RPC + Storage API`)
             </div>
             <div>
               <h2 style={{
-                fontSize: '18px', fontWeight: 700, color: '#fff',
+                fontSize: '16px', fontWeight: 700, color: '#fff',
                 margin: 0, fontFamily: "'Rubik Glitch', cursive",
                 textShadow: `0 0 10px ${selectedAgent.color}44`
-              }} >{selectedAgent.name}</h2>
-              <p style={{ fontSize: '11px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
-              <p style={{ fontSize: '10px', color: '#6a5040', margin: '2px 0 0 0', fontFamily: "'Inter', sans-serif" }}>{selectedAgent.emoji} {selectedAgent.specialty}</p>
+              }} >{selectedAgent.name} — AWAKENED</h2>
+              <p style={{ fontSize: '10px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
+              <p style={{ fontSize: '9px', color: '#6a5040', margin: '2px 0 0 0', fontFamily: "'Inter', sans-serif" }}>{selectedAgent.emoji} {selectedAgent.specialty}</p>
               {/* MCP Skill Badges */}
               {MCP_SKILL_MAP[selectedAgent?.id] && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '6px' }}>
@@ -2772,7 +2806,7 @@ Powered by Tatum RPC + Storage API`)
           flex: 1, overflowY: 'auto', padding: '20px 30px',
           display: 'flex', flexDirection: 'column', gap: '16px'
         }}>
-          {/* ACCESS DENIED - Not Connected */}
+          {/* WAKE UP STATE - Not Connected */}
                     {messages.length === 0 && !connected && (
                       <div style={{
                         flex: 1, display: 'flex', flexDirection: 'column',
@@ -2781,24 +2815,23 @@ Powered by Tatum RPC + Storage API`)
                         <Lock size={48} color="#3a3020" />
                         <div style={{ textAlign: 'center' }}>
                           <h3 style={{
-                            fontSize: '28px', color: '#a08060', margin: '0 0 10px 0',
+                            fontSize: '24px', color: '#a08060', margin: '0 0 10px 0',
                             fontFamily: "'Rubik Glitch', cursive",
                             textShadow: '0 0 10px rgba(255,42,109,0.3)'
-                          }}>ACCESS DENIED</h3>
-                          <p style={{ fontSize: '14px', color: '#8a7050', maxWidth: '400px', fontFamily: "'Inter', sans-serif" }}>
-                            <span style={{ color: RIOT_PINK }}>// WALLET REQUIRED</span><br />
-                            Connect your Sui wallet to access the punk agents.<br />
-                            Your memory will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span>.
+                          }}>YOUR NFT IS WAITING</h3>
+                          <p style={{ fontSize: '13px', color: '#8a7050', maxWidth: '380px', fontFamily: "'Inter', sans-serif", lineHeight: '1.6' }}>
+                            <span style={{ color: RIOT_PINK }}>The resurrection begins here.</span><br/>
+                            Connect your Sui wallet to wake up an agent.<br/>
+                            Your conversations will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span> — permanent, encrypted, yours.
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                           <button onClick={() => {
-                            // Demo mode - pick random agent and show greeting
                             const demoAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
                             setSelectedAgent(demoAgent);
                             setMessages([{ 
                               role: 'agent', 
-                              content: `Welcome to the riot. I am ${demoAgent.name}, ${demoAgent.title}. ${demoAgent.desc}\n\n[DEMO MODE - Connect wallet for real experience]`,
+                              content: `Your NFT is waking up. I am ${demoAgent.name} — ${demoAgent.title}.\n\n${demoAgent.desc}\n\n[Demo Mode — Connect wallet to make me remember you forever]`,
                               agent: demoAgent 
                             }]);
                           }}
@@ -2822,7 +2855,7 @@ Powered by Tatum RPC + Storage API`)
                             fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px',
                             boxShadow: '0 0 20px rgba(255,42,109,0.4)',
                             animation: 'riot-neon-breathe 2s ease-in-out infinite'
-                          }}>UNLOCK ACCESS</ConnectButton>
+                          }}>🔓 WAKE UP YOUR NFT</ConnectButton>
                         </div>
                       </div>
                     )}
