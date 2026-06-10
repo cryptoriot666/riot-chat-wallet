@@ -1824,7 +1824,7 @@ const EncryptModal = ({isOpen,onClose,onEnable,password,setPassword,mode}) => {
 
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
-  const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
+  const [selectedAgent, setSelectedAgent] = useState(null)
   const [previousAgentId, setPreviousAgentId] = useState("")
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -1919,7 +1919,7 @@ export default function App() {
     const timer = setTimeout(async () => {
       const memwalAgentId = selectedAgent?.id || 'J4'
 const result = await memwalSaveMemory(account?.address, messages, memwalAgentId, {
-        agent_name: selectedAgent.name,
+        agent_name: selectedAgent?.name || 'Agent',
         wallet_hash: walletHash
       })
 
@@ -1936,7 +1936,7 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }, 3000)
 
     return () => clearTimeout(timer)
-  }, [messages, walletHash, selectedAgent.id, connected, account?.address])
+  }, [messages, walletHash, selectedAgent?.id, connected, account?.address])
 
   const autoSaveToWalrus = async () => {
     if (!connected || !walletHash || messages.length < 2) return
@@ -2371,7 +2371,7 @@ Powered by Tatum RPC + Storage API`)
       {EncryptModal({isOpen:showEncryptModal,onClose:()=>{setShowEncryptModal(false);setEncryptPassword('')},onEnable:handleEncryptEnable,password:encryptPassword,setPassword:setEncryptPassword,mode:pendingEncryptConfirm?'save':'enable'})}
 
       {/* Name Ask Modal */}
-      {showNameAsk && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
+      {showNameAsk && selectedAgent && <NameAskModal onSubmit={handleNameSubmit} agentName={selectedAgent.name} />}
 
       {/* Profile Settings Panel */}
       {showProfileSettings && connected && (
@@ -2546,15 +2546,84 @@ Powered by Tatum RPC + Storage API`)
       </div>
 
       {/* CENTER: CHAT - PUNK STYLED */}
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
-        position: 'relative',
-        marginLeft: isMobile ? '0px' : '0px',
-        paddingTop: '26px',
-        width: isMobile ? '100%' : 'auto'
-      }}>
-        {/* Chat Header */}
+            {!selectedAgent ? (
+              /* LANDING PAGE - No agent selected */
+              <div style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                background: 'linear-gradient(135deg, #0d0a07 0%, #1a1209 50%, #0d0a07 100%)',
+                alignItems: 'center', justifyContent: 'center', padding: '40px'
+              }}>
+                {/* Logo & Tagline */}
+                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                  <h1 style={{
+                    fontFamily: "'Rubik Glitch', cursive", fontSize: '48px', fontWeight: 900,
+                    color: RIOT_PINK, textTransform: 'uppercase', letterSpacing: '8px', margin: '0 0 16px 0',
+                    textShadow: '0 0 30px rgba(255,42,109,0.6), 4px 4px 0px rgba(255,107,53,0.4)'
+                  }}>$RIOT</h1>
+                  <p style={{
+                    fontSize: '14px', color: '#a08060', fontFamily: "'Inter', sans-serif",
+                    maxWidth: '400px', lineHeight: '1.6', margin: '0 auto'
+                  }}>
+                    25 punk agents with <span style={{ color: '#2ec4b6' }}>permanent memory</span> on Sui blockchain.
+                    Connect your wallet to unlock the riot.
+                  </p>
+                </div>
+
+                {/* Quick Stats */}
+                <div style={{ display: 'flex', gap: '40px', marginBottom: '40px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 900, color: RIOT_PINK, fontFamily: "'Rubik Mono One', sans-serif" }}>25</div>
+                    <div style={{ fontSize: '11px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Punk Agents</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#2ec4b6', fontFamily: "'Rubik Mono One', sans-serif" }}>Walrus</div>
+                    <div style={{ fontSize: '11px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Permanent Storage</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#ffb703', fontFamily: "'Rubik Mono One', sans-serif" }}>AI</div>
+                    <div style={{ fontSize: '11px', color: '#8a7050', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>Powered Chat</div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <button onClick={() => {
+                    const demoAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+                    setSelectedAgent(demoAgent);
+                    setMessages([{ 
+                      role: 'agent', 
+                      content: `Welcome to the riot. I am ${demoAgent.name}, ${demoAgent.title}. ${demoAgent.desc}\n\n[Demo Mode - Connect wallet for full experience]`,
+                      agent: demoAgent 
+                    }]);
+                  }} style={{
+                    padding: '12px 28px', fontSize: '13px',
+                    background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)',
+                    color: '#a08060', borderRadius: '10px', cursor: 'pointer',
+                    fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px',
+                    transition: 'all 0.2s'
+                  }}>🔥 TRY DEMO</button>
+                  <ConnectButton style={{
+                    padding: '12px 28px', fontSize: '13px',
+                    background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
+                    border: 'none', color: '#fff', borderRadius: '10px',
+                    cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+                    fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px',
+                    boxShadow: '0 0 25px rgba(255,42,109,0.4)',
+                    animation: 'riot-neon-breathe 2s ease-in-out infinite'
+                  }}>CONNECT WALLET</ConnectButton>
+                </div>
+
+                {/* Agent Preview */}
+                <div style={{ marginTop: '40px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '12px' }}>
+                    OR SELECT AN AGENT FROM THE SIDEBAR →
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* CHAT INTERFACE - Agent selected */
+              <>
+              {/* Chat Header */}
         <div style={{
           padding: '20px 30px',
           borderBottom: '2px solid rgba(255,42,109,0.2)',
@@ -2583,7 +2652,7 @@ Powered by Tatum RPC + Storage API`)
                 fontSize: '18px', fontWeight: 700, color: '#fff',
                 margin: 0, fontFamily: "'Rubik Glitch', cursive",
                 textShadow: `0 0 10px ${selectedAgent.color}44`
-              }} className="riot-glitch-text" data-text={selectedAgent.name}>{selectedAgent.name}</h2>
+              }} >{selectedAgent.name}</h2>
               <p style={{ fontSize: '11px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
               <p style={{ fontSize: '10px', color: '#6a5040', margin: '2px 0 0 0', fontFamily: "'Inter', sans-serif" }}>{selectedAgent.emoji} {selectedAgent.specialty}</p>
               {/* MCP Skill Badges */}
@@ -2704,35 +2773,59 @@ Powered by Tatum RPC + Storage API`)
           display: 'flex', flexDirection: 'column', gap: '16px'
         }}>
           {/* ACCESS DENIED - Not Connected */}
-          {messages.length === 0 && !connected && (
-            <div style={{
-              flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '20px'
-            }}>
-              <Lock size={48} color="#3a3020" />
-              <div style={{ textAlign: 'center' }}>
-                <h3 style={{
-                  fontSize: '28px', color: '#a08060', margin: '0 0 10px 0',
-                  fontFamily: "'Rubik Glitch', cursive",
-                  textShadow: '0 0 10px rgba(255,42,109,0.3)'
-                }} className="riot-glitch-text" data-text="ACCESS DENIED">ACCESS DENIED</h3>
-                <p style={{ fontSize: '14px', color: '#8a7050', maxWidth: '400px', fontFamily: "'Inter', sans-serif" }}>
-                  <span style={{ color: RIOT_PINK }}>// WALLET REQUIRED</span><br />
-                  Connect your Sui wallet to access the punk agents.<br />
-                  Your memory will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span>.
-                </p>
-              </div>
-              <ConnectButton style={{
-                padding: '12px 30px', fontSize: '14px',
-                background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
-                border: '2px solid rgba(255,42,109,0.5)', color: '#fff', borderRadius: '8px',
-                cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
-                fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px',
-                boxShadow: '0 0 20px rgba(255,42,109,0.4)',
-                animation: 'riot-neon-breathe 2s ease-in-out infinite'
-              }}>UNLOCK ACCESS</ConnectButton>
-            </div>
-          )}
+                    {messages.length === 0 && !connected && (
+                      <div style={{
+                        flex: 1, display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center', gap: '20px'
+                      }}>
+                        <Lock size={48} color="#3a3020" />
+                        <div style={{ textAlign: 'center' }}>
+                          <h3 style={{
+                            fontSize: '28px', color: '#a08060', margin: '0 0 10px 0',
+                            fontFamily: "'Rubik Glitch', cursive",
+                            textShadow: '0 0 10px rgba(255,42,109,0.3)'
+                          }}>ACCESS DENIED</h3>
+                          <p style={{ fontSize: '14px', color: '#8a7050', maxWidth: '400px', fontFamily: "'Inter', sans-serif" }}>
+                            <span style={{ color: RIOT_PINK }}>// WALLET REQUIRED</span><br />
+                            Connect your Sui wallet to access the punk agents.<br />
+                            Your memory will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span>.
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <button onClick={() => {
+                            // Demo mode - pick random agent and show greeting
+                            const demoAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+                            setSelectedAgent(demoAgent);
+                            setMessages([{ 
+                              role: 'agent', 
+                              content: `Welcome to the riot. I am ${demoAgent.name}, ${demoAgent.title}. ${demoAgent.desc}\n\n[DEMO MODE - Connect wallet for real experience]`,
+                              agent: demoAgent 
+                            }]);
+                          }}
+                            style={{
+                              padding: '10px 24px', fontSize: '13px',
+                              background: 'rgba(255,255,255,0.1)',
+                              border: '2px solid rgba(255,255,255,0.2)', color: '#a08060',
+                              borderRadius: '8px', cursor: 'pointer',
+                              fontFamily: "'Rubik Mono One', sans-serif",
+                              textTransform: 'uppercase', letterSpacing: '1px',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            🔥 TRY DEMO
+                          </button>
+                          <ConnectButton style={{
+                            padding: '12px 30px', fontSize: '14px',
+                            background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
+                            border: '2px solid rgba(255,42,109,0.5)', color: '#fff', borderRadius: '8px',
+                            cursor: 'pointer', fontFamily: "'Rubik Mono One', sans-serif",
+                            fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px',
+                            boxShadow: '0 0 20px rgba(255,42,109,0.4)',
+                            animation: 'riot-neon-breathe 2s ease-in-out infinite'
+                          }}>UNLOCK ACCESS</ConnectButton>
+                        </div>
+                      </div>
+                    )}
 
           {/* AGENT READY - Connected but no messages */}
           {messages.length === 0 && connected && (
@@ -2865,9 +2958,10 @@ Powered by Tatum RPC + Storage API`)
             transition: 'all 0.2s'
           }}>
             <Send size={16} />
-          </button>
-        </div>
-      </div>
+                      </button>
+                    </div>
+                    </>
+                  )}
 
       {/* RIGHT: MEMORY PANEL - PUNK STYLED */}
       {showMemoryPanel && connected && memory && (
