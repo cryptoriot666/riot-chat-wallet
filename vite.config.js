@@ -1,27 +1,19 @@
-// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  base: '/app/',
   optimizeDeps: {
     include: ['@mysten/sui'],
-    esbuildOptions: {
-      target: 'es2020',
-      format: 'esm'
-    }
+    esbuildOptions: { target: 'es2020', format: 'esm' }
   },
   build: {
-    commonjsOptions: {
-      transformMixedEsModules: true,
-      include: [/node_modules/]
-    },
+    outDir: 'dist/app',
+    commonjsOptions: { transformMixedEsModules: true, include: [/node_modules/] },
     rollupOptions: {
-      external: []
+      external: ['@mysten-incubation/memwal','node-fetch','cross-fetch','fs','url','path']
     }
   },
-  resolve: {
-    mainFields: ['module', 'main']
-  }
+  resolve: { mainFields: ['module', 'main'] }
 })

@@ -1,183 +1,228 @@
-# $RIOT - Punk Agents With Memory 🏴‍☠️
+# $RIOT - Punk Agents With Persistent Memory 🏴‍☠️
 
-> **25 AI Agents · Persistent Memory on Walrus · Multi-Chain Wallet via Tatum**
+> **10 AI Agents with Unique Skills · Persistent On-Chain Memory via Walrus/MemWal · Multi-Agent Coordination · Developer Tools**
 
 <div align="center">
 
-[![Live App](https://img.shields.io/badge/🚀_Live_App-riot--chat--wallet--temp.vercel.app-000?logo=vercel&style=for-the-badge)](https://riot-chat-wallet-temp.vercel.app)
-[![Landing Page](https://img.shields.io/badge/🎸_Landing_Page-theriot.vercel.app-ff6b35?style=for-the-badge)](https://theriot.vercel.app)
-[![App Repo](https://img.shields.io/badge/📦_App_Repo-GitHub-181717?style=for-the-badge)](https://github.com/cryptoriot666/riot-chat-wallet)
-[![Landing Repo](https://img.shields.io/badge/🎨_Landing_Repo-GitHub-181717?style=for-the-badge)](https://github.com/cryptoriot666/the-riot-sui)
-
-[![Tatum](https://img.shields.io/badge/Tatum-100k_Credits_Used-ff69b4?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMjJjNS41MjMgMCAxMC00LjQ3NyAxMC0xMFMxNy41MjMgMiAxMiAyIDIgNi40NzcgMiAxMnM0LjQ3NyAxMCAxMCAxMHoiLz48cGF0aCBkPSJNMTIgNnY2bDQgMiIvPjwvc3ZnPg==)](https://tatum.io)
 [![Walrus](https://img.shields.io/badge/Walrus-Immutable_Blobs-00ff88)](https://www.walrus.xyz)
+[![MemWal](https://img.shields.io/badge/MemWal-Agent_Memory-ff6b35)](https://memwal.ai)
 [![Sui](https://img.shields.io/badge/Sui-Network-4da2ff)](https://sui.io)
+[![npm](https://img.shields.io/badge/npm-@riot/memwal--adapter-cb3837)](https://www.npmjs.com/package/@riot/memwal-adapter)
+
+**🏆 Submitted for Walrus Track — Sui Overflow 2026**
+
+A **multi-agent AI platform with persistent, verifiable memory on Walrus** — where specialized agents coordinate, remember everything, and never lose context.
+
+---
+
+**[▶️ Live Demo](https://riot-chat-wallet-temp.vercel.app) · [🎸 Landing](https://theriot.vercel.app) · [📦 memwal-adapter](https://www.npmjs.com/package/@riot/memwal-adapter)**
 
 </div>
 
 ---
 
-## 🎯 Judging Scorecard
+## 🎯 What This Is
 
-| Criteria | Weight | Status | What We Built |
-|----------|--------|--------|---------------|
-| **Walrus Integration** | **30%** | ✅ Complete | Chat blobs auto-stored on Walrus testnet, blob history panel, per-agent blob links |
-| **Tatum Integration** | **30%** | ✅ Complete | RPC balance checking, full 100k credits utilized across test sessions |
-| **Technical Quality** | **30%** | ✅ Strong | React+Vite, Python/PostgreSQL backend, dual-path Walrus storage, 25 agents |
-| **Creativity** | **20%** | ✅ Unique | 25 punk agent personas, cyberpunk UI, conversational wallet interface |
-| **Presentation** | **20%** | ✅ Ready | README, live demo, video walkthrough, DEMO.md script, X/LinkedIn post |
-| **Social Bonus** | +Bonus | ⏳ Ready | Template in README — tag @Tatum_io @WalrusFoundation @SuiNetwork |
+$RIOT is **not** just a chat app with wallet balances. It's a **multi-agent AI ecosystem** where every agent has:
 
-**[▶️ Open Live Demo](https://riot-chat-wallet-temp.vercel.app)**
+- 🛠️ **Unique skills** via MCP (Model Context Protocol) — 10 specialized tools
+- 🧠 **Persistent memory** on Walrus/MemWal — cross-session, cross-agent
+- 🤝 **Coordination** — agents share context and delegate tasks
+- 🔐 **Verifiable data** — stored on decentralized Walrus storage
 
----
+### The Core Thesis
 
-## What is $RIOT?
-
-$RIOT is a **chat wallet** — a dashboard where you talk to 25 punk AI agents about your crypto portfolio. Every chat is **auto-saved to Walrus** as an immutable blob. Wallet balances, transaction history, and on-chain data are fetched via **Tatum RPC**.
-
-Think of it as a cyberpunk command center: instead of clicking buttons, you **talk to agents** who analyze, advise, and execute.
+> **AI agents should remember. They should share. They should coordinate.**
+> 
+> This is the first open platform where AI agents have durable, portable, verifiable memory — powered by Walrus + MemWal.
 
 ---
 
-## 🏆 Tatum x Walrus Hackathon Integration
+## 🔥 Walrus Track Compliance
 
-### Walrus Integration (30%)
-- ✅ **Auto-save every chat session to Walrus** — encrypted blobs stored on Walrus testnet
-- ✅ **Blob history per agent** — view every saved session per agent
-- ✅ **All blobs timeline** — chronological view of all stored data
-- ✅ **Verifiable** — click "View" to open blob on Walrus aggregator
-- ✅ **Blob metadata stored in PostgreSQL** — fast lookup without reading Walrus directly
-
-### Tatum Integration (30%)
-- ✅ **Tatum RPC** — real-time SUI wallet balance on dashboard
-- ✅ **Blockchain verification panel** — wallet address, balance, transaction history
-- ✅ **100k credits fully utilized** — RPC calls for live data across test sessions
-- ✅ **Multi-chain ready** — Tatum's unified API architecture
-
-### Technical Quality (30%)
-- ✅ React + Vite frontend (fast, modern)
-- ✅ Flask Python backend with PostgreSQL
-- ✅ Dual-path Walrus storage (mainnet → testnet fallback)
-- ✅ Responsive design (mobile sidebar toggle)
-- ✅ Error boundaries, defensive code
-
-### Creativity (20%)
-- ✅ **25 unique agent personas** — each with custom traits, emoji, color
-- ✅ **Cyberpunk aesthetic** — glitch effects, neon palette, custom fonts
-- ✅ **Conversational UX** — chat interface replaces traditional dashboard
-- ✅ **Agent memory recall** — Echo (J18) can recall past conversations
-
-### Presentation (20%)
-- ✅ **Live demo** at [riot-chat-wallet-temp.vercel.app](https://riot-chat-wallet-temp.vercel.app)
-- ✅ **Demo script** — see [DEMO.md](./DEMO.md)
-- ✅ **Video demo** — walkthrough of full flow
-- ✅ **Documentation** — this README + DEMO.md
+| Requirement | Status | What We Built |
+|-------------|--------|---------------|
+| **Long-term memory** via Walrus | ✅ Complete | Every agent's memory stored as Walrus blobs via MemWal SDK |
+| **Cross-session persistence** | ✅ Complete | Agents remember context across restarts, sessions, and days |
+| **Multi-agent coordination** | ✅ Complete | 10 specialized agents share memory via shared Walrus namespace |
+| **Developer tooling** | ✅ Complete | `@riot/memwal-adapter` npm package — drop-in for any agent framework |
+| **Cross-tool memory sharing** | ✅ Complete | Different tools (MCP, Python, React) read/write same Walrus context |
+| **Artifact-driven workflows** | ✅ Complete | Agents generate, store, and reuse datasets, logs, and reports |
+| **Verifiable data** | ✅ Complete | All memory blobs on Walrus — immutable and independently verifiable |
 
 ---
 
-## Quick Start
+## 🧠 10 Agents with Unique MCP Skills
 
-### Prerequisites
-- Sui wallet (Sui Wallet / Martian / OKX)
-- Browser with wallet extension
-- Test SUI from faucet (for testnet)
+Each agent has its own MCP server with hand-crafted tools, running on dedicated ports:
 
-### Run Locally
+| Agent | Emoji | Skills | MCP Tools | Port |
+|-------|-------|--------|-----------|------|
+| **FORGE** | 🔨 | move_compiler, contract_deployer, abi_explorer, gas_estimator | compile_move, deploy_contract, verify_contract | `:33000` |
+| **CIPHER** | 🔐 | encryption, key_management, zero_knowledge, stealth_address | encrypt_message, generate_keypair, create_stealth_address | `:33001` |
+| **FENCE** | 💼 | price_oracle, dex_aggregator, gas_optimizer, arbitrage_scanner | check_price, find_best_route, estimate_gas | `:33002` |
+| **CONNECT** | 🕸️ | social_graph, wallet_analyzer, community_finder, influence_scorer | scan_wallet_connections, find_common_contacts, map_community | `:33003` |
+| **SEER** | 🔮 | data_analysis, pattern_detection, trend_forecast, anomaly_detection | analyze_wallet, detect_pattern, predict_gas | `:33004` |
+| **GHOST** | 👻 | stealth_browsing, proxy_management, osint_gathering, anon_requests | stealth_browse, anonymize_request, check_surface_web | `:33010` |
+| **BOUNCER** | ⚖️ | identity_verification, fraud_detection, risk_scoring | verify_identity, flag_suspicious, check_kyc_status | `:33011` |
+| **ROADIE** | 🏛️ | devops, deployment, health_monitoring, server_management | check_server_status, run_deploy, health_check_all | `:33012` |
+| **SCRIBE** | ✍️ | documentation, content_generation, zine_layout, markdown_export | generate_zine, write_docs, export_markdown | `:33013` |
+| **PUNK** | 🤘 | crypto_transfer, wallet_management, transaction_history, balance_check | send_crypto, check_wallet, view_transactions | `:33014` |
+
+Each MCP server is **zero-dependency** — pure Node.js `http` module. No express, no cors package.
+
+---
+
+## 📦 `@riot/memwal-adapter` — Developer Tool
+
+The star of our Walrus Track submission: **a drop-in npm package** for any agent framework.
+
 ```bash
-git clone https://github.com/cryptoriot666/riot-chat-wallet.git
+npm install @riot/memwal-adapter
+```
+
+```js
+const MemWal = require('@riot/memwal-adapter');
+const memory = new MemWal({ accountId: '0x...', privateKey: '0x...' });
+
+// One line of code = persistent, cross-session AI memory
+const context = await memory.recall('agent_state', {});
+await memory.remember('agent_state', { learned: 'user prefers punk' });
+```
+
+### Why This Matters for Walrus Track
+
+The Walrus Track asks for **developer tools that make it easier to adopt Walrus/MemWal**. This adapter does exactly that:
+
+- **3 lines to add persistent memory** to any agent (OpenAI, Claude, LangChain, custom)
+- **Multi-agent memory sharing** — different agents, processes, or machines sharing context via Walrus
+- **Framework-agnostic** — works with any LLM provider
+- **Zero lock-in** — data is portable Walrus blobs, not locked to any platform
+
+[📖 Full docs](packages/memwal-adapter/README.md)
+
+---
+
+## 🏛️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FRONTEND (Vite + React)                │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────────────┐  │
+│  │ Chat UI  │  │ Memory   │  │ Agent Card w/Skills   │  │
+│  │ 25 Agents│  │ Explorer │  │ Badges & MCP Status   │  │
+│  └──────────┘  └──────────┘  └───────────────────────┘  │
+└─────────────────────────┬───────────────────────────────┘
+                          │ HTTP / REST
+┌─────────────────────────▼───────────────────────────────┐
+│                  BACKEND (Flask / Render)                 │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────────────┐  │
+│  │ Chat API │  │ Memory   │  │ MCP Router            │  │
+│  │ DeepSeek │  │ Walrus   │  │ (tool_call handler)   │  │
+│  └──────────┘  └──────────┘  └───────────────────────┘  │
+└─────────────────────────┬───────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────┐
+│              MCP SERVER FLEET (10 agents)                 │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ │
+│  │FORGE │ │CIPHER│ │FENCE │ │CONNCT│ │SEER  │ │...   │ │
+│  │:33000│ │:33001│ │:33002│ │:33003│ │:33004│ │:33010│ │
+│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ │
+└─────────────────────────┬───────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────┐
+│              WALRUS / MEMWAL LAYER                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │ Walrus Blobs │  │ MemWal SDK   │  │ On-Chain     │  │
+│  │ Testnet/Main │  │ Semantic Mem │  │ Verification │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone
+git clone https://github.com/riot-labs/riot-chat-wallet
 cd riot-chat-wallet
+
+# Install
 npm install
-cp .env.example .env  # fill in your API keys
+
+# Set up environment
+cp .env.example .env
+# Add your MemWal credentials + DeepSeek API key
+
+# Start MCP servers (10 specialized agents)
+node mcp-manager.js
+
+# Start frontend
 npm run dev
 ```
 
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-python server.py
+### Getting MemWal Credentials
+1. Go to [MemWal Playground](https://memwal.ai)
+2. Create account → copy Account ID + Delegate Private Key
+3. Add to `.env`:
+```
+MEMWAL_ACCOUNT_ID=0xfcf8cfcf...
+MEMWAL_PRIVATE_KEY=f5e3dac2...
 ```
 
 ---
 
-## Architecture
+## 🧪 Cross-Agent Memory Demo
+
+This is what makes $RIOT unique:
 
 ```
-Frontend (Vercel)          Backend (Render)          External
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────┐
-│ React + Vite    │────▶│ Flask + Python    │────▶│ Walrus      │
-│ · Chat UI       │     │ · PostgreSQL      │     · Encrypted  │
-│ · Wallet        │     │ · Tatum RPC       │     · Permanent  │
-│ · 25 Agents     │     │ · Walrus Proxy    │     └─────────────┘
-│ · Memory Panel  │     │ · Memory API      │     ┌─────────────┐
-└─────────────────┘     └──────────────────┘     │ Tatum.io    │
-                         Backend: Render           · RPC/API    │
-                         Database: PostgreSQL      └─────────────┘
-                         Blobs: Walrus Testnet
+Agent A (CONNECT) → discovers user's community connections
+                   ↓ saves to Walrus via MemWal
+Agent B (SEER)    → reads connection data, analyzes patterns
+                   ↓ saves analysis to Walrus
+Agent C (ENFORCER)→ reads analysis, applies rules
 ```
 
-### Key Endpoints
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/chat` | POST | Chat with an agent |
-| `/api/memory/save` | POST | Save chat to Walrus + DB |
-| `/api/memory/load/<hash>` | GET | Load user memory |
-| `/api/memory/search/<hash>?q=` | GET | Search memory by agent |
-| `/api/walrus/store-direct` | POST | Direct Walrus blob store |
-| `/api/walrus/load/<hash>` | GET | Load Walrus blob |
-| `/api/balance/tatum` | GET | SUI balance via Tatum |
+All via shared Walrus namespace. **Zero coupling between agents.**
 
 ---
 
-## Demo Flow (3 minutes)
+## 🎸 Punk Rock, Not Corporate
 
-1. **Connect wallet** → auto-detects balance
-2. **Chat with agents** → talk to J6 (Network), J8 (Broker), etc.
-3. **Open MEMORY** → see saved conversations as Walrus blobs
-4. **Open BLOCKCHAIN VERIFY** → verify on-chain balance
-5. **Click "View" on a blob** → see data on Walrus aggregator
+$RIOT is inspired by classic street punk — Rancid, The Exploited, GBH, Bad Religion, Minor Threat. 
 
-Full script: [DEMO.md](./DEMO.md)
+This isn't a polished corporate blockchain app. It's a **toolkit for underground communities** to coordinate, remember, and organize — without censorship, without platform lock-in, without asking permission.
 
 ---
 
-## Tech Stack
+## 📅 Timeline
 
-- **Frontend:** React 18, Vite 5, React Icons
-- **Backend:** Python 3, Flask, Flask-CORS
-- **Database:** PostgreSQL (via pg8000)
-- **Blockchain:** Sui (Chrome extension wallet)
-- **Storage:** Walrus (testnet)
-- **API:** Tatum.io (RPC)
-- **Deploy:** Vercel (frontend), Render (backend)
-
----
-
-## Credits
-
-Built for **Tatum x Walrus Hackathon** and **Sui Overflow 2026**.
-
-- Tatum RPC for multi-chain data
-- Walrus for decentralized blob storage
-- Sui ecosystem for wallet infrastructure
+| Date | Milestone |
+|------|-----------|
+| June 6 | Submitted to Tatum x Walrus Hackathon |
+| June 8 | Pivot to Walrus Track — Sui Overflow |
+| June 8 | **10 MCP-enabled agents live** |
+| June 8 | **`@riot/memwal-adapter` npm package** |
+| June 20 | **Sui Overflow 2026 — Walrus Track submission** |
 
 ---
 
-## Social
+## 🔧 Tech Stack
 
-Share this project! Tagging earns bonus points:
-
-```text
-🚀 Just built $RIOT - a cyberpunk chat wallet with 25 AI agents on #Sui!
-Every chat auto-stores to @WalrusFoundation as permanent blobs.
-Powered by @Tatum_io for on-chain data.
-Built for @SuiNetwork Overflow 2026.
-
-Try it: https://riot-chat-wallet-temp.vercel.app
-```
+- **Frontend:** React 18, Vite 5
+- **Backend:** Flask Python, PostgreSQL
+- **AI:** DeepSeek V4 (via Anthropic-compatible API)
+- **Agent Protocol:** MCP (Model Context Protocol) — custom built
+- **Storage:** Walrus (testnet/mainnet) + MemWal SDK
+- **Blobs:** Cross-session, cross-agent Walrus blobs
+- **Wallet:** Sui wallet integration
+- **Deploy:** Vercel (frontend) + Render (backend)
+- **Dev Tool:** `@riot/memwal-adapter` on npm
 
 ---
 
-*Agents are watching. The network never forgets.* 🏴‍☠️
+## 📝 License
+
+MIT — go build cool stuff. 🏴‍☠️

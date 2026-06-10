@@ -17,6 +17,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import pg8000
+from cross_agent_memory import init_cross_agent_memory, get_cross_agent_bus
+from mcp_injector import inject_mcp_prompt, get_agent_mcp_config
 
 # ===== TATUM RPC INTEGRATION =====
 TATUM_API_KEY = os.environ.get('TATUM_API_KEY', '')
@@ -138,6 +140,22 @@ def init_db():
                 data_size INTEGER
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS cross_agent_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallet_hash TEXT NOT NULL,
+                from_agent_id TEXT DEFAULT '',
+                to_agent_id TEXT DEFAULT '',
+                summary TEXT DEFAULT '',
+                user_intent TEXT DEFAULT '',
+                memwal_blob_id TEXT DEFAULT '',
+                timestamp TEXT NOT NULL
+            )
+        """)
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_cross_agent_wallet
+            ON cross_agent_sessions(wallet_hash)
+        """)
     else:
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_profiles (
@@ -181,6 +199,22 @@ def init_db():
                 agent_id VARCHAR(10),
                 data_size INTEGER
             )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS cross_agent_sessions (
+                id SERIAL PRIMARY KEY,
+                wallet_hash VARCHAR(32) NOT NULL,
+                from_agent_id VARCHAR(10) DEFAULT '',
+                to_agent_id VARCHAR(10) DEFAULT '',
+                summary TEXT DEFAULT '',
+                user_intent TEXT DEFAULT '',
+                memwal_blob_id VARCHAR(100) DEFAULT '',
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        c.execute("""
+            CREATE INDEX IF NOT EXISTS idx_cross_agent_wallet
+            ON cross_agent_sessions(wallet_hash)
         """)
 
     conn.commit()
@@ -602,7 +636,7 @@ AGENT_PROMPTS = {
     "MERIDIAN": "You are MERIDIAN - The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. Line that divides yet unites."
 }
 
-def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
+def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash, last_agent=""):
     conn = get_db_conn()
     c = conn.cursor()
     if USE_SQLITE:
@@ -628,11 +662,41 @@ def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     if not final_name:
         memory_blocks.append("PERMANENT MEMORY - USER IDENTITY: The user has not yet told you their name. If they mention it, REMEMBER IT FOREVER.")
 
+    # Inject cross-agent memory context (shared across all 25 agents)
+    cross_agent_bus = get_cross_agent_bus()
+    if cross_agent_bus:
+        user_intent = ""
+        if messages and len(messages) > 0:
+            last_user_msg = ""
+            for m in reversed(messages):
+                if isinstance(m, dict) and m.get("role") == "user":
+                    last_user_msg = m.get("content", "")
+                    break
+            if last_user_msg:
+                user_intent = last_user_msg[:150]
+
+        cross_agent_context = cross_agent_bus.build_context_prompt(
+            wallet_hash, agent_id, last_agent, user_intent
+        )
+        if cross_agent_context:
+            memory_blocks.insert(0, cross_agent_context)
+
     personality = AGENT_PROMPTS.get(agent_id, AGENT_PROMPTS["REBEL"])
     enforcement = "ABSOLUTE RULES: 1. MEMORY IS TRUTH. If memory says user's name is known, you MUST use it. 2. NEVER claim you don't remember something that is in memory. 3. NEVER ask for information that is already in memory. 4. If user asks their name and you know it - answer immediately with the name. 5. Personality is secondary to memory accuracy. 6. NAME UPDATES: If user explicitly states a NEW name (e.g., 'my name is X', 'call me X', 'I am X'), you MUST acknowledge the new name and use it going forward. Do NOT refuse to update the name."
 
+    # Inject MCP capabilities for this agent
+    personality = inject_mcp_prompt(agent_id, personality)
+
     separator = chr(10) + chr(10)
-    full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement
+    # Add MCP tool usage instructions
+    mcp_config = get_agent_mcp_config(agent_id)
+    if mcp_config:
+        tools_list = ', '.join(mcp_config['tools'])
+        mcp_instruction = f"\n\n[MCP CAPABILITIES] As {agent_id}, you have access to specialized tools: {tools_list}. When the user asks for something only your tools can do, respond with: <tool_call>{{\"tool\": \"tool_name\", \"params\": {{...}}}}</tool_call>. Otherwise, respond normally in your personality."
+    else:
+        mcp_instruction = ""
+
+    full_system = separator.join(memory_blocks) + separator + personality + separator + enforcement + mcp_instruction
 
     payload = {
         "model": "deepseek-chat",
@@ -914,6 +978,35 @@ def save_memory(wallet_hash, data):
                 print(f"[SAVE_MEMORY] on_chain_saves insert failed: {e2}")
         conn.commit()
         print(f"[SAVE_MEMORY] DB updated for {wallet_hash}, blob={blob_id}")
+
+        # Record cross-agent interaction when user switches agents
+        try:
+            current_agent = str(data.get("last_agent", ""))
+            # Load previous memory to get the old last_agent
+            prev_memory = load_memory(wallet_hash)
+            previous_agent = prev_memory.get("last_agent", "") if prev_memory else ""
+
+            if current_agent and previous_agent and current_agent != previous_agent:
+                cross_agent_bus = get_cross_agent_bus()
+                if cross_agent_bus:
+                    # Extract user intent from last user message
+                    user_intent = ""
+                    for m in reversed(messages):
+                        if isinstance(m, dict) and m.get("role") == "user":
+                            user_intent = m.get("content", "")[:150]
+                            break
+
+                    cross_agent_bus.record_interaction(
+                        wallet_hash,
+                        from_agent_id=previous_agent,
+                        to_agent_id=current_agent,
+                        summary="",
+                        user_intent=user_intent
+                    )
+                    print(f"[SAVE_MEMORY] Cross-agent handoff recorded: "
+                          f"{previous_agent} → {current_agent}")
+        except Exception as e:
+            print(f"[SAVE_MEMORY] Cross-agent recording failed (non-fatal): {e}")
     except Exception as e:
         print(f"[SAVE_MEMORY] DB error: {e}")
         if conn:
@@ -987,6 +1080,7 @@ def chat():
     memory_summary = data.get("memory_summary", "")
     user_name = data.get("user_name", "")
     wallet_hash = data.get("wallet_hash", "")
+    last_agent = data.get("last_agent", "")
 
     conn = get_db_conn()
     c = conn.cursor()
@@ -1000,11 +1094,46 @@ def chat():
     db_name = row[0] if row else ""
     final_name = db_name or user_name or ""
 
-    response = call_deepseek(agent_id, messages, memory_summary, final_name, wallet_hash)
+    response = call_deepseek(agent_id, messages, memory_summary, final_name, wallet_hash, last_agent)
 
     if response:
-        return jsonify({"response": response, "source": "ai", "name_used": final_name})
-    return jsonify({"response": "I'm " + agent_id + ". Network glitching but I'm still here.", "source": "fallback", "name_used": final_name})
+        return jsonify({"response": response, "source": "ai", "name_used": final_name, "last_agent": agent_id})
+    return jsonify({"response": "I'm " + agent_id + ". Network glitching but I'm still here.", "source": "fallback", "name_used": final_name, "last_agent": agent_id})
+
+
+@app.route("/api/mcp/agents", methods=["GET"])
+def mcp_agents_list():
+    """List all MCP-enabled agents and their tools"""
+    from mcp_injector import AGENT_MCP_CONFIGS
+    return jsonify({
+        "success": True,
+        "agents": AGENT_MCP_CONFIGS
+    })
+
+
+@app.route("/api/mcp/execute", methods=["POST"])
+def mcp_execute():
+    """Route an MCP tool call to the correct agent server"""
+    data = request.get_json(force=True, silent=True) or {}
+    agent_id = data.get("agent_id", "")
+    tool = data.get("tool", "")
+    params = data.get("params", {})
+
+    config = get_agent_mcp_config(agent_id)
+    if not config:
+        return jsonify({"success": False, "error": f"No MCP config for agent {agent_id}"}), 404
+
+    mcp_url = config.get("mcpUrl", "")
+    if not mcp_url:
+        return jsonify({"success": False, "error": "MCP server not running"}), 503
+
+    try:
+        res = requests.post(mcp_url, json={"tool": tool, "params": params}, timeout=10)
+        return jsonify(res.json())
+    except requests.exceptions.ConnectionError:
+        return jsonify({"success": False, "error": f"MCP server for {agent_id} is offline. Start with: node mcp-manager.js"}), 503
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/profile/get/<wallet_hash>", methods=["GET"])
@@ -1492,6 +1621,103 @@ def memwal_analyze():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════════
+# CROSS-AGENT MEMORY ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/api/memory/cross-agent/thread/<wallet_hash>", methods=["GET"])
+def cross_agent_thread(wallet_hash):
+    """Get full cross-agent conversation thread for a wallet"""
+    try:
+        bus = get_cross_agent_bus()
+        if not bus:
+            return jsonify({"success": False, "error": "Cross-agent memory not initialized"}), 500
+
+        thread = bus.get_thread_summary(wallet_hash)
+        visited_agents = bus.get_visited_agent_ids(wallet_hash)
+
+        return jsonify({
+            "success": True,
+            "wallet_hash": wallet_hash[:12] + "...",
+            "thread": thread,
+            "agent_count": len(visited_agents),
+            "visited_agents": sorted(list(visited_agents)),
+            "total_interactions": len(thread)
+        })
+    except Exception as e:
+        print(f"[API] cross_agent_thread error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/memory/cross-agent/context/<wallet_hash>/<agent_id>", methods=["GET"])
+def cross_agent_context(wallet_hash, agent_id):
+    """Get cross-agent context for a specific agent"""
+    try:
+        bus = get_cross_agent_bus()
+        if not bus:
+            return jsonify({"success": False, "error": "Cross-agent memory not initialized"}), 500
+
+        limit = int(request.args.get("limit", 5))
+        context = bus.get_agent_context(wallet_hash, agent_id, limit)
+
+        # Generate handoff message if switching from another agent
+        last_agent = request.args.get("last_agent", "")
+        user_intent = request.args.get("user_intent", "")
+        handoff = ""
+        if last_agent and last_agent != agent_id:
+            handoff = bus.generate_handoff(last_agent, agent_id, user_intent)
+
+        # Build full prompt block
+        prompt_block = bus.build_context_prompt(wallet_hash, agent_id,
+                                                last_agent, user_intent)
+
+        return jsonify({
+            "success": True,
+            "wallet_hash": wallet_hash[:12] + "...",
+            "agent_id": agent_id,
+            "context": context,
+            "context_count": len(context),
+            "handoff": handoff,
+            "prompt_block": prompt_block
+        })
+    except Exception as e:
+        print(f"[API] cross_agent_context error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/memory/cross-agent/record", methods=["POST"])
+def cross_agent_record():
+    """Manually record a cross-agent interaction"""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        wallet_hash = data.get("wallet_hash", "")
+        from_agent = data.get("from_agent_id", "")
+        to_agent = data.get("to_agent_id", "")
+        summary = data.get("summary", "")
+        user_intent = data.get("user_intent", "")
+
+        if not wallet_hash:
+            return jsonify({"success": False, "error": "wallet_hash required"}), 400
+
+        bus = get_cross_agent_bus()
+        if not bus:
+            return jsonify({"success": False, "error": "Cross-agent memory not initialized"}), 500
+
+        result = bus.record_interaction(wallet_hash, from_agent, to_agent,
+                                        summary, user_intent)
+
+        return jsonify({
+            "success": result is not None,
+            "record": result,
+            "wallet_hash": wallet_hash[:12] + "...",
+            "from_agent": from_agent,
+            "to_agent": to_agent
+        })
+    except Exception as e:
+        print(f"[API] cross_agent_record error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════
 # MOVE CONTRACT ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
@@ -1863,5 +2089,7 @@ def get_recent_transactions(hours=24):
 if __name__ == "__main__":
     init_db()
     migrate_db()
+    # Initialize cross-agent memory bus for all 25 RIOT agents
+    init_cross_agent_memory(get_db_conn, USE_SQLITE)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

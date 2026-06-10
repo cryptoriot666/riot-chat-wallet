@@ -4,7 +4,7 @@
 
 import { MemWal } from "@mysten-incubation/memwal";
 
-const RELAYER_URL = "https://relayer.memwal.ai";
+const RELAYER_URL = import.meta.env.VITE_MEMWAL_RELAYER_URL || "https://relayer.memory.walrus.xyz";
 const NAMESPACE = "riot-chat-wallet";
 
 let memwalInstance = null;
@@ -147,5 +147,25 @@ export async function getMemWalHealth() {
     return { status: "connected", ...health };
   } catch (err) {
     return { status: "error", error: err.message };
+  }
+}
+
+/**
+ * Cross-agent memory recall — searches the riot-cross-agent namespace
+ * for memories shared between agents. Used so Agent B knows what Agent A discussed.
+ */
+export async function memwalCrossAgentRecall(walletAddress, agentId, limit = 5) {
+  const mw = await initMemWal();
+  if (!mw) return { results: [] };
+
+  try {
+    // Search with wallet + agent context for relevant cross-agent handoffs
+    const query = `cross-agent handoff ${walletAddress} ${agentId}`;
+    const result = await mw.recall(query, limit);
+    console.log(`[MemWal] 🔗 Cross-agent found ${result.results?.length || 0} handoffs for ${agentId}`);
+    return result;
+  } catch (err) {
+    console.error("[MemWal] 🔗 Cross-agent recall failed:", err.message);
+    return { results: [] };
   }
 }

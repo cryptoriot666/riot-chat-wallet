@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
+import { useCrossAgentMemory, CrossAgentIndicator, HandoffBanner } from './memwal-integration'
+import { MCP_AGENTS, SKILL_COLORS } from './agent-mcp-config'
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG - PUNK PALETTE
@@ -151,32 +153,46 @@ async function getMemWalStatus() {
   }
 }
 
+// MCP skill map: maps agent id (like 'FORGE') to MCP_AGENTS keys (like 'J21')
+const MCP_SKILL_MAP = {
+  'ARCHITECT': MCP_AGENTS['J1'],
+  'ENFORCER': MCP_AGENTS['J2'],
+  'PHANTOM': MCP_AGENTS['J3'],
+  'REBEL': MCP_AGENTS['J4'],
+  'NETWORK': MCP_AGENTS['J6'],
+  'BROKER': MCP_AGENTS['J8'],
+  'PROPHET': MCP_AGENTS['J11'],
+  'SCRIBE': MCP_AGENTS['J15'],
+  'CIPHER': MCP_AGENTS['J20'],
+  'FORGE': MCP_AGENTS['J21']
+}
+
 const AGENTS = [
-  { id: 'ARCHITECT', name: 'J1 - The Architect', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00ff88', emoji: '🏛️', specialty: 'Smart contract design & system architecture', img: '/assets/J1.jpg' },
-  { id: 'ENFORCER', name: 'J2 - The Enforcer', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#ff0044', emoji: '⚔️', specialty: 'Security audits & threat detection', img: '/assets/J2.jpg' },
-  { id: 'PHANTOM', name: 'J3 - The Phantom', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#9d4edd', emoji: '👻', specialty: 'Private key management & stealth transactions', img: '/assets/J3.jpg' },
-  { id: 'REBEL', name: 'J4 - The Rebel', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', emoji: '🤘', specialty: 'DAO governance & protocol forking', img: '/assets/J4.jpg' },
-  { id: 'JESTER', name: 'J5 - The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', emoji: '🃏', specialty: 'Meme strategy & viral content generation', img: '/assets/J5.jpg' },
-  { id: 'NETWORK', name: 'J6 - The Network', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#00b4d8', emoji: '🌐', specialty: 'Cross-chain bridge monitoring & routing', img: '/assets/J6.jpg' },
+  { id: 'ARCHITECT', name: 'J1 - ROADIE', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00b4d8', emoji: '🏛️', specialty: 'DevOps & infrastructure', img: '/assets/J1.jpg' },
+  { id: 'ENFORCER', name: 'J2 - BOUNCER', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#e63946', emoji: '⚔️', specialty: 'Identity enforcement & KYC', img: '/assets/J2.jpg' },
+  { id: 'PHANTOM', name: 'J3 - GHOST', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#7b2d8e', emoji: '👻', specialty: 'Stealth browsing & OSINT', img: '/assets/J3.jpg' },
+  { id: 'REBEL', name: 'J4 - PUNK', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', emoji: '🤘', specialty: 'Crypto transfer & wallet management', img: '/assets/J4.jpg' },
+  { id: 'JESTER', name: 'J5 - The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', emoji: '🃏', specialty: 'Meme strategy & viral content', img: '/assets/J5.jpg' },
+  { id: 'NETWORK', name: 'J6 - CONNECT', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#2ec4b6', emoji: '🌐', specialty: 'Social graph & community mapping', img: '/assets/J6.jpg' },
   { id: 'MONK', name: 'J7 - The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', emoji: '🧘', specialty: 'Gas optimization & fee forecasting', img: '/assets/J7.jpg' },
-  { id: 'BROKER', name: 'J8 - The Broker', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#ffd700', emoji: '💼', specialty: 'DeFi yield optimization & arbitrage', img: '/assets/J8.jpg' },
-  { id: 'HISTORIAN', name: 'J9 - The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', emoji: '📜', specialty: 'Transaction history analysis & audit trails', img: '/assets/J9.jpg' },
-  { id: 'SURGEON', name: 'J10 - The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', emoji: '🔪', specialty: 'Smart contract vulnerability patching', img: '/assets/J10.jpg' },
-  { id: 'PROPHET', name: 'J11 - The Prophet', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#f4a261', emoji: '🔮', specialty: 'Market trend prediction & sentiment analysis', img: '/assets/J11.jpg' },
+  { id: 'BROKER', name: 'J8 - FENCE', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#f4a261', emoji: '💼', specialty: 'DEX aggregation & price oracle', img: '/assets/J8.jpg' },
+  { id: 'HISTORIAN', name: 'J9 - The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', emoji: '📜', specialty: 'Transaction history analysis', img: '/assets/J9.jpg' },
+  { id: 'SURGEON', name: 'J10 - The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', emoji: '🔪', specialty: 'Smart contract patching', img: '/assets/J10.jpg' },
+  { id: 'PROPHET', name: 'J11 - SEER', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#9b5de5', emoji: '🔮', specialty: 'Pattern detection & trend forecast', img: '/assets/J11.jpg' },
   { id: 'GLITCH', name: 'J12 - The Glitch', trait: 'Erratic', desc: 'Reality is just a suggestion.', color: '#ff006e', emoji: '⚡', specialty: 'Edge case testing & fuzzing', img: '/assets/J12.jpg' },
-  { id: 'WARDEN', name: 'J13 - The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', emoji: '🛡️', specialty: 'Access control & multi-sig management', img: '/assets/J13.jpg' },
-  { id: 'ALCHEMIST', name: 'J14 - The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', emoji: '🧪', specialty: 'Tokenomics modeling & liquidity strategy', img: '/assets/J14.jpg' },
-  { id: 'SCRIBE', name: 'J15 - The Scribe', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#a8dadc', emoji: '✍️', specialty: 'Automated documentation & changelog generation', img: '/assets/J15.jpg' },
-  { id: 'VOID', name: 'J16 - The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', emoji: '🕳️', specialty: 'State cleanup & storage optimization', img: '/assets/J16.jpg' },
-  { id: 'SPARK', name: 'J17 - The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', emoji: '🔥', specialty: 'Launch strategy & initial liquidity setup', img: '/assets/J17.jpg' },
-  { id: 'ECHO', name: 'J18 - The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', emoji: '🔄', specialty: 'Agent memory recall & context synthesis', img: '/assets/J18.jpg' },
-  { id: 'CATALYST', name: 'J19 - The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', emoji: '💥', specialty: 'Protocol migration & upgrade coordination', img: '/assets/J19.jpg' },
-  { id: 'CIPHER', name: 'J20 - The Cipher', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#00ff88', emoji: '🔐', specialty: 'End-to-end encryption & zero-knowledge proofs', img: '/assets/J20.jpg' },
-  { id: 'FORGE', name: 'J21 - The Forge', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#ff6600', emoji: '🔨', specialty: 'NFT generation & metadata management', img: '/assets/J21.jpg' },
-  { id: 'ABYSS', name: 'J22 - The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', emoji: '🌀', specialty: 'Data aggregation & whale wallet tracking', img: '/assets/J22.jpg' },
-  { id: 'PRISM', name: 'J23 - The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', emoji: '🌈', specialty: 'Multi-chain data visualization & analytics', img: '/assets/J23.jpg' },
-  { id: 'ANCHOR', name: 'J24 - The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', emoji: '⚓', specialty: 'Stablecoin strategy & portfolio hedging', img: '/assets/J24.jpg' },
-  { id: 'MERIDIAN', name: 'J25 - The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', emoji: '♾️', specialty: 'Cross-protocol rebalancing & arbitrage', img: '/assets/J25.jpg' }
+  { id: 'WARDEN', name: 'J13 - The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', emoji: '🛡️', specialty: 'Access control & multi-sig', img: '/assets/J13.jpg' },
+  { id: 'ALCHEMIST', name: 'J14 - The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', emoji: '🧪', specialty: 'Tokenomics modeling', img: '/assets/J14.jpg' },
+  { id: 'SCRIBE', name: 'J15 - SCRIBE', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#8d99ae', emoji: '✍️', specialty: 'Zine writing & documentation', img: '/assets/J15.jpg' },
+  { id: 'VOID', name: 'J16 - The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', emoji: '🕳️', specialty: 'State cleanup & optimization', img: '/assets/J16.jpg' },
+  { id: 'SPARK', name: 'J17 - The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', emoji: '🔥', specialty: 'Launch strategy & LP setup', img: '/assets/J17.jpg' },
+  { id: 'ECHO', name: 'J18 - The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', emoji: '🔄', specialty: 'Agent memory recall & context', img: '/assets/J18.jpg' },
+  { id: 'CATALYST', name: 'J19 - The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', emoji: '💥', specialty: 'Protocol migration & upgrade', img: '/assets/J19.jpg' },
+  { id: 'CIPHER', name: 'J20 - CIPHER', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#70e000', emoji: '🔐', specialty: 'Encryption & key management', img: '/assets/J20.jpg' },
+  { id: 'FORGE', name: 'J21 - FORGE', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#e07a5f', emoji: '🔨', specialty: 'Smart contract compilation & deploy', img: '/assets/J21.jpg' },
+  { id: 'ABYSS', name: 'J22 - The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', emoji: '🌀', specialty: 'Whale wallet tracking', img: '/assets/J22.jpg' },
+  { id: 'PRISM', name: 'J23 - The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', emoji: '🌈', specialty: 'Multi-chain analytics', img: '/assets/J23.jpg' },
+  { id: 'ANCHOR', name: 'J24 - The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', emoji: '⚓', specialty: 'Stablecoin strategy & hedging', img: '/assets/J24.jpg' },
+  { id: 'MERIDIAN', name: 'J25 - The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', emoji: '♾️', specialty: 'Cross-protocol rebalancing', img: '/assets/J25.jpg' }
 ]
 
 
@@ -271,14 +287,14 @@ async function apiSaveMemory(walletHash, data) {
   } catch (e) { return false }
 }
 
-async function apiChat(agentId, messages, memorySummary, userName, walletHash) {
+async function apiChat(agentId, messages, memorySummary, userName, walletHash, lastAgent = "") {
   try {
     const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         agent_id: agentId, messages, memory_summary: memorySummary,
-        user_name: userName, wallet_hash: walletHash
+        user_name: userName, wallet_hash: walletHash, last_agent: lastAgent
       })
     })
     if (!res.ok) throw new Error('API error')
@@ -1809,6 +1825,7 @@ const EncryptModal = ({isOpen,onClose,onEnable,password,setPassword,mode}) => {
 export default function App() {
   const { connected, account, disconnect, signAndExecuteTransactionBlock } = useWallet()
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[3])
+  const [previousAgentId, setPreviousAgentId] = useState("")
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -2017,10 +2034,35 @@ const profileData = await apiGetProfile(walletHash)
     return greetings[agentId] || greetings.J4
   }
 
+  // Cross-agent memory: when switching agents, fetch shared context
+  const {
+    sharedContext,
+    visitedAgents: crossAgentVisited,
+    handoffMessage,
+    agentCount,
+    isFirstAgent
+  } = useCrossAgentMemory(walletHash, selectedAgent?.id, previousAgentId)
+
   const handleAgentSwitch = (agent) => {
+    // Track previous agent before switching for cross-agent memory
+    setPreviousAgentId(selectedAgent?.id || "")
     setSelectedAgent(agent)
     setMessages([])
     setVisitedAgents(prev => new Set([...prev, agent.id]))
+
+    // Record cross-agent handoff in backend
+    if (connected && walletHash && selectedAgent?.id && selectedAgent.id !== agent.id) {
+      fetch(`${API_BASE}/api/memory/cross-agent/record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_hash: walletHash,
+          from_agent_id: selectedAgent.id,
+          to_agent_id: agent.id,
+          user_intent: input?.trim()?.slice(0, 150) || ""
+        })
+      }).catch(() => {}) // Fire-and-forget; save_memory handles the authoritative record
+    }
 
     const visitCount = memory?.visit_count || 1
     const hasMemory = !!memory?.user_name
@@ -2095,7 +2137,7 @@ const profileData = await apiGetProfile(walletHash)
         content: m.content
       }))
       const nameToSend = memory?.user_name || extractedName || ''
-      response = await apiChat(selectedAgent.id, contextMessages, memory?.summary || '', nameToSend, walletHash)
+      response = await apiChat(selectedAgent.id, contextMessages, memory?.summary || '', nameToSend, walletHash, previousAgentId)
     }
 
     if (!response) {
@@ -2544,6 +2586,31 @@ Powered by Tatum RPC + Storage API`)
               }} className="riot-glitch-text" data-text={selectedAgent.name}>{selectedAgent.name}</h2>
               <p style={{ fontSize: '11px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
               <p style={{ fontSize: '10px', color: '#6a5040', margin: '2px 0 0 0', fontFamily: "'Inter', sans-serif" }}>{selectedAgent.emoji} {selectedAgent.specialty}</p>
+              {/* MCP Skill Badges */}
+              {MCP_SKILL_MAP[selectedAgent?.id] && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '6px' }}>
+                  {MCP_SKILL_MAP[selectedAgent.id].skills.map(skill => (
+                    <span key={skill} style={{
+                      padding: '2px 6px',
+                      borderRadius: '3px',
+                      fontSize: '8px',
+                      fontFamily: "'Rubik Mono One', sans-serif",
+                      background: `${SKILL_COLORS[skill] || SKILL_COLORS.default}22`,
+                      border: `1px solid ${SKILL_COLORS[skill] || SKILL_COLORS.default}44`,
+                      color: SKILL_COLORS[skill] || SKILL_COLORS.default,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.3px'
+                    }}>{skill.replace(/_/g, ' ')}</span>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: MCP_SKILL_MAP[selectedAgent?.id] ? '4px' : '6px' }}>
+                <CrossAgentIndicator
+                  agentCount={agentCount}
+                  visitedAgents={crossAgentVisited}
+                  currentAgentId={selectedAgent?.id}
+                />
+              </div>
             </div>
           </div>
 
@@ -2686,6 +2753,15 @@ Powered by Tatum RPC + Storage API`)
                 </p>
               </div>
             </div>
+          )}
+
+          {/* Cross-Agent Handoff Banner */}
+          {handoffMessage && previousAgentId && (
+            <HandoffBanner
+              handoffMessage={handoffMessage}
+              fromAgentName={previousAgentId}
+              toAgentName={selectedAgent?.id || ""}
+            />
           )}
 
           {/* Chat Messages - PUNK BUBBLES GLITCH */}

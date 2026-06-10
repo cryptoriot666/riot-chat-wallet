@@ -2,7 +2,9 @@
 // Hooks and components to replace custom Walrus storage
 
 import { useState, useCallback, useEffect } from "react";
-import { initMemWal, memwalRemember, memwalRecall, memwalAnalyze } from "./memwal-client";
+import { initMemWal, memwalRemember, memwalRecall, memwalAnalyze, memwalCrossAgentRecall } from "./memwal-client";
+
+const API_BASE = import.meta.env.VITE_API_URL || "https://riot-chat-wallet.onrender.com";
 
 /**
  * Hook: useMemWal()
@@ -216,4 +218,128 @@ export function MemorySearch({ onSearch, results }) {
   );
 }
 
-export default { useMemWal, MemWalStatus, MemorySearch };
+/**
+ * Hook: useCrossAgentMemory()
+ * Fetches shared memory context when user switches between agents.
+ * Agent B automatically knows what Agent A discussed.
+ */
+export function useCrossAgentMemory(walletAddress, currentAgentId, previousAgentId) {
+  const [sharedContext, setSharedContext] = useState(null);
+  const [visitedAgents, setVisitedAgents] = useState([]);
+  const [handoffMessage, setHandoffMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [agentCount, setAgentCount] = useState(0);
+
+  // Fetch cross-agent context when agent changes
+  useEffect(() => {
+    if (!walletAddress || !currentAgentId) return;
+
+    const fetchContext = async () => {
+      setIsLoading(true);
+      try {
+        const userIntent = ""; // extracted from last user message by caller
+        const resp = await fetch(
+          `${API_BASE}/api/memory/cross-agent/context/${walletAddress}/${currentAgentId}` +
+          `?last_agent=${previousAgentId || ""}&user_intent=${encodeURIComponent(userIntent)}&limit=5`
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.success) {
+            setSharedContext(data.context || []);
+            setHandoffMessage(data.handoff || "");
+            setAgentCount(data.context_count || 0);
+            setVisitedAgents(data.context?.map(c => c.from_agent_id).filter(Boolean) || []);
+          }
+        }
+
+        // Also try direct MemWal search for richer results
+        const memwalResult = await memwalCrossAgentRecall(walletAddress, currentAgentId, 3);
+        if (memwalResult?.results?.length > 0) {
+          setAgentCount(prev => Math.max(prev, memwalResult.results.length));
+        }
+      } catch (err) {
+        console.error("[CrossAgent] Context fetch failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContext();
+  }, [walletAddress, currentAgentId, previousAgentId]);
+
+  return {
+    sharedContext,
+    visitedAgents,
+    handoffMessage,
+    agentCount,
+    isLoading,
+    isFirstAgent: agentCount === 0
+  };
+}
+
+/**
+ * Component: CrossAgentIndicator
+ * Small pill showing how many agents have spoken with this user.
+ * Green when agents share context, grey when it's the first agent.
+ */
+export function CrossAgentIndicator({ agentCount, visitedAgents = [], currentAgentId }) {
+  if (agentCount === 0) return null;
+
+  const agentNames = visitedAgents.slice(0, 5);
+  const moreCount = Math.max(0, agentCount - agentNames.length);
+
+  return (
+    <div
+      title={`Agents aware of this session: ${agentNames.join(", ")}${moreCount > 0 ? ` +${moreCount} more` : ""}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "4px 10px",
+        borderRadius: "12px",
+        background: agentCount > 0 ? "rgba(46, 196, 182, 0.15)" : "rgba(255,255,255,0.05)",
+        border: `1px solid ${agentCount > 0 ? "rgba(46, 196, 182, 0.4)" : "rgba(255,255,255,0.1)"}`,
+        fontSize: "11px",
+        color: agentCount > 0 ? "#2ec4b6" : "#666",
+        cursor: "default",
+        transition: "all 0.3s ease"
+      }}
+    >
+      <span>🧠</span>
+      <span style={{ fontWeight: "bold" }}>
+        {agentCount} agent{agentCount !== 1 ? "s" : ""} aware
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Component: HandoffBanner
+ * Shows when switching from one agent to another with context.
+ */
+export function HandoffBanner({ handoffMessage, fromAgentName, toAgentName }) {
+  if (!handoffMessage) return null;
+
+  return (
+    <div style={{
+      margin: "8px 0",
+      padding: "10px 14px",
+      borderRadius: "8px",
+      background: "rgba(255, 183, 3, 0.08)",
+      border: "1px solid rgba(255, 183, 3, 0.2)",
+      fontSize: "12px",
+      color: "#ffb703",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px"
+    }}>
+      <span style={{ fontSize: "16px" }}>🔄</span>
+      <span>
+        <strong>{fromAgentName || "Previous agent"}</strong> handed off to{" "}
+        <strong>{toAgentName || "you"}</strong>. Context from prior conversation is loaded.
+      </span>
+    </div>
+  );
+}
+
+export default { useMemWal, MemWalStatus, MemorySearch, useCrossAgentMemory, CrossAgentIndicator, HandoffBanner };
