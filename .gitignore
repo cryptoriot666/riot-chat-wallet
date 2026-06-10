@@ -1,9 +1,3 @@
 node_modules/
-api/
-server.py
-requirements.txt
-Procfile
-cross_agent_memory.py
-mcp_injector.py
-crypto_utils.py
-mcp-server.py
+dist/
+.env*
