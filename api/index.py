@@ -2,17 +2,17 @@
 RIOT Chat Wallet API - Vercel Serverless
 """
 import json
-import os
+import time
+import hashlib
 
 # ─── Config ─────────────────────────────────────────────
-WALRUS_PUBLISHER = os.getenv("WALRUS_PUBLISHER", "https://publisher.walrus-testnet.walrus.space")
-WALRUS_AGGREGATOR = os.getenv("WALRUS_AGGREGATOR", "https://aggregator.walrus-testnet.walrus.space")
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "riot-chat-wallet-secret-key-2026")
-DB_PATH = os.getenv("DB_PATH", "/tmp/riot_chat.db")
-DEEPSEEK_API_KEY=os.getenv("DEEPSEEK_API_KEY", "")
+WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space"
+WALRUS_AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space"
+ENCRYPTION_KEY = "riot-chat-wallet-secret-key-2026"
+DEEPSEEK_API_KEY = ""
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
-# ─── Simple In-Memory Store (Vercel compatible) ──────────
+# ─── Simple In-Memory Store ───────────────────────────────
 _memory_store = {}
 
 # ─── Agent Prompts ───────────────────────────────────────
@@ -30,30 +30,25 @@ AGENT_PROMPTS = {
 
 # ─── Helper Functions ────────────────────────────────────
 def generate_fallback_response(agent_id, messages):
-    """Generate fallback response without AI"""
-    user_msg = messages[-1].get("content", "").lower() if messages else ""
-    
+    import random
     responses = {
         "J4": ["Rebellion is the only truth.", "The system burns. I watch.", "You want answers? I give chaos."],
         "J2": ["BUY THE DIP OR CRY.", "Market doesn't care about your feelings.", "TO THE MOON OR TO HELL!"],
         "J3": ["The void whispers...", "Answers lie in shadows you haven't explored.", "Trust nothing. Not even me."],
-        "J4_GENERIC": "The riot continues. What do you seek?",
-        "J2_GENERIC": "SPEAK FASTER! I don't have all day.",
-        "J3_GENERIC": "The darkness listens. Speak carefully.",
+        "J5": ["Chaos is my middle name.", "You think you understand? You don't.", "Let's make this interesting."],
+        "J6": ["Alpha detected. Processing...", "The network hums with secrets.", "I see patterns you don't."],
+        "J7": ["Breathe. The market will wait.", "Patience is profit.", "Everything in its time."],
+        "J8": ["Structure found. Analyzing...", "Patterns emerge from chaos.", "Systems speak to those who listen."],
+        "J9": ["The charts reveal... something.", "Stars align for your inquiry.", "Trust the signs."],
+        "J10": ["Profit margins calculated.", "What's in it for me?", "Every action has a price."],
     }
-    
-    import random
-    if agent_id in responses:
-        return random.choice(responses[agent_id])
-    return random.choice(["Interesting...", "Tell me more.", "The network processes."])
+    return random.choice(responses.get(agent_id, ["Interesting...", "The network processes.", "Speak."]))
 
 def hash_wallet(address):
-    """Simple hash for wallet address"""
-    import hashlib
     return hashlib.sha256(address.encode()).hexdigest()[:16]
 
-# ─── API Handler ─────────────────────────────────────────
-def handler(environ, start_response):
+# ─── WSGI App ─────────────────────────────────────────────
+def app(environ, start_response):
     path = environ.get('PATH_INFO', '/')
     method = environ.get('REQUEST_METHOD', 'GET')
     
@@ -67,10 +62,12 @@ def handler(environ, start_response):
         start_response('204 No Content', headers)
         return [b'']
     
+    # Root
     if path == '/' or path == '':
         start_response('200 OK', headers + [('Content-Type', 'application/json')])
         return [json.dumps({"status": "RIOT API Live", "version": "2.0"}).encode()]
     
+    # Health
     if path == '/api/health':
         start_response('200 OK', headers + [('Content-Type', 'application/json')])
         return [json.dumps({
@@ -78,19 +75,18 @@ def handler(environ, start_response):
             "network": "testnet",
             "encryption": "enabled",
             "deepseek": "connected" if DEEPSEEK_API_KEY else "disabled",
-            "timestamp": int(__import__('time').time())
+            "timestamp": int(time.time())
         }).encode()]
     
+    # Chat
     if path == '/api/chat' and method == 'POST':
         try:
-            import urllib.parse
             size = int(environ.get('CONTENT_LENGTH', 0))
             body = environ['wsgi.input'].read(size).decode()
             data = json.loads(body)
             
             agent_id = data.get("agent_id", "J4")
             messages = data.get("messages", [])
-            memory_summary = data.get("memory_summary", "")
             
             # Try DeepSeek if API key exists
             if DEEPSEEK_API_KEY:
@@ -113,24 +109,13 @@ def handler(environ, start_response):
                         result = json.loads(resp.read())
                         response_text = result["choices"][0]["message"]["content"]
                         start_response('200 OK', headers + [('Content-Type', 'application/json')])
-                        return [json.dumps({
-                            "success": True,
-                            "response": response_text,
-                            "source": "deepseek",
-                            "agent_id": agent_id
-                        }).encode()]
+                        return [json.dumps({"success": True, "response": response_text, "source": "deepseek", "agent_id": agent_id}).encode()]
                 except Exception as e:
-                    print(f"DeepSeek error: {e}")
+                    pass
             
-            # Fallback
             response_text = generate_fallback_response(agent_id, messages)
             start_response('200 OK', headers + [('Content-Type', 'application/json')])
-            return [json.dumps({
-                "success": True,
-                "response": response_text,
-                "source": "fallback",
-                "agent_id": agent_id
-            }).encode()]
+            return [json.dumps({"success": True, "response": response_text, "source": "fallback", "agent_id": agent_id}).encode()]
         except Exception as e:
             start_response('500 Error', headers + [('Content-Type', 'application/json')])
             return [json.dumps({"error": str(e)}).encode()]
@@ -145,19 +130,16 @@ def handler(environ, start_response):
             wallet = data.get("wallet_address", "")
             agent_id = data.get("agent_id", "J4")
             summary = data.get("summary", "")
-            messages = data.get("messages", [])
             
             wallet_hash = hash_wallet(wallet)
             key = f"memory:{wallet_hash}"
             
-            import time
             if key not in _memory_store:
                 _memory_store[key] = {"interactions": 0}
             _memory_store[key].update({
                 "wallet": wallet,
                 "agent_id": agent_id,
                 "summary": summary,
-                "messages_count": len(messages),
                 "timestamp": int(time.time())
             })
             _memory_store[key]["interactions"] += 1
@@ -174,27 +156,22 @@ def handler(environ, start_response):
         wallet_hash = hash_wallet(wallet)
         key = f"memory:{wallet_hash}"
         
-        try:
-            data = _memory_store.get(key, {})
-            interactions = data.get("interactions", 0)
-            
-            if not data:
-                start_response('200 OK', headers + [('Content-Type', 'application/json')])
-                return [json.dumps({"first_visit": True}).encode()]
-            
+        data = _memory_store.get(key, {})
+        if not data:
             start_response('200 OK', headers + [('Content-Type', 'application/json')])
-            return [json.dumps({
-                "wallet_address": data.get("wallet", wallet),
-                "summary": data.get("summary", ""),
-                "total_interactions": int(interactions),
-                "agents_visited": 1,
-                "agents_list": [data.get("agent_id", "J4")],
-                "last_active": "recent"
-            }).encode()]
-        except Exception as e:
-            start_response('500 Error', headers + [('Content-Type', 'application/json')])
-            return [json.dumps({"error": str(e)}).encode()]
+            return [json.dumps({"first_visit": True}).encode()]
+        
+        start_response('200 OK', headers + [('Content-Type', 'application/json')])
+        return [json.dumps({
+            "wallet_address": data.get("wallet", wallet),
+            "summary": data.get("summary", ""),
+            "total_interactions": data.get("interactions", 0),
+            "agents_visited": 1,
+            "agents_list": [data.get("agent_id", "J4")],
+            "last_active": "recent"
+        }).encode()]
     
+    # Stats
     if path == '/api/stats':
         start_response('200 OK', headers + [('Content-Type', 'application/json')])
         return [json.dumps({
@@ -204,3 +181,6 @@ def handler(environ, start_response):
     
     start_response('404 Not Found', headers + [('Content-Type', 'text/plain')])
     return [b'Not Found']
+
+# Vercel Python expects 'app' at top level
+handler = app
