@@ -4,13 +4,14 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cp public/index.html dist/",
+    "build": "vite build",
     "preview": "vite preview",
-    "vercel-build": "vite build && cp public/index.html dist/"
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "@mysten/sui.js": "^0.54.1",
     "@mysten/walrus": "^1.1.7",
+    "@mysten-incubation/memwal": "^0.0.7",
     "@suiet/wallet-kit": "^0.3.0",
     "cors": "^2.8.6",
     "lucide-react": "^1.16.0",

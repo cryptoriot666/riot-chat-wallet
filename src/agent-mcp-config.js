@@ -1,0 +1,48 @@
+// MCP Agent configuration for RIOT agents
+// Maps agent IDs to their MCP skills
+
+export const MCP_AGENTS = {
+  J1: { skills: ['SOLIDITY', 'ARCHITECTURE', 'SECURITY'] },
+  J2: { skills: ['AUDIT', 'COMPLIANCE', 'ENFORCEMENT'] },
+  J3: { skills: ['PRIVACY', 'ENCRYPTION', 'OPERATION'] },
+  J4: { skills: ['REBELLION', 'CREATIVE', 'DISRUPTION'] },
+  J6: { skills: ['NETWORK', 'INFRASTRUCTURE', 'SCALABILITY'] },
+  J8: { skills: ['DEFI', 'TRADING', 'ARBITRAGE'] },
+  J11: { skills: ['PREDICTION', 'ANALYTICS', 'FORECAST'] },
+  J15: { skills: ['WRITING', 'DOCUMENTATION', 'RESEARCH'] },
+  J20: { skills: ['CRYPTOGRAPHY', 'HASHING', 'ENCRYPTION'] },
+  J21: { skills: ['BUILDING', 'DEPLOYMENT', 'OPTIMIZATION'] },
+}
+
+export const SKILL_COLORS = {
+  SOLIDITY: '#8b5cf6',
+  ARCHITECTURE: '#6366f1',
+  SECURITY: '#ef4444',
+  AUDIT: '#f59e0b',
+  COMPLIANCE: '#10b981',
+  ENFORCEMENT: '#dc2626',
+  PRIVACY: '#7c3aed',
+  ENCRYPTION: '#a855f7',
+  OPERATION: '#64748b',
+  REBELLION: '#ff2a6d',
+  CREATIVE: '#f97316',
+  DISRUPTION: '#ec4899',
+  NETWORK: '#06b6d4',
+  INFRASTRUCTURE: '#0ea5e9',
+  SCALABILITY: '#3b82f6',
+  DEFI: '#22c55e',
+  TRADING: '#84cc16',
+  ARBITRAGE: '#eab308',
+  PREDICTION: '#f43f5e',
+  ANALYTICS: '#e879f9',
+  FORECAST: '#d946ef',
+  WRITING: '#a78bfa',
+  DOCUMENTATION: '#818cf8',
+  RESEARCH: '#c084fc',
+  CRYPTOGRAPHY: '#14b8a6',
+  HASHING: '#2dd4bf',
+  BUILDING: '#f59e0b',
+  DEPLOYMENT: '#fb923c',
+  OPTIMIZATION: '#fdba74',
+  default: '#a08060',
+}
