@@ -9,9 +9,9 @@
     "vercel-build": "vite build"
   },
   "dependencies": {
+    "@mysten-incubation/memwal": "^0.0.7",
     "@mysten/sui.js": "^0.54.1",
     "@mysten/walrus": "^1.1.7",
-    "@mysten-incubation/memwal": "^0.0.7",
     "@suiet/wallet-kit": "^0.3.0",
     "cors": "^2.8.6",
     "lucide-react": "^1.16.0",
