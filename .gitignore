@@ -1,6 +1,9 @@
-node_modules
-.env.local
-.vercel
-
-dist/app/
-
+node_modules/
+api/
+server.py
+requirements.txt
+Procfile
+cross_agent_memory.py
+mcp_injector.py
+crypto_utils.py
+mcp-server.py
