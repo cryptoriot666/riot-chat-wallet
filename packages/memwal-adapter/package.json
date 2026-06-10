@@ -1,0 +1,29 @@
+{
+  "name": "@riot/memwal-adapter",
+  "version": "1.0.0",
+  "description": "Drop-in npm package for persistent AI agent memory via Walrus + MemWal",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "walrus",
+    "memwal",
+    "ai",
+    "agent",
+    "memory",
+    "persistent",
+    "sui",
+    "multi-agent"
+  ],
+  "author": "Riot Labs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/riot-labs/riot-chat-wallet"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
