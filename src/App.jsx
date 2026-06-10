@@ -2962,8 +2962,7 @@ Powered by Tatum RPC + Storage API`)
                     </div>
                     </>
                   )}
-
-      {/* RIGHT: MEMORY PANEL - PUNK STYLED */}
+                  </div>
       {showMemoryPanel && connected && memory && (
   <div style={{width:'50%',minWidth:'320px',maxWidth:'380px',maxHeight:'80vh',overflowY:'auto',padding:'10px',background:'rgba(0,0,0,0.3)',borderRadius:'10px',border:'2px solid rgba(255,42,109,0.15)',marginTop:'10px'}}>
 
