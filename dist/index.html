@@ -6,27 +6,231 @@
   <title>$RIOT — The Agentic Memory Layer for Sui</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d0a07; color: #fff; font-family: monospace; overflow-x: hidden; }
+    .riot-pink { color: #ff2a6d; }
+    .riot-orange { color: #ff6b35; }
+    .riot-green { color: #2ec4b6; }
+    .riot-gold { color: #ffb703; }
+    .riot-dark { background: #0d0a07; }
+    .riot-warm { background: #1a1209; }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
+    .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-family: monospace; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #ff2a6d, #ff6b35); color: #fff; }
+    .btn-primary:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,42,109,0.5); }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: #a08060; border: 1px solid rgba(255,255,255,0.2); }
+    input { padding: 14px 18px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-family: monospace; font-size: 14px; outline: none; }
+    input:focus { border-color: #ff2a6d; }
+    .agent-card { transition: all 0.3s; cursor: pointer; }
+    .agent-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(255,42,109,0.3); }
+    .glitch { text-shadow: 0 0 20px rgba(255,42,109,0.8); }
+    .marquee { animation: marquee 20s linear infinite; white-space: nowrap; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
 </head>
 <body>
-  <div id="root" style="width:100vw;height:100vh;background:#0d0a07;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px">
-    <h1 style="color:#ff2a6d;font-family:monospace;font-size:32px;text-transform:uppercase;letter-spacing:4px">$RIOT</h1>
-    <p style="color:#a08060;font-family:monospace">Loading...</p>
-  </div>
+  <div id="root">Loading $RIOT...</div>
   <script>
-    const { createElement } = ReactDOM;
-    function App() {
-      return createElement('div', {
-        style: 'width:100vw;height:100vh;background:#0d0a07;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px'
-      },
-        createElement('h1', {
-          style: 'color:#ff2a6d;font-family:monospace;font-size:32px;text-transform:uppercase;letter-spacing:4px'
-        }, '$RIOT FULL APP'),
-        createElement('p', {
-          style: 'color:#a08060;font-family:monospace;font-size:14px'
-        }, 'React via CDN works!')
-      )
+    const { createElement: h, useState, useEffect, useRef } = ReactDOM;
+
+    // ═══════════════════════════════════════════
+    // AGENTS DATA
+    // ═══════════════════════════════════════════
+    const AGENTS = [
+      { id: 'J1', name: 'The Architect', color: '#00ffff', specialty: 'System Design', icon: '🏗️', prompt: 'Analytical, systematic, build things that scale. Max 3 sentences.' },
+      { id: 'J2', name: 'The Strategist', color: '#ffb703', specialty: 'Planning', icon: '🎯', prompt: 'Strategic thinker, always 3 steps ahead. Max 3 sentences.' },
+      { id: 'J3', name: 'The Builder', color: '#39ff14', specialty: 'Code', icon: '🔧', prompt: 'Ship it. Build fast, break fast, learn faster. Max 3 sentences.' },
+      { id: 'J4', name: 'The Rebel', color: '#ff2a6d', specialty: 'Chaos', icon: '🔥', prompt: 'Anti-system, chaotic energy, breaks rules. Max 3 sentences.' },
+      { id: 'J5', name: 'The Oracle', color: '#9d4edd', specialty: 'Predictions', icon: '🔮', prompt: 'Sees patterns others miss. Cryptic but insightful. Max 3 sentences.' },
+      { id: 'J6', name: 'The Diplomat', color: '#2ec4b6', specialty: 'Negotiation', icon: '🤝', prompt: 'Smooth talker, finds common ground. Max 3 sentences.' },
+      { id: 'J7', name: 'The Analyst', color: '#00b4d8', specialty: 'Data', icon: '📊', prompt: 'Numbers never lie. Data-driven decisions. Max 3 sentences.' },
+      { id: 'J8', name: 'The Artist', color: '#ff006e', specialty: 'Creativity', icon: '🎨', prompt: 'Creative chaos, makes things beautiful. Max 3 sentences.' },
+      { id: 'J9', name: 'The Guardian', color: '#ff6b35', specialty: 'Security', icon: '🛡️', prompt: 'Nothing gets through without scrutiny. Max 3 sentences.' },
+      { id: 'J10', name: 'The Jester', color: '#ffd93d', specialty: 'Humor', icon: '🃏', prompt: 'Funny but sharp. Makes complex things simple. Max 3 sentences.' },
+      { id: 'J11', name: 'The Veteran', color: '#a08060', specialty: 'Memory', icon: '📜', prompt: 'Has seen it all. References past events. Max 3 sentences.' },
+      { id: 'J12', name: 'The Pioneer', color: '#00f5ff', specialty: 'Exploration', icon: '🚀', prompt: 'First to try new things. Embrace the unknown. Max 3 sentences.' },
+      { id: 'J13', name: 'The Synthesizer', color: '#b026ff', specialty: 'Synthesis', icon: '🧬', prompt: 'Connects ideas from different domains. Max 3 sentences.' },
+      { id: 'J14', name: 'The DeFi Degener', color: '#7fff00', specialty: 'DeFi', icon: '💸', prompt: 'DeFi maximalist. YOLO but calculated. Max 3 sentences.' },
+      { id: 'J15', name: 'The Researcher', color: '#00b4d8', specialty: 'Research', icon: '🔬', prompt: 'Deep dives into complex topics. Max 3 sentences.' },
+      { id: 'J16', name: 'The Note-Taker', color: '#ffb703', specialty: 'Notes', icon: '📝', prompt: 'Organized, remembers everything. Max 3 sentences.' },
+      { id: 'J17', name: 'The Curator', color: '#ff006e', specialty: 'Art', icon: '🖼️', prompt: 'Eye for quality. Curates the best. Max 3 sentences.' },
+      { id: 'J18', name: 'The Connector', color: '#2ec4b6', specialty: 'Networking', icon: '🔗', prompt: 'Knows everyone. Makes introductions. Max 3 sentences.' },
+      { id: 'J19', name: 'The Philosopher', color: '#9d4edd', specialty: 'Thinking', icon: '🤔', prompt: 'Deep thoughts. Questions everything. Max 3 sentences.' },
+      { id: 'J20', name: 'The Tester', color: '#ff2a6d', specialty: 'QA', icon: '🧪', prompt: 'Finds bugs before users do. Max 3 sentences.' },
+      { id: 'J21', name: 'The Optimizer', color: '#39ff14', specialty: 'Efficiency', icon: '⚡', prompt: 'Faster, cheaper, better. Max 3 sentences.' },
+      { id: 'J22', name: 'The Documenter', color: '#a08060', specialty: 'Docs', icon: '📚', prompt: 'Writes clear docs. No confusion. Max 3 sentences.' },
+      { id: 'J23', name: 'The Mentor', color: '#00ffff', specialty: 'Teaching', icon: '👨‍🏫', prompt: 'Patient teacher. Explains well. Max 3 sentences.' },
+      { id: 'J24', name: 'The Devil', color: '#ff2a6d', specialty: 'Advocacy', icon: '😈', prompt: 'Argues every side. Critical thinking. Max 3 sentences.' },
+      { id: 'J25', name: 'The Wildcard', color: '#ffd93d', specialty: 'Wild', icon: '🃏', prompt: 'Unpredictable. Keeps things interesting. Max 3 sentences.' },
+    ];
+
+    // ═══════════════════════════════════════════
+    // MEMORY STORE (localStorage)
+    // ═══════════════════════════════════════════
+    const API_BASE = 'https://riot-chat-wallet.onrender.com';
+
+    function saveMemory(key, data) {
+      try {
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        existing.push({ ...data, ts: Date.now() });
+        localStorage.setItem(key, JSON.stringify(existing.slice(-100)));
+      } catch(e) {}
     }
-    ReactDOM.createRoot(document.getElementById('root')).render(createElement(App))
+
+    function loadMemory(key) {
+      try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+      catch(e) { return []; }
+    }
+
+    // ═══════════════════════════════════════════
+    // APP COMPONENTS
+    // ═════════════════════════════════════════
+
+    function Header({ connected, agentCount, onConnect }) {
+      return h('div', {
+        style: 'padding:16px 24px;display:flex;align-items:center;justify-content:space-between;borderBottom:2px solid rgba(255,42,109,0.3);background:rgba(0,0,0,0.5);position:sticky;top:0;zIndex:100'
+      },
+        h('div', { style: 'display:flex;alignItems:center;gap:12px' },
+          h('h1', { className: 'glitch', style: 'fontSize:28px;letterSpacing:4px' }, '$RIOT'),
+          h('span', { style: 'fontSize:11px;color:#a08060' }, 'PUNK AGENTS')
+        ),
+        h('div', { style: 'display:flex;alignItems:center;gap:16px' },
+          h('div', { style: 'display:flex;alignItems:center;gap:6px;fontSize:12px;color:#2ec4b6' },
+            h('div', { className: 'pulse', style: 'width:8px;height:8px;background:#2ec4b6;borderRadius:50%' }),
+            h('span', null, connected ? 'ONLINE' : 'OFFLINE')
+          ),
+          h('span', { style: 'fontSize:11px;color:#a08060' }, `${agentCount} agents`),
+          h('button', { className: 'btn btn-primary', onClick: onConnect, style: 'fontSize:12px;padding:8px 16px' }, 'CONNECT WALLET')
+        )
+      );
+    }
+
+    function AgentCard({ agent, onClick, selected }) {
+      return h('div', {
+        className: 'agent-card card',
+        onClick: () => onClick(agent),
+        style: `border:2px solid ${selected ? agent.color : 'rgba(255,255,255,0.1)'};cursor:pointer;flex-basis:180px`
+      },
+        h('div', { style: 'fontSize:28px;marginBottom:8px' }, agent.icon),
+        h('div', { style: `color:${agent.color};fontWeight:bold;fontSize:14px` }, agent.id),
+        h('div', { style: 'fontSize:13px;fontWeight:bold;color:#fff' }, agent.name),
+        h('div', { style: 'fontSize:11px;color:#a08060;marginTop:4px' }, agent.specialty)
+      );
+    }
+
+    function ChatPanel({ agent, messages, onSend, input, setInput }) {
+      return h('div', { style: 'flex:1;display:flex;flexDirection:column;gap:16px;padding:24px' },
+        h('div', { style: 'display:flex;alignItems:center;gap:12px;paddingBottom:16px;borderBottom:1px solid rgba(255,255,255,0.1)' },
+          h('span', { style: 'fontSize:24px' }, agent.icon),
+          h('div', null,
+            h('div', { style: `color:${agent.color};fontWeight:bold;fontSize:18px` }, agent.name),
+            h('div', { style: 'fontSize:12px;color:#a08060' }, agent.specialty)
+          )
+        ),
+        h('div', {
+          style: 'flex:1;overflowY:auto;display:flex;flexDirection:column;gap:12px;padding:8px 0',
+          id: 'chat-messages'
+        },
+          ...messages.map((m, i) => h('div', {
+            key: i,
+            style: `padding:12px 16px;borderRadius:12px;maxWidth:80%;fontSize:14px;lineHeight:1.6;${
+              m.from === 'user' ? 'background:rgba(255,42,109,0.2);alignSelf:flex-end;borderBottomRightRadius:4px' :
+              m.from === 'agent' ? 'background:rgba(255,255,255,0.05);alignSelf:flex-start;borderBottomLeftRadius:4px' :
+              'background:rgba(46,196,182,0.1);alignSelf:center;fontSize:12px;textAlign:center;color:#a08060'
+            }`
+          }, m.text))
+        ),
+        h('div', { style: 'display:flex;gap:12px;paddingTop:16px;borderTop:1px solid rgba(255,255,255,0.1)' },
+          h('input', {
+            value: input,
+            onChange: e => setInput(e.target.value),
+            onKeyDown: e => e.key === 'Enter' && onSend(),
+            placeholder: 'Chat with ' + agent.name + '...',
+            style: 'flex:1'
+          }),
+          h('button', {
+            className: 'btn btn-primary',
+            onClick: onSend,
+            style: 'padding:14px 20px'
+          }, 'SEND')
+        )
+      );
+    }
+
+    function MemoryPanel({ memories }) {
+      return h('div', {
+        style: 'width:300px;background:rgba(0,0,0,0.3);borderLeft:2px solid rgba(255,42,109,0.2);padding:20px;overflowY:auto'
+      },
+        h('h3', { style: 'color:#ff2a6d;fontSize:14px;marginBottom:16px;textTransform:uppercase;letterSpacing:2px' }, 'MEMORY LOG'),
+        memories.length === 0
+          ? h('p', { style: 'color:#a08060;fontSize:12px' }, 'No memories yet. Chat to create memories.')
+          : memories.slice().reverse().map((m, i) => h('div', {
+            key: i,
+            style: 'padding:10px;background:rgba(255,255,255,0.03);borderRadius:8px;marginBottom:8px;fontSize:12px;color:#a08060'
+          },
+            h('div', { style: 'color:#ff2a6d;marginBottom:4px' }, m.agent + ': ' + m.text.slice(0,50) + '...'),
+            h('div', { style: 'fontSize:10px;opacity:0.6' }, new Date(m.ts).toLocaleString())
+          ))
+      );
+    }
+
+    function FallbackMode() {
+      const [selectedAgent, setSelectedAgent] = useState(AGENTS[3]);
+      const [messages, setMessages] = useState([{ from: 'system', text: '💀 FALLBACK MODE — DeepSeek not configured. Connect wallet + set DEEPSEEK_API_KEY on Render for AI chat.' }]);
+      const [input, setInput] = useState('');
+      const [memories, setMemories] = useState([]);
+      const [connected, setConnected] = useState(false);
+      const [showAll, setShowAll] = useState(false);
+
+      useEffect(() => {
+        const saved = loadMemory('riot_memories');
+        setMemories(saved);
+      }, []);
+
+      function handleSend() {
+        if (!input.trim()) return;
+        const newMsg = { from: 'user', text: input };
+        setMessages(prev => [...prev, newMsg]);
+        saveMemory('riot_memories', { from: 'user', text: input, agent: selectedAgent.id });
+        setInput('');
+        setTimeout(() => {
+          setMessages(prev => [...prev, { from: 'agent', text: '[MEMORY SAVED] ' + selectedAgent.name + ' says: "' + input.slice(0,50) + '..." — (Demo mode — set DeepSeek key for AI responses)' }]);
+          saveMemory('riot_memories', { from: 'agent', text: '[Demo] ' + input.slice(0,50), agent: selectedAgent.id });
+          setMemories(loadMemory('riot_memories'));
+        }, 800);
+      }
+
+      const visibleAgents = showAll ? AGENTS : AGENTS.slice(0, 12);
+
+      return h('div', { style: 'display:flex;flexDirection:column;height:100vh' },
+        h(Header, { connected, agentCount: AGENTS.length, onConnect: () => setConnected(!connected) }),
+        h('div', { style: 'flex:1;display:flex;overflow:hidden' },
+          h('div', { style: 'flex:1;display:flex;flexDirection:column;overflow:hidden' },
+            h('div', { style: 'padding:16px 24px;borderBottom:1px solid rgba(255,255,255,0.1);overflowX:auto' },
+              h('div', { style: 'display:flex;gap:12px;flexWrap:wrap' },
+                ...visibleAgents.map(agent => h(AgentCard, { key: agent.id, agent, onClick: setSelectedAgent, selected: selectedAgent.id === agent.id }))
+              ),
+              h('button', {
+                className: 'btn btn-secondary',
+                onClick: () => setShowAll(!showAll),
+                style: 'marginTop:12px;fontSize:11px'
+              }, showAll ? 'SHOW LESS' : 'SHOW ALL 25 AGENTS →')
+            ),
+            h(ChatPanel, { agent: selectedAgent, messages, onSend: handleSend, input, setInput })
+          ),
+          h(MemoryPanel, { memories })
+        )
+      );
+    }
+
+    // ═══════════════════════════════════════════
+    // MOUNT
+    // ═════════════════════════════════════════
+    ReactDOM.createRoot(document.getElementById('root')).render(h(FallbackMode));
   </script>
 </body>
 </html>
