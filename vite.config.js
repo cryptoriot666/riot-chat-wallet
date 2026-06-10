@@ -4,15 +4,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/',
-  optimizeDeps: {
-    include: ['@mysten/sui'],
-    esbuildOptions: { target: 'es2020', format: 'esm' }
-  },
   build: {
     outDir: 'dist',
-    emptyOutDir: false,
+    emptyOutDir: true,
     rollupOptions: {
-      input: { main: './index.html' }
+      input: './src/index.html'
     }
   },
   resolve: { mainFields: ['module', 'main'] }
