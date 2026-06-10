@@ -62,7 +62,7 @@ def add_cors_headers(response):
 WALRUS_PUBLISHER_MAINNET = "https://publisher.walrus-mainnet.walrus.space"
 WALRUS_PUBLISHER_TESTNET = "https://publisher.walrus-testnet.walrus.space"
 WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space"
-AI_API_KEY = os.environ.get("AI_API_KEY", "")
+AI_API_KEY = os.environ.get("DEEPSEEK_API_KEY", os.environ.get("AI_API_KEY", ""))
 AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
 
