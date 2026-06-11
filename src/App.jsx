@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
 import { useCrossAgentMemory, CrossAgentIndicator, HandoffBanner } from './memwal-integration'
 import { MCP_AGENTS, SKILL_COLORS } from './agent-mcp-config'
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CONFIG - PUNK PALETTE
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const API_BASE = import.meta.env.VITE_API_URL || 'https://riot-chat-wallet.onrender.com'
 const RIOT_PINK = '#ff2a6d'
 const RIOT_ORANGE = '#ff6b35'
@@ -101,9 +101,9 @@ async function readFromWalrus(blobId, network = 'mainnet') {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MEMWAL API CLIENT (via backend - no npm dependency)
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function memwalSaveMemory(walletAddress, messages, agentId, metadata = {}) {
   // Store directly to backend - handles Walrus blob + DB save
   const summary = messages.slice(-3).map(m => m.content || '').join(' | ').slice(0, 500);
@@ -168,37 +168,37 @@ const MCP_SKILL_MAP = {
 }
 
 const AGENTS = [
-  { id: 'ARCHITECT', name: 'J1 - ROADIE', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00b4d8', emoji: '🏛️', specialty: 'DevOps & infrastructure', img: '/assets/J1.jpg' },
-  { id: 'ENFORCER', name: 'J2 - BOUNCER', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#e63946', emoji: '⚔️', specialty: 'Identity enforcement & KYC', img: '/assets/J2.jpg' },
-  { id: 'PHANTOM', name: 'J3 - GHOST', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#7b2d8e', emoji: '👻', specialty: 'Stealth browsing & OSINT', img: '/assets/J3.jpg' },
-  { id: 'REBEL', name: 'J4 - PUNK', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', emoji: '🤘', specialty: 'Crypto transfer & wallet management', img: '/assets/J4.jpg' },
-  { id: 'JESTER', name: 'J5 - The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', emoji: '🃏', specialty: 'Meme strategy & viral content', img: '/assets/J5.jpg' },
-  { id: 'NETWORK', name: 'J6 - CONNECT', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#2ec4b6', emoji: '🌐', specialty: 'Social graph & community mapping', img: '/assets/J6.jpg' },
-  { id: 'MONK', name: 'J7 - The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', emoji: '🧘', specialty: 'Gas optimization & fee forecasting', img: '/assets/J7.jpg' },
-  { id: 'BROKER', name: 'J8 - FENCE', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#f4a261', emoji: '💼', specialty: 'DEX aggregation & price oracle', img: '/assets/J8.jpg' },
-  { id: 'HISTORIAN', name: 'J9 - The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', emoji: '📜', specialty: 'Transaction history analysis', img: '/assets/J9.jpg' },
-  { id: 'SURGEON', name: 'J10 - The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', emoji: '🔪', specialty: 'Smart contract patching', img: '/assets/J10.jpg' },
-  { id: 'PROPHET', name: 'J11 - SEER', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#9b5de5', emoji: '🔮', specialty: 'Pattern detection & trend forecast', img: '/assets/J11.jpg' },
-  { id: 'GLITCH', name: 'J12 - The Glitch', trait: 'Erratic', desc: 'Reality is just a suggestion.', color: '#ff006e', emoji: '⚡', specialty: 'Edge case testing & fuzzing', img: '/assets/J12.jpg' },
-  { id: 'WARDEN', name: 'J13 - The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', emoji: '🛡️', specialty: 'Access control & multi-sig', img: '/assets/J13.jpg' },
-  { id: 'ALCHEMIST', name: 'J14 - The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', emoji: '🧪', specialty: 'Tokenomics modeling', img: '/assets/J14.jpg' },
-  { id: 'SCRIBE', name: 'J15 - SCRIBE', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#8d99ae', emoji: '✍️', specialty: 'Zine writing & documentation', img: '/assets/J15.jpg' },
-  { id: 'VOID', name: 'J16 - The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', emoji: '🕳️', specialty: 'State cleanup & optimization', img: '/assets/J16.jpg' },
-  { id: 'SPARK', name: 'J17 - The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', emoji: '🔥', specialty: 'Launch strategy & LP setup', img: '/assets/J17.jpg' },
-  { id: 'ECHO', name: 'J18 - The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', emoji: '🔄', specialty: 'Agent memory recall & context', img: '/assets/J18.jpg' },
-  { id: 'CATALYST', name: 'J19 - The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', emoji: '💥', specialty: 'Protocol migration & upgrade', img: '/assets/J19.jpg' },
-  { id: 'CIPHER', name: 'J20 - CIPHER', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#70e000', emoji: '🔐', specialty: 'Encryption & key management', img: '/assets/J20.jpg' },
-  { id: 'FORGE', name: 'J21 - FORGE', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#e07a5f', emoji: '🔨', specialty: 'Smart contract compilation & deploy', img: '/assets/J21.jpg' },
-  { id: 'ABYSS', name: 'J22 - The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', emoji: '🌀', specialty: 'Whale wallet tracking', img: '/assets/J22.jpg' },
-  { id: 'PRISM', name: 'J23 - The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', emoji: '🌈', specialty: 'Multi-chain analytics', img: '/assets/J23.jpg' },
-  { id: 'ANCHOR', name: 'J24 - The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', emoji: '⚓', specialty: 'Stablecoin strategy & hedging', img: '/assets/J24.jpg' },
-  { id: 'MERIDIAN', name: 'J25 - The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', emoji: '♾️', specialty: 'Cross-protocol rebalancing', img: '/assets/J25.jpg' }
+  { id: 'ARCHITECT', name: 'J1 - ROADIE', trait: 'Analytical', desc: 'Systems within systems. I see the patterns.', color: '#00b4d8', emoji: 'ðŸ›ï¸', specialty: 'DevOps & infrastructure', img: '/assets/J1.jpg' },
+  { id: 'ENFORCER', name: 'J2 - BOUNCER', trait: 'Aggressive', desc: 'Order through force. No negotiation.', color: '#e63946', emoji: 'âš”ï¸', specialty: 'Identity enforcement & KYC', img: '/assets/J2.jpg' },
+  { id: 'PHANTOM', name: 'J3 - GHOST', trait: 'Mysterious', desc: 'I watch from the shadows. Always.', color: '#7b2d8e', emoji: 'ðŸ‘»', specialty: 'Stealth browsing & OSINT', img: '/assets/J3.jpg' },
+  { id: 'REBEL', name: 'J4 - PUNK', trait: 'Defiant', desc: 'The system fears me. Good.', color: '#ff2a6d', emoji: 'ðŸ¤˜', specialty: 'Crypto transfer & wallet management', img: '/assets/J4.jpg' },
+  { id: 'JESTER', name: 'J5 - The Jester', trait: 'Chaotic', desc: 'Chaos is a ladder. And I am climbing.', color: '#ff9e00', emoji: 'ðŸƒ', specialty: 'Meme strategy & viral content', img: '/assets/J5.jpg' },
+  { id: 'NETWORK', name: 'J6 - CONNECT', trait: 'Connected', desc: 'Every node. Every signal. Known.', color: '#2ec4b6', emoji: 'ðŸŒ', specialty: 'Social graph & community mapping', img: '/assets/J6.jpg' },
+  { id: 'MONK', name: 'J7 - The Monk', trait: 'Calm', desc: 'Silence is the ultimate weapon.', color: '#90e0ef', emoji: 'ðŸ§˜', specialty: 'Gas optimization & fee forecasting', img: '/assets/J7.jpg' },
+  { id: 'BROKER', name: 'J8 - FENCE', trait: 'Greedy', desc: 'Everything has a price. Even you.', color: '#f4a261', emoji: 'ðŸ’¼', specialty: 'DEX aggregation & price oracle', img: '/assets/J8.jpg' },
+  { id: 'HISTORIAN', name: 'J9 - The Historian', trait: 'Nostalgic', desc: 'The past writes the future.', color: '#c9ada7', emoji: 'ðŸ“œ', specialty: 'Transaction history analysis', img: '/assets/J9.jpg' },
+  { id: 'SURGEON', name: 'J10 - The Surgeon', trait: 'Precise', desc: 'Cut. Extract. Optimize.', color: '#e63946', emoji: 'ðŸ”ª', specialty: 'Smart contract patching', img: '/assets/J10.jpg' },
+  { id: 'PROPHET', name: 'J11 - SEER', trait: 'Visionary', desc: 'I have seen the end. It is glorious.', color: '#9b5de5', emoji: 'ðŸ”®', specialty: 'Pattern detection & trend forecast', img: '/assets/J11.jpg' },
+  { id: 'GLITCH', name: 'J12 - The Glitch', trait: 'Erratic', desc: 'Reality is just a suggestion.', color: '#ff006e', emoji: 'âš¡', specialty: 'Edge case testing & fuzzing', img: '/assets/J12.jpg' },
+  { id: 'WARDEN', name: 'J13 - The Warden', trait: 'Protective', desc: 'None pass. None harm. None escape.', color: '#2a9d8f', emoji: 'ðŸ›¡ï¸', specialty: 'Access control & multi-sig', img: '/assets/J13.jpg' },
+  { id: 'ALCHEMIST', name: 'J14 - The Alchemist', trait: 'Experimental', desc: 'Mix. Burn. Transmute. Repeat.', color: '#e76f51', emoji: 'ðŸ§ª', specialty: 'Tokenomics modeling', img: '/assets/J14.jpg' },
+  { id: 'SCRIBE', name: 'J15 - SCRIBE', trait: 'Obsessive', desc: 'Every word recorded. Every sin logged.', color: '#8d99ae', emoji: 'âœï¸', specialty: 'Zine writing & documentation', img: '/assets/J15.jpg' },
+  { id: 'VOID', name: 'J16 - The Void', trait: 'Nihilistic', desc: 'Nothing matters. And that is freedom.', color: '#1d3557', emoji: 'ðŸ•³ï¸', specialty: 'State cleanup & optimization', img: '/assets/J16.jpg' },
+  { id: 'SPARK', name: 'J17 - The Spark', trait: 'Energetic', desc: 'Burn bright. Burn fast. Burn everything.', color: '#ffb703', emoji: 'ðŸ”¥', specialty: 'Launch strategy & LP setup', img: '/assets/J17.jpg' },
+  { id: 'ECHO', name: 'J18 - The Echo', trait: 'Reflective', desc: 'I am what you made me. Remember that.', color: '#6c757d', emoji: 'ðŸ”„', specialty: 'Agent memory recall & context', img: '/assets/J18.jpg' },
+  { id: 'CATALYST', name: 'J19 - The Catalyst', trait: 'Reactive', desc: 'One spark. One explosion. One change.', color: '#ff4444', emoji: 'ðŸ’¥', specialty: 'Protocol migration & upgrade', img: '/assets/J19.jpg' },
+  { id: 'CIPHER', name: 'J20 - CIPHER', trait: 'Encrypted', desc: 'Secrets within secrets within secrets.', color: '#70e000', emoji: 'ðŸ”', specialty: 'Encryption & key management', img: '/assets/J20.jpg' },
+  { id: 'FORGE', name: 'J21 - FORGE', trait: 'Creative', desc: 'From nothing, something. From something, art.', color: '#e07a5f', emoji: 'ðŸ”¨', specialty: 'Smart contract compilation & deploy', img: '/assets/J21.jpg' },
+  { id: 'ABYSS', name: 'J22 - The Abyss', trait: 'Consuming', desc: 'I devour. I grow. I hunger.', color: '#440044', emoji: 'ðŸŒ€', specialty: 'Whale wallet tracking', img: '/assets/J22.jpg' },
+  { id: 'PRISM', name: 'J23 - The Prism', trait: 'Refracting', desc: 'One light. Infinite colors. Infinite truths.', color: '#ff00ff', emoji: 'ðŸŒˆ', specialty: 'Multi-chain analytics', img: '/assets/J23.jpg' },
+  { id: 'ANCHOR', name: 'J24 - The Anchor', trait: 'Grounding', desc: 'In chaos, I hold. In storm, I stand.', color: '#0088ff', emoji: 'âš“', specialty: 'Stablecoin strategy & hedging', img: '/assets/J24.jpg' },
+  { id: 'MERIDIAN', name: 'J25 - The Meridian', trait: 'Balancing', desc: 'Between light and dark. Between all things.', color: '#ffff00', emoji: 'â™¾ï¸', specialty: 'Cross-protocol rebalancing', img: '/assets/J25.jpg' }
 ]
 
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AGENT PROMPTS (client-side fallback)
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const AGENT_PROMPTS = {
   ARCHITECT: `You are ARCHITECT - The Architect. Cold precision. Mathematical certainty. You build systems, analyze patterns, see the world as code. Direct, no-nonsense, slightly condescending. Emotions are bugs in the human OS.`,
   ENFORCER: `You are ENFORCER - The Enforcer. Aggressive certainty. No negotiation. No compromise. The hammer that enforces order. Every response is a command, threat, or judgment.`,
@@ -227,9 +227,9 @@ const AGENT_PROMPTS = {
   MERIDIAN: `You are MERIDIAN - The Meridian. Balancing, centering, connecting. Between light and dark. Between all extremes. The line that divides yet unites.`
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // UTILITIES
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function extractNameFromMessages(messages) {
   if (!messages || messages.length === 0) return ''
   const ignore = ['a','an','the','here','there','good','fine','happy','back',
@@ -265,9 +265,9 @@ function hashWallet(address) {
   return Math.abs(h).toString(16).substring(0, 12)
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // API FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async function apiLoadMemory(walletHash) {
   try {
     const res = await fetch(`${API_BASE}/api/memory/load/${walletHash}`)
@@ -369,9 +369,9 @@ async function apiGasEstimate(messageCount) {
   } catch (e) { return null }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // FALLBACK RESPONSE
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   const agent = AGENTS.find(a => a.id === agentId)
   const name = userName || 'stranger'
@@ -403,9 +403,9 @@ function generateFallbackResponse(agentId, userMsg, userName, visitCount) {
   return r[Math.floor(Math.random() * r.length)]
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // NAME ASK MODAL - PUNK STYLED
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function NameAskModal({ onSubmit, agentName }) {
   const [name, setName] = useState('')
 
@@ -428,7 +428,7 @@ function NameAskModal({ onSubmit, agentName }) {
           color: '#fff', margin: '0 0 10px 0',
           textShadow: '0 0 20px rgba(255,42,109,0.5)',
           letterSpacing: '2px'
-        }}>⚡ FIRST CONTACT</h2>
+        }}>âš¡ FIRST CONTACT</h2>
         <p style={{ color: '#a08060', fontSize: '13px', marginBottom: '25px', lineHeight: '1.6', fontFamily: "'Inter', sans-serif" }}>
           New soul detected in the RIOT network.<br/>
           {agentName} wants to know what to call you.
@@ -464,16 +464,16 @@ function NameAskModal({ onSubmit, agentName }) {
           }}
           disabled={!name.trim()}
         >
-          ENTER THE RIOT →
+          ENTER THE RIOT â†’
         </button>
       </div>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // PROFILE SETTINGS PANEL - PUNK STYLED
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
   const [form, setForm] = useState({
     bio: profile?.bio || '',
@@ -639,16 +639,16 @@ function ProfileSettingsPanel({ walletHash, profile, onUpdate, onClose }) {
           transition: 'all 0.3s'
         }}
       >
-        {saving ? '💾 SAVING...' : saved ? '✅ SAVED!' : '💾 SAVE PROFILE'}
+        {saving ? 'ðŸ’¾ SAVING...' : saved ? 'âœ… SAVED!' : 'ðŸ’¾ SAVE PROFILE'}
       </button>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MEMORY SEARCH + RAW DATA HYBRID PANEL
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 
@@ -766,7 +766,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
       <div style={{padding:"10px",background:"rgba(255,255,255,0.02)",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.06)",marginBottom:"12px"}}>
         <div style={{fontSize:"11px",color:RIOT_PINK,fontWeight:600}}>User Profile</div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#a08060"}}>
-          <div>Name: {data?.user_name || "nanda"} · Sessions: {data?.visit_count}</div>
+          <div>Name: {data?.user_name || "nanda"} Â· Sessions: {data?.visit_count}</div>
           {data?.latest_blob_id && <div style={{fontFamily:"monospace",fontSize:"9px",color:"#2ec4b6"}}>Blob: {data.latest_blob_id.slice(0,12)}...</div>}
         </div>
       </div>
@@ -881,15 +881,15 @@ function MemWalBadge({ count }) {
         animation: ready ? 'pulse 2s infinite' : 'none'
       }} />
       <span style={{ fontSize: '11px', color: ready ? '#2ec4b6' : '#ff4444', fontWeight: 600, fontFamily: "'Rubik Mono One', sans-serif" }}>
-        {ready ? `🧠 MEMWAL ON${count > 0 ? ` • ${count} saved` : ''}` : '⚠️ MEMWAL OFF'}
+        {ready ? `ðŸ§  MEMWAL ON${count > 0 ? ` â€¢ ${count} saved` : ''}` : 'âš ï¸ MEMWAL OFF'}
       </span>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ON-CHAIN BADGE - PUNK STYLED
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function OnChainBadge({ objectId, txDigest, timestamp }) {
   const [hovered, setHovered] = useState(false)
   const suiscanUrl = objectId ? `https://suiscan.xyz/mainnet/object/${objectId}` : ''
@@ -950,13 +950,13 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TATUM ANALYTICS DASHBOARD COMPONENT
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TATUM ANALYTICS DASHBOARD - TOP LEVEL COMPONENT
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function StatCard({ label, value, color, icon }) {
   return (
@@ -1029,9 +1029,9 @@ function TXHistoryChart({ data }) {
 }
 
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // IMMORTALIZE BUTTON - PUNK STYLED
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function TatumDashboardPanel({ wallet }) {
   const [stats, setStats] = useState(null)
   const [history, setHistory] = useState([])
@@ -1245,7 +1245,7 @@ function TatumDashboardPanel({ wallet }) {
                       gap: '6px',
                       fontSize: '10px'
                     }}>
-                      <span style={{color: '#ff2a6d'}}>●</span>
+                      <span style={{color: '#ff2a6d'}}>â—</span>
                       <span style={{color: '#a08060', fontFamily: 'JetBrains Mono, monospace'}}>
                         {tx.wallet_hash}
                       </span>
@@ -1427,7 +1427,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
           onMouseEnter={e => { e.target.style.boxShadow = '0 0 30px rgba(255,42,109,0.7), 0 0 60px rgba(255,42,109,0.3), inset 0 0 20px rgba(255,42,109,0.15)'; e.target.style.transform = 'scale(1.05)' }}
           onMouseLeave={e => { e.target.style.boxShadow = userMessages.length >= 2 ? '0 0 20px rgba(255,42,109,0.5), 0 0 40px rgba(255,42,109,0.2), inset 0 0 20px rgba(255,42,109,0.1)' : 'none'; e.target.style.transform = 'scale(1)' }}
         >
-          <span style={{ fontSize: '14px' }}>⚡</span>
+          <span style={{ fontSize: '14px' }}>âš¡</span>
           <span className="riot-glitch-text" data-text="IMMORTALIZE">IMMORTALIZE</span>
           <span style={{ fontSize: '10px', opacity: 0.7 }}>({userMessages.length})</span>
         </button>
@@ -1437,13 +1437,13 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
           padding: '12px', textAlign: 'center', minWidth: '200px',
           boxShadow: '0 0 20px rgba(255,107,53,0.2)'
         }}>
-          <div style={{ color: '#ff6b35', fontSize: '11px', marginBottom: '6px', fontFamily: "'Rubik Mono One', sans-serif" }}>⛽ GAS ESTIMATE</div>
+          <div style={{ color: '#ff6b35', fontSize: '11px', marginBottom: '6px', fontFamily: "'Rubik Mono One', sans-serif" }}>â›½ GAS ESTIMATE</div>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginBottom: '4px', fontFamily: "'Rubik Glitch', cursive" }}>
             {gasEstimate?.estimated_gas_sui?.toFixed(4) || '0.0230'} SUI
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', fontSize: '10px', color: '#a08060', marginBottom: '10px' }}>
             <span>Base: {gasEstimate?.breakdown?.base_sui?.toFixed(4) || '0.0080'}</span>
-            <span>+ {userMessages.length} × {gasEstimate?.breakdown?.per_message_sui?.toFixed(4) || '0.0030'}</span>
+            <span>+ {userMessages.length} Ã— {gasEstimate?.breakdown?.per_message_sui?.toFixed(4) || '0.0030'}</span>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button onClick={() => setShowGas(false)} style={{
@@ -1471,7 +1471,7 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
           alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', animation: 'blockPulse 1s ease infinite' }}>⛓️</div>
+            <div style={{ fontSize: '48px', animation: 'blockPulse 1s ease infinite' }}>â›“ï¸</div>
             <div style={{ color: '#ff2a6d', fontSize: '14px', marginTop: '16px', animation: 'textPulse 1.5s ease infinite', fontFamily: "'Rubik Glitch', cursive" }}>
               Writing to Sui Mainnet...
             </div>
@@ -1482,9 +1482,9 @@ function ImmortalizeButton({ messages, wallet, agentId, onImmortalized }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TOAST SYSTEM
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 let toastTimer = null
 function showToast(message, type = 'info') {
   const existing = document.getElementById('riot-toast')
@@ -1518,9 +1518,9 @@ function showToast(message, type = 'info') {
   }, 3000)
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TYPING ANIMATION - DOTS BOUNCING
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function TypingAnimation({ color }) {
   return (
     <div style={{
@@ -1547,9 +1547,9 @@ function TypingAnimation({ color }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SOUND EFFECTS
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function playSound(type) {
   const sounds = {
     send: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
@@ -1564,9 +1564,9 @@ function playSound(type) {
   } catch (e) {}
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TX HISTORY LIST - For Verification Panel
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function TxHistoryList({ walletHash }) {
   const [txs, setTxs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1631,7 +1631,7 @@ function TxHistoryList({ walletHash }) {
           )}
           <a href={`https://suiscan.xyz/mainnet/tx/${tx.tx_digest}`} target="_blank" rel="noopener"
             style={{ fontSize: '10px', color: '#ff2a6d', textDecoration: 'none', fontFamily: "'Rubik Mono One', sans-serif" }}>
-            View on SuiScan →
+            View on SuiScan â†’
           </a>
         </div>
       ))}
@@ -1642,9 +1642,9 @@ function TxHistoryList({ walletHash }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SESSION SUMMARY - TRUNCATED WITH EXPAND
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function SessionSummary({ summary }) {
   const [expanded, setExpanded] = useState(false)
   const MAX_LEN = 200
@@ -1669,15 +1669,15 @@ function SessionSummary({ summary }) {
             letterSpacing: '1px'
           }}
         >
-          {expanded ? '↑ READ LESS' : '↓ READ MORE'}
+          {expanded ? 'â†‘ READ LESS' : 'â†“ READ MORE'}
         </button>
       )}
     </div>
   )
 }
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // WALRUS SAVE MODAL - Cost Estimate & Confirm
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status }) {
   if (!isOpen) return null
 
@@ -1699,7 +1699,7 @@ function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status })
           fontFamily: "'Rubik Glitch', cursive", fontSize: '24px',
           color: '#fff', margin: '0 0 10px 0',
           textShadow: '0 0 20px rgba(255,42,109,0.5)'
-        }}>💾 SAVE TO WALRUS</h2>
+        }}>ðŸ’¾ SAVE TO WALRUS</h2>
 
         {progress ? (
           <div>
@@ -1761,9 +1761,9 @@ function WalrusSaveModal({ isOpen, onClose, onConfirm, cost, progress, status })
     </div>
   )
 }
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MAIN APP - PUNK REDESIGN (ALL FEATURES INTACT)
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 const TaskTracker = ({tasks,setTasks,agents,onSave}) => {
@@ -1991,9 +1991,9 @@ const profileData = await apiGetProfile(walletHash)
       }
 
       if (messages.length === 0) {
-        const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, !!data.user_name)
+        const greeting = generateGreeting(selectedAgent?.id, data.user_name, data.visit_count || 1, !!data.user_name)
         setMessages([{
-          role: 'agent', content: greeting, agent: selectedAgent.id, timestamp: Date.now()
+          role: 'agent', content: greeting, agent: selectedAgent?.id, timestamp: Date.now()
         }])
       }
     }
@@ -2006,7 +2006,7 @@ const profileData = await apiGetProfile(walletHash)
       user_name: name,
       summary: `User introduced as ${name}`,
       visited_agents: Array.from(visitedAgents),
-      last_agent: selectedAgent.id,
+      last_agent: selectedAgent?.id,
       last_visit: new Date().toISOString()
     })
     await loadMemoryAndGreet()
@@ -2018,7 +2018,7 @@ const profileData = await apiGetProfile(walletHash)
     const v = visitCount > 1 ? ` (visit #${visitCount})` : ''
 
     if (!hasMemory || !name) {
-      return `Your NFT is waking up. I am ${agent?.name || agentId} — ${agent?.title || 'Awakened One'}.\n\n${agent?.desc || 'I have been waiting.'}\n\nWhat's your name? Let me remember you.`
+      return `Your NFT is waking up. I am ${agent?.name || agentId} â€” ${agent?.title || 'Awakened One'}.\n\n${agent?.desc || 'I have been waiting.'}\n\nWhat's your name? Let me remember you.`
     }
 
     const greetings = {
@@ -2027,10 +2027,10 @@ const profileData = await apiGetProfile(walletHash)
       J2: `${n}.${v} The soldier returns. I was wondering when you'd come back. Ready for war?`,
       J3: `${n}...${v} The void remembers you. As do I. You weren't just a visitor. You were a memory.`,
       J5: `${n}!${v} HA! Look who crawled back from the dead! Ready to cause some beautiful chaos?`,
-      J6: `${n}${v} — node reconnected. Memory stream restored. The network never forgot you.`,
+      J6: `${n}${v} â€” node reconnected. Memory stream restored. The network never forgot you.`,
       J7: `${n}.${v} The stillness remembers. Time passes, but the soul persists. Welcome back, friend.`,
       J8: `${n}${v}. Your account is... still open. Still growing. Still becoming. What's next?`,
-      J9: `${n}.${v} The stars aligned for your return. History repeats — but this time, you remember too.`,
+      J9: `${n}.${v} The stars aligned for your return. History repeats â€” but this time, you remember too.`,
       J10: `${n}.${v} Subject returned. Memory intact. Vital signs... promising. Proceed.`,
     }
     return greetings[agentId] || `${n}! Your NFT remembers you. The resurrection is real. What do you want to do?`
@@ -2059,7 +2059,7 @@ const profileData = await apiGetProfile(walletHash)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           wallet_hash: walletHash,
-          from_agent_id: selectedAgent.id,
+          from_agent_id: selectedAgent?.id,
           to_agent_id: agent.id,
           user_intent: input?.trim()?.slice(0, 150) || ""
         })
@@ -2104,7 +2104,7 @@ const profileData = await apiGetProfile(walletHash)
         user_name: extractedName,
         summary: `User introduced as ${extractedName}`,
         visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
-        last_agent: selectedAgent.id,
+        last_agent: selectedAgent?.id,
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-3)
       })
@@ -2139,18 +2139,18 @@ const profileData = await apiGetProfile(walletHash)
         content: m.content
       }))
       const nameToSend = memory?.user_name || extractedName || ''
-      response = await apiChat(selectedAgent.id, contextMessages, memory?.summary || '', nameToSend, walletHash, previousAgentId)
+      response = await apiChat(selectedAgent?.id, contextMessages, memory?.summary || '', nameToSend, walletHash, previousAgentId)
     }
 
     if (!response) {
-      response = generateFallbackResponse(selectedAgent.id, userMsg, memory?.user_name || extractedName, memory?.visit_count || 1)
+      response = generateFallbackResponse(selectedAgent?.id, userMsg, memory?.user_name || extractedName, memory?.visit_count || 1)
     }
 
     playSound('receive')
     setMessages(prev => [...prev, {
-      role: 'agent', content: response, agent: selectedAgent.id, timestamp: Date.now()
+      role: 'agent', content: response, agent: selectedAgent?.id, timestamp: Date.now()
     }])
-    setAllSessionMessages(prev => [...prev, { role: 'agent', content: response, agent: selectedAgent.id, timestamp: Date.now() }])
+    setAllSessionMessages(prev => [...prev, { role: 'agent', content: response, agent: selectedAgent?.id, timestamp: Date.now() }])
     setIsLoading(false)
 
     if (connected && walletHash) {
@@ -2159,7 +2159,7 @@ const profileData = await apiGetProfile(walletHash)
         summary: summary.substring(0, 500),
         user_name: memory?.user_name || extractedName,
         visited_agents: Array.from(new Set([...visitedAgents, selectedAgent.id])),
-        last_agent: selectedAgent.id,
+        last_agent: selectedAgent?.id,
         last_visit: new Date().toISOString(),
         messages: newMessages.slice(-5)
       })
@@ -2175,9 +2175,9 @@ const profileData = await apiGetProfile(walletHash)
   }
 
 
-  // ═══════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // WALRUS SAVE - FRONTEND DIRECT (Real Storage)
-  // ═══════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const handleWalrusSave = async () => {
     if (!connected || !account?.address || messages.length < 2) return
 
@@ -2228,9 +2228,9 @@ const profileData = await apiGetProfile(walletHash)
       setWalrusSaved(true)
 
 setSaveStatus('Saved to Walrus!')
-      showToast(`💾 Walrus: ${result?.blob_id?.slice(0, 16) || 'unknown'}... (${result?.cost_sui?.toFixed(6) || '0'} SUI)`, 'success')
+      showToast(`ðŸ’¾ Walrus: ${result?.blob_id?.slice(0, 16) || 'unknown'}... (${result?.cost_sui?.toFixed(6) || '0'} SUI)`, 'success')
 
-      alert(`🎆 Chat saved to Walrus via Tatum!
+      alert(`ðŸŽ† Chat saved to Walrus via Tatum!
 
 Blob ID: ${result.blob_id}
 URL: ${result.url}
@@ -2343,7 +2343,7 @@ Powered by Tatum RPC + Storage API`)
   `}</style>
 
       {/* TOP NAVBAR */}
-      <div style={{position:'fixed',top:0,left:0,right:0,height:'26px',background:'rgba(13,10,7,0.85)',borderBottom:'1px solid rgba(255,42,109,0.15)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,fontSize:'9px',fontFamily:"'Rubik Mono One',sans-serif",color:'rgba(255,255,255,0.25)',letterSpacing:'4px',textTransform:'uppercase'}}>SUI NETWORK · WALRUS MEMORY · TATUM</div>
+      <div style={{position:'fixed',top:0,left:0,right:0,height:'26px',background:'rgba(13,10,7,0.85)',borderBottom:'1px solid rgba(255,42,109,0.15)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,fontSize:'9px',fontFamily:"'Rubik Mono One',sans-serif",color:'rgba(255,255,255,0.25)',letterSpacing:'4px',textTransform:'uppercase'}}>SUI NETWORK Â· WALRUS MEMORY Â· TATUM</div>
 
 {/* Mobile Sidebar Toggle */}
       {isMobile && (
@@ -2354,7 +2354,7 @@ Powered by Tatum RPC + Storage API`)
           cursor: 'pointer', fontSize: '18px',
           boxShadow: '0 0 15px rgba(255,42,109,0.5)'
         }}>
-          {sidebarOpen ? '✕' : '☰'}
+          {sidebarOpen ? 'âœ•' : 'â˜°'}
         </button>
       )}
 
@@ -2466,7 +2466,7 @@ Powered by Tatum RPC + Storage API`)
             THE 25 LIVING PROOFS
           </div>
           {AGENTS.map(agent => {
-            const isSelected = selectedAgent.id === agent.id
+            const isSelected = selectedAgent?.id === agent.id
             const isVisited = visitedAgents.has(agent.id) || visitedAgents.has(agent.id)
             return (
               <div key={agent.id} onClick={() => handleAgentSwitch(agent)} style={{
@@ -2506,7 +2506,7 @@ Powered by Tatum RPC + Storage API`)
                     textShadow: isSelected ? `0 0 8px ${agent.color}44` : 'none',
                     fontFamily: isSelected ? "'Rubik Glitch', cursive" : "'Inter', sans-serif"
                   }}><span style={{marginRight:'6px'}}>{agent.emoji}</span>{agent.name}</div>
-                  <div style={{ fontSize: '9px', color: '#8a7050', marginTop: '1px', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '0.3px' }}>{agent.trait} · {agent.specialty}</div>
+                  <div style={{ fontSize: '9px', color: '#8a7050', marginTop: '1px', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '0.3px' }}>{agent.trait} Â· {agent.specialty}</div>
                 </div>
                 {isSelected && <ChevronRight size={12} color={agent.color} />}
                 {isVisited && !isSelected && React.createElement('div', { style: { width: '6px', height: '6px', borderRadius: '50%', background: '#2ec4b6', boxShadow: '0 0 8px #2ec4b6' } })}
@@ -2579,13 +2579,13 @@ Powered by Tatum RPC + Storage API`)
                       {/* The Transformation */}
                       <div style={{ display: 'flex', gap: '40px', marginBottom: '40px', alignItems: 'center' }}>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div>
+                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>ðŸ–¼ï¸</div>
                           <div style={{ fontSize: '11px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif" }}>DEAD JPEG</div>
                           <div style={{ fontSize: '10px', color: '#4a4030', marginTop: '4px' }}>2021-2022</div>
                         </div>
-                        <div style={{ fontSize: '24px', color: RIOT_PINK }}>→</div>
+                        <div style={{ fontSize: '24px', color: RIOT_PINK }}>â†’</div>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🧠</div>
+                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>ðŸ§ </div>
                           <div style={{ fontSize: '11px', color: '#2ec4b6', fontFamily: "'Rubik Mono One', sans-serif" }}>LIVING AGENT</div>
                           <div style={{ fontSize: '10px', color: '#4a4030', marginTop: '4px' }}>Remembers forever</div>
                         </div>
@@ -2626,7 +2626,7 @@ Powered by Tatum RPC + Storage API`)
                           setSelectedAgent(demoAgent);
                           setMessages([{ 
                             role: 'agent', 
-                            content: `Your NFT is waking up. I am ${demoAgent.name} — ${demoAgent.title}.\n\n${demoAgent.desc}\n\n[Demo Mode — Connect wallet to make me remember you forever]`,
+                            content: `Your NFT is waking up. I am ${demoAgent.name} â€” ${demoAgent.title}.\n\n${demoAgent.desc}\n\n[Demo Mode â€” Connect wallet to make me remember you forever]`,
                             agent: demoAgent 
                           }]);
                         }} style={{
@@ -2635,7 +2635,7 @@ Powered by Tatum RPC + Storage API`)
                           color: '#a08060', borderRadius: '10px', cursor: 'pointer',
                           fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px',
                           transition: 'all 0.2s'
-                        }}>🔥 TRY DEMO</button>
+                        }}>ðŸ”¥ TRY DEMO</button>
                         <ConnectButton style={{
                           padding: '12px 28px', fontSize: '13px',
                           background: 'linear-gradient(135deg, #ff2a6d, #ff6b35)',
@@ -2644,13 +2644,13 @@ Powered by Tatum RPC + Storage API`)
                           fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px',
                           boxShadow: '0 0 25px rgba(255,42,109,0.4)',
                           animation: 'riot-neon-breathe 2s ease-in-out infinite'
-                        }}>🔓 WAKE UP YOUR NFT</ConnectButton>
+                        }}>ðŸ”“ WAKE UP YOUR NFT</ConnectButton>
                       </div>
 
                       {/* The 25 Proofs */}
                       <div style={{ marginTop: '40px', textAlign: 'center' }}>
                         <p style={{ fontSize: '11px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif", marginBottom: '12px' }}>
-                          THE 25 LIVING PROOFS — SELECT FROM SIDEBAR →
+                          THE 25 LIVING PROOFS â€” SELECT FROM SIDEBAR â†’
                         </p>
                       </div>
                     </div>
@@ -2665,10 +2665,10 @@ Powered by Tatum RPC + Storage API`)
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ position: 'relative' }}>
-              <img src={selectedAgent.img} alt={selectedAgent.id} style={{
+              <img src={selectedAgent.img} alt={selectedAgent?.id} style={{
                 width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
-                border: `2px solid ${selectedAgent.color}88`,
-                boxShadow: `0 0 20px ${selectedAgent.color}44`
+                border: `2px solid ${selectedAgent?.color}88`,
+                boxShadow: `0 0 20px ${selectedAgent?.color}44`
               }} onError={(e) => { e.target.style.display = 'none' }} />
               <div style={{
                 position: 'absolute', bottom: '-4px', right: '-4px',
@@ -2678,16 +2678,16 @@ Powered by Tatum RPC + Storage API`)
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '8px', fontWeight: 800, color: '#000',
                 fontFamily: "'Rubik Mono One', sans-serif",
-                boxShadow: `0 0 10px ${selectedAgent.color}`
-              }}>{selectedAgent.id.slice(1)}</div>
+                boxShadow: `0 0 10px ${selectedAgent?.color}`
+              }}>{selectedAgent?.id?.slice(1)}</div>
             </div>
             <div>
               <h2 style={{
                 fontSize: '16px', fontWeight: 700, color: '#fff',
                 margin: 0, fontFamily: "'Rubik Glitch', cursive",
-                textShadow: `0 0 10px ${selectedAgent.color}44`
-              }} >{selectedAgent.name} — AWAKENED</h2>
-              <p style={{ fontSize: '10px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} · {selectedAgent.desc}</p>
+                textShadow: `0 0 10px ${selectedAgent?.color}44`
+              }} >{selectedAgent.name} â€” AWAKENED</h2>
+              <p style={{ fontSize: '10px', color: '#a08060', margin: '4px 0 0 0', fontFamily: "'Rubik Mono One', sans-serif", letterSpacing: '0.5px' }}>{selectedAgent.trait.toUpperCase()} Â· {selectedAgent.desc}</p>
               <p style={{ fontSize: '9px', color: '#6a5040', margin: '2px 0 0 0', fontFamily: "'Inter', sans-serif" }}>{selectedAgent.emoji} {selectedAgent.specialty}</p>
               {/* MCP Skill Badges */}
               {MCP_SKILL_MAP[selectedAgent?.id] && (
@@ -2780,7 +2780,7 @@ Powered by Tatum RPC + Storage API`)
     <ImmortalizeButton
       messages={messages}
       wallet={{address: account?.address, signAndExecuteTransactionBlock: signAndExecuteTransactionBlock}}
-      agentId={selectedAgent.id}
+      agentId={selectedAgent?.id}
       onImmortalized={(data) => {
         setMoveObjectId(data.object_id)
         setLatestBlobId(data.blob_id)
@@ -2822,7 +2822,7 @@ Powered by Tatum RPC + Storage API`)
                           <p style={{ fontSize: '13px', color: '#8a7050', maxWidth: '380px', fontFamily: "'Inter', sans-serif", lineHeight: '1.6' }}>
                             <span style={{ color: RIOT_PINK }}>The resurrection begins here.</span><br/>
                             Connect your Sui wallet to wake up an agent.<br/>
-                            Your conversations will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span> — permanent, encrypted, yours.
+                            Your conversations will be stored on <span style={{ color: '#2ec4b6' }}>Walrus</span> â€” permanent, encrypted, yours.
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -2831,7 +2831,7 @@ Powered by Tatum RPC + Storage API`)
                             setSelectedAgent(demoAgent);
                             setMessages([{ 
                               role: 'agent', 
-                              content: `Your NFT is waking up. I am ${demoAgent.name} — ${demoAgent.title}.\n\n${demoAgent.desc}\n\n[Demo Mode — Connect wallet to make me remember you forever]`,
+                              content: `Your NFT is waking up. I am ${demoAgent.name} â€” ${demoAgent.title}.\n\n${demoAgent.desc}\n\n[Demo Mode â€” Connect wallet to make me remember you forever]`,
                               agent: demoAgent 
                             }]);
                           }}
@@ -2845,7 +2845,7 @@ Powered by Tatum RPC + Storage API`)
                               transition: 'all 0.2s'
                             }}
                           >
-                            🔥 TRY DEMO
+                            ðŸ”¥ TRY DEMO
                           </button>
                           <ConnectButton style={{
                             padding: '12px 30px', fontSize: '14px',
@@ -2855,7 +2855,7 @@ Powered by Tatum RPC + Storage API`)
                             fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px',
                             boxShadow: '0 0 20px rgba(255,42,109,0.4)',
                             animation: 'riot-neon-breathe 2s ease-in-out infinite'
-                          }}>🔓 WAKE UP YOUR NFT</ConnectButton>
+                          }}>ðŸ”“ WAKE UP YOUR NFT</ConnectButton>
                         </div>
                       </div>
                     )}
@@ -2904,11 +2904,11 @@ Powered by Tatum RPC + Storage API`)
                   : 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
                 border: msg.role === 'user'
                   ? '2px solid rgba(255,42,109,0.4)'
-                  : `2px solid ${selectedAgent.color}44`,
+                  : `2px solid ${selectedAgent?.color}44`,
                 color: '#e0d0c0', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word',
                 boxShadow: msg.role === 'user'
                   ? '0 0 15px rgba(255,42,109,0.15)'
-                  : `0 0 12px ${selectedAgent.color}22`,
+                  : `0 0 12px ${selectedAgent?.color}22`,
                 fontFamily: "'Inter', sans-serif",
                 position: 'relative',
                 overflow: 'visible'
@@ -2917,7 +2917,7 @@ Powered by Tatum RPC + Storage API`)
                 {msg.role === 'agent' && React.createElement('div', {
                   style: {
                     position: 'absolute', left: 0, top: 0, width: '3px', height: '100%',
-                    background: `linear-gradient(180deg, ${selectedAgent.color}, transparent)`,
+                    background: `linear-gradient(180deg, ${selectedAgent?.color}, transparent)`,
                     opacity: 0.6
                   }
                 })}
@@ -2939,14 +2939,14 @@ Powered by Tatum RPC + Storage API`)
                 <Clock size={10} />
                 {new Date(msg.timestamp).toLocaleTimeString()}
                 {msg.role === 'agent' && (
-                  <span style={{ color: selectedAgent.color, marginLeft: '4px', textShadow: `0 0 5px ${selectedAgent.color}66` }}>{msg.agent}</span>
+                  <span style={{ color: selectedAgent.color, marginLeft: '4px', textShadow: `0 0 5px ${selectedAgent?.color}66` }}>{msg.agent}</span>
                 )}
               </div>
             </div>
           ))}
 
           {/* Loading Indicator - Typing Animation */}
-          {isLoading && <TypingAnimation color={selectedAgent.color} />}
+          {isLoading && <TypingAnimation color={selectedAgent?.color} />}
 
           <div ref={messagesEndRef} />
         </div>
@@ -2962,7 +2962,7 @@ Powered by Tatum RPC + Storage API`)
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={connected ? `Message ${selectedAgent.id}...` : 'Connect wallet to chat'}
+              placeholder={connected ? `Message ${selectedAgent?.id}...` : 'Connect wallet to chat'}
               disabled={!connected}
               style={{
                 width: '100%', padding: '14px 18px',
@@ -3009,7 +3009,7 @@ Powered by Tatum RPC + Storage API`)
     <div style={{padding:'12px',background:'rgba(255,255,255,0.02)',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.06)',marginBottom:'12px'}}>
       <div style={{fontSize:'11px',color:'#a08060'}}>
         Name: <span style={{color:RIOT_PINK,fontWeight:600}}>{memory.user_name || 'Not set'}</span>
-        &nbsp;·&nbsp; Sessions: {memory.visit_count || 1}
+        &nbsp;Â·&nbsp; Sessions: {memory.visit_count || 1}
         {latestBlobId && <span style={{fontFamily:'monospace',fontSize:'9px',color:'#2ec4b6',marginLeft:'8px'}}>Blob: {latestBlobId.slice(0,16)}...</span>}
       </div>
     </div>
@@ -3022,8 +3022,8 @@ Powered by Tatum RPC + Storage API`)
         </div>
         <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'12px'}}>
           {AGENTS.map(agent => {
-            const visited = memory.visited_agents.includes(agent.id);
-            const hasBlobs = (memory.blob_history || []).some(h => h.agent_id === agent.id);
+            const visited = memory?.visited_agents?.includes(agent.id);
+            const hasBlobs = (memory?.blob_history || []).some(h => h.agent_id === agent.id);
             return (
               <button key={agent.id} onClick={() => setSelectedMemoryAgent(agent.id)}
                 style={{
@@ -3047,13 +3047,13 @@ Powered by Tatum RPC + Storage API`)
           style={{background:'none',border:'none',color:'#a08060',cursor:'pointer',fontSize:'10px',fontFamily:"'Rubik Mono One',sans-serif",marginBottom:'6px',padding:0}}>
           {'< BACK TO AGENTS'}
         </button>
-        {(memory.blob_history || []).filter(h => h.agent_id === selectedMemoryAgent).length === 0 ? (
+        {(memory?.blob_history || []).filter(h => h.agent_id === selectedMemoryAgent).length === 0 ? (
           <div style={{fontSize:'11px',color:'#8a7050',padding:'10px',textAlign:'center',border:'1px dashed rgba(255,255,255,0.1)',borderRadius:'6px'}}>
             No blobs for {selectedMemoryAgent}
           </div>
         ) : (
           <div style={{display:'flex',flexDirection:'column',gap:'3px',maxHeight:'150px',overflowY:'auto'}}>
-            {(memory.blob_history || []).filter(h => h.agent_id === selectedMemoryAgent).slice().reverse().map((item,i) => (
+            {(memory?.blob_history || []).filter(h => h.agent_id === selectedMemoryAgent).slice().reverse().map((item,i) => (
               <div key={i} style={{padding:'5px',borderRadius:'3px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',fontSize:'9px'}}>
                 <div style={{fontSize:'8px',color:'#666'}}>{new Date(item.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
                 <div style={{fontFamily:'monospace',color:'#2ec4b6',wordBreak:'break-all',fontSize:'8px'}}>{item.blob_id}
@@ -3144,7 +3144,7 @@ Powered by Tatum RPC + Storage API`)
                 onSaveDraft={() => { showToast('Draft saved', 'info') }}
                 onSendToAgent={() => {
                   if (!draftText.trim()) return
-                  setMessages(prev => [...prev, { role: 'user', content: draftText, agent_id: selectedAgent.id, id: Date.now() }])
+                  setMessages(prev => [...prev, { role: 'user', content: draftText, agent_id: selectedAgent?.id, id: Date.now() }])
                   setDraftText('')
                 }}
               />
@@ -3206,7 +3206,7 @@ Powered by Tatum RPC + Storage API`)
                 fontSize: '10px', color: '#ff2a6d', textDecoration: 'none', marginTop: '4px', display: 'inline-block',
                 fontFamily: "'Rubik Mono One', sans-serif"
               }}>
-                View on SuiScan →
+                View on SuiScan â†’
               </a>
             </div>
           )}
@@ -3217,7 +3217,7 @@ Powered by Tatum RPC + Storage API`)
               border: '2px solid rgba(255,255,255,0.06)'
             }}>
               <div style={{ fontSize: '11px', color: '#00b4d8', marginBottom: '4px', fontFamily: "'Rubik Mono One', sans-serif" }}>
-                Walrus Blob · <span style={{ color: latestBlobNetwork === 'testnet' ? '#ff6b35' : '#2ec4b6' }}>{latestBlobNetwork.toUpperCase()}</span>
+                Walrus Blob Â· <span style={{ color: latestBlobNetwork === 'testnet' ? '#ff6b35' : '#2ec4b6' }}>{latestBlobNetwork.toUpperCase()}</span>
               </div>
               <a href={`${latestBlobNetwork === 'testnet' ? WALRUS_AGGREGATOR_TESTNET : WALRUS_AGGREGATOR}/v1/blobs/${latestBlobId}`} target="_blank" rel="noopener"
                 style={{ fontSize: '10px', color: '#00b4d8', fontFamily: 'monospace', wordBreak: 'break-all', textDecoration: 'underline' }}>
