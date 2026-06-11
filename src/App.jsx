@@ -695,7 +695,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
   if (loading) {
     return React.createElement("div", {
       style: {position:"fixed",top:0,right:0,width:"420px",height:"100vh",background:"linear-gradient(180deg,#0d0a07 0%,#1a1209 100%)",borderLeft:"2px solid rgba(255,42,109,0.3)",padding:"25px",overflowY:"auto",zIndex:100,boxShadow:"-10px 0 30px rgba(0,0,0,0.8)"}
-    }, React.createElement("p", {style:{color:"#666",fontSize:"13px",textAlign:"center",padding:"40px"}}, "Loading memory archive..."));
+    }, React.createElement("p", {style:{color:"#666",fontSize:"13px",textAlign:"center",padding:"40px"}}, "Loading SOUL ARCHIVE..."));
   }
 
   if (error) {
@@ -719,7 +719,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
       {/* HEADER */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
         <h2 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:"18px",color:RIOT_PINK,margin:0,display:"flex",alignItems:"center",gap:"8px",textShadow:"0 0 10px rgba(255,42,109,0.4)"}}>
-          <Brain size={18} /> MEMORY ARCHIVE
+          <Brain size={18} /> SOUL ARCHIVE
         </h2>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#a08060",cursor:"pointer",padding:"5px"}}><X size={20} /></button>
       </div>
@@ -771,9 +771,9 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
         </div>
       </div>
 
-      {/* VISITED AGENTS */}
+      {/* Soul Connections */}
       <div style={{marginBottom:"6px",fontSize:"11px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
-        VISITED AGENTS ({selectedAgentBlobs ? selectedAgentBlobs : visitedIds.length}/{AGENTS.length})
+        Soul Connections ({selectedAgentBlobs ? selectedAgentBlobs : visitedIds.length}/{AGENTS.length})
       </div>
 
       {!selectedAgentBlobs ? (
@@ -827,11 +827,11 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
         </div>
       )}
 
-      {/* ALL BLOBS */}
+      {/* Soul Fragments */}
       {history.length > 0 && !selectedAgentBlobs && (
         <>
           <div style={{marginBottom:"4px",fontSize:"10px",color:"#ffd700",fontFamily:"'Rubik Mono One',sans-serif"}}>
-            ALL BLOBS ({history.length})
+            Soul Fragments ({history.length})
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"3px",maxHeight:"20vh",overflowY:"auto"}}>
             {history.slice().reverse().map((item,i) => (
@@ -3000,7 +3000,7 @@ Status: Working & Verified
 
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'15px'}}>
       <h3 style={{fontFamily:"'Rubik Glitch',cursive",fontSize:'16px',color:RIOT_PINK,margin:0,textShadow:'0 0 10px rgba(255,42,109,0.4)'}}>
-        <Brain size={16} /> MEMORY ARCHIVE
+        <Brain size={16} /> SOUL ARCHIVE
       </h3>
       <button onClick={() => setShowMemoryPanel(false)} style={{background:'none',border:'none',color:'#a08060',cursor:'pointer',padding:'5px'}}><X size={18} /></button>
     </div>
@@ -3014,11 +3014,11 @@ Status: Working & Verified
       </div>
     </div>
 
-    {/* Visited Agents */}
+    {/* Soul Connections */}
     {memory?.visited_agents?.length > 0 && (
       <>
         <div style={{marginBottom:'8px',fontSize:'11px',color:'#ffd700',fontFamily:"'Rubik Mono One',sans-serif"}}>
-          VISITED AGENTS ({memory?.visited_agents?.length}/{AGENTS.length})
+          Soul Connections ({memory?.visited_agents?.length}/{AGENTS.length})
         </div>
         <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'12px'}}>
           {AGENTS.map(agent => {
@@ -3076,11 +3076,11 @@ Status: Working & Verified
       </div>
     )}
 
-    {/* All Blobs */}
+    {/* Soul Fragments */}
     {memory.blob_history && memory.blob_history.length > 0 && !selectedMemoryAgent && (
       <>
         <div style={{marginBottom:'4px',fontSize:'10px',color:'#ffd700',fontFamily:"'Rubik Mono One',sans-serif"}}>
-          ALL BLOBS ({memory.blob_history.length})
+          Soul Fragments ({memory.blob_history.length})
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:'3px',maxHeight:'25vh',overflowY:'auto'}}>
           {memory.blob_history.slice().reverse().map((item,i) => (
