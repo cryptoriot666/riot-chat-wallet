@@ -8,7 +8,9 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: './src/index.html'
+      input: {
+        main: 'index.html'
+      }
     }
   },
   resolve: { mainFields: ['module', 'main'] }
