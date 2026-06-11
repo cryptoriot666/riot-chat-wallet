@@ -810,7 +810,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
                 <div key={i} style={{padding:"5px",borderRadius:"3px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",fontSize:"9px"}}>
                   <div style={{fontSize:"9px",color:"#666",marginBottom:"1px"}}>{new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
                   <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"8px"}}>{item.blob_id}
-                    <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline",marginLeft:"4px"}}>View &nearr;</a>
+                    <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline",marginLeft:"4px"}}>Verify soul on Walrus ↗</a>
                   </div>
                 </div>
               ))}
@@ -841,7 +841,7 @@ function MemoryHybridPanel({ walletAddress, onClose }) {
                   <span style={{color:"#666",fontSize:"8px"}}>{new Date(item.timestamp).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
                 </div>
                 <div style={{fontFamily:"monospace",color:"#2ec4b6",wordBreak:"break-all",fontSize:"8px"}}>{item.blob_id}
-                  <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline",marginLeft:"4px"}}>View &nearr;</a>
+                  <a href={WALRUS_AGG+"/v1/blobs/"+item.blob_id} target="_blank" rel="noopener" style={{fontSize:"9px",color:"#00b4d8",textDecoration:"underline",marginLeft:"4px"}}>Verify soul on Walrus ↗</a>
                 </div>
               </div>
             ))}
@@ -1846,6 +1846,8 @@ export default function App() {
   const [memwalSaveCount, setMemwalSaveCount] = useState(0)
   const [latestBlobId, setLatestBlobId] = useState('')
   const [latestBlobNetwork, setLatestBlobNetwork] = useState('mainnet')
+  const [soulDepth, setSoulDepth] = useState(0)
+  const [soulRestoredBlob, setSoulRestoredBlob] = useState('')
   const [moveObjectId, setMoveObjectId] = useState('')
   const [onChainMessages, setOnChainMessages] = useState([])
   const [allSessionMessages, setAllSessionMessages] = useState([])
@@ -1979,7 +1981,11 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     if (data) {
       setMemory(data)
       if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
-      if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
+      if (data.latest_blob_id) {
+        setLatestBlobId(data.latest_blob_id)
+        setSoulRestoredBlob(data.latest_blob_id)
+        setSoulDepth(data.blob_count || data.visited_agents?.length || 0)
+      }
 
 const profileData = await apiGetProfile(walletHash)
       if (profileData?.success && profileData.exists) {
@@ -2033,7 +2039,8 @@ const profileData = await apiGetProfile(walletHash)
       J9: `${n}.${v} The stars aligned for your return. History repeats â€” but this time, you remember too.`,
       J10: `${n}.${v} Subject returned. Memory intact. Vital signs... promising. Proceed.`,
     }
-    return greetings[agentId] || `${n}! Your NFT remembers you. The resurrection is real. What do you want to do?`
+        const soulInfo = soulDepth > 0 ? `\n\n♻️ SOUL DEPTH: ${soulDepth} Walrus blobs stored — your NFT grows richer each time you speak.` : ''
+    return (greetings[agentId] || `${n}! Your NFT remembers you. The resurrection is real. What do you want to do?`) + soulInfo
   }
 
   // Cross-agent memory: when switching agents, fetch shared context
@@ -3057,7 +3064,7 @@ Status: Working & Verified
               <div key={i} style={{padding:'5px',borderRadius:'3px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',fontSize:'9px'}}>
                 <div style={{fontSize:'8px',color:'#666'}}>{new Date(item.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
                 <div style={{fontFamily:'monospace',color:'#2ec4b6',wordBreak:'break-all',fontSize:'8px'}}>{item.blob_id}
-                  <a href={'https://aggregator.walrus-testnet.walrus.space/v1/blobs/'+item.blob_id} target='_blank' rel='noopener' style={{fontSize:'9px',color:'#00b4d8',textDecoration:'underline',marginLeft:'4px'}}>View &nearr;</a>
+                  <a href={'https://aggregator.walrus-testnet.walrus.space/v1/blobs/'+item.blob_id} target='_blank' rel='noopener' style={{fontSize:'9px',color:'#00b4d8',textDecoration:'underline',marginLeft:'4px'}}>Verify soul on Walrus ↗</a>
                 </div>
               </div>
             ))}
@@ -3090,7 +3097,7 @@ Status: Working & Verified
                 <span style={{color:'#666',fontSize:'8px'}}>{new Date(item.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
               </div>
               <div style={{fontFamily:'monospace',color:'#2ec4b6',wordBreak:'break-all',fontSize:'8px'}}>{item.blob_id}
-                <a href={'https://aggregator.walrus-testnet.walrus.space/v1/blobs/'+item.blob_id} target='_blank' rel='noopener' style={{fontSize:'9px',color:'#00b4d8',textDecoration:'underline',marginLeft:'4px'}}>View &nearr;</a>
+                <a href={'https://aggregator.walrus-testnet.walrus.space/v1/blobs/'+item.blob_id} target='_blank' rel='noopener' style={{fontSize:'9px',color:'#00b4d8',textDecoration:'underline',marginLeft:'4px'}}>Verify soul on Walrus ↗</a>
               </div>
             </div>
           ))}
@@ -3212,6 +3219,7 @@ Status: Working & Verified
           )}
 
           {latestBlobId && (
+            <>
             <div style={{
               padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px',
               border: '2px solid rgba(255,255,255,0.06)'
@@ -3224,6 +3232,21 @@ Status: Working & Verified
                 {latestBlobId}
               </a>
             </div>
+            {soulRestoredBlob && (
+            <div style={{
+              padding: '6px 10px', background: 'linear-gradient(135deg, rgba(255,42,109,0.15), rgba(155,77,229,0.15))',
+              borderRadius: '6px', border: '1px solid rgba(255,42,109,0.3)', marginTop: '8px',
+              fontSize: '10px', fontFamily: "'Rubik Mono One', sans-serif", color: '#ff2a6d'
+            }}>
+              ♻️ SOUL RESTORED — this NFT remembers you.
+              <br/>
+              <span style={{color: '#2ec4b6', fontSize: '9px'}}>
+                Walrus block: {soulRestoredBlob.slice(0, 16)}...
+                {soulDepth > 0 && <span> | Soul depth: {soulDepth} blobs</span>}
+              </span>
+            </div>
+          )}
+            </>
           )}
           </div>
         )}
