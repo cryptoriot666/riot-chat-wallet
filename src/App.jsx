@@ -2781,13 +2781,8 @@ Status: Working & Verified
         <div style={{
           padding: '10px 30px',
           borderBottom: '2px solid rgba(255,42,109,0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end'
         }}>
-          
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            
-
             {/* WALRUS SAVE + IMMORTALIZE BUTTONS */}
             {connected && messages.length >= 2 && (
   <div style={{ display: 'flex', gap: '8px' }}>
@@ -2830,7 +2825,6 @@ Status: Working & Verified
     />
   </div>
 )}
-          </div>
         </div>
 
         {/* Messages - PUNK STYLED BUBBLES */}
