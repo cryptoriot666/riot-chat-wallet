@@ -2393,6 +2393,7 @@ Status: Working & Verified
       )}
 
       <div style={{ display: 'flex', flexDirection: 'row', flex: 1, overflow: 'hidden', height: '100vh' }}>
+      <div className="app-layout">
       {/* MemWal Memory Search Panel */}
       {/* LEFT SIDEBAR - PUNK STYLED */}
       <div style={{
@@ -3272,9 +3273,11 @@ Status: Working & Verified
         </div>
       )}
       </div>
+      </div>
 
       {/* CSS Animations + Toast Animations */}
       <style>{`
+    .app-layout { display: flex; flex-direction: row; flex: 1; overflow: hidden; }
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(0.8); }
