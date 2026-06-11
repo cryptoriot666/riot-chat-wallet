@@ -464,7 +464,7 @@ function NameAskModal({ onSubmit, agentName }) {
           }}
           disabled={!name.trim()}
         >
-          ENTER THE RIOT â†’
+          AWAKEN YOUR AGENT â†’
         </button>
       </div>
     </div>
@@ -2237,7 +2237,7 @@ URL: ${result.url}
 Network: Walrus via Tatum (via Tatum Storage API)
 Status: Working & Verified
 
-Powered by Tatum RPC + Storage API`)
+🔄 Dead JPEGs → Living Agents | Powered by Tatum RPC + Storage API`)
     } else {
       setSaveStatus('Walrus failed, trying fallback...')
       // Fallback to old backend method
@@ -2730,7 +2730,7 @@ Powered by Tatum RPC + Storage API`)
                 boxShadow: '0 0 10px rgba(46,196,182,0.1)'
               }}>
                 <Database size={12} color="#2ec4b6" />
-                <span style={{ color: '#2ec4b6' }}>Memory: {memory.visit_count || 1} sessions</span>
+                <span style={{ color: '#2ec4b6' }}>Sessions: {memory.visit_count || 1} | Agents met: {memory?.visited_agents?.length || 0}/25</span>
                 <span style={{ color: '#a08060' }}>|</span>
                 <span style={{ color: '#c0a080' }}>Agents: {visitedAgents.size}/25</span>
                 {memory.user_name && (
@@ -2962,7 +2962,7 @@ Powered by Tatum RPC + Storage API`)
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={connected ? `Message ${selectedAgent?.id}...` : 'Connect wallet to chat'}
+              placeholder={connected ? `Chat with ${selectedAgent?.name || selectedAgent?.id}...` : 'Connect wallet to awaken your agents'}
               disabled={!connected}
               style={{
                 width: '100%', padding: '14px 18px',
