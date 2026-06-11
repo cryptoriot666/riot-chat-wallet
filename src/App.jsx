@@ -2665,7 +2665,7 @@ Powered by Tatum RPC + Storage API`)
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ position: 'relative' }}>
-              <img src={selectedAgent.img} alt={selectedAgent?.id} style={{
+              <img src={selectedAgent?.img} alt={selectedAgent?.id} style={{
                 width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
                 border: `2px solid ${selectedAgent?.color}88`,
                 boxShadow: `0 0 20px ${selectedAgent?.color}44`
@@ -2673,7 +2673,7 @@ Powered by Tatum RPC + Storage API`)
               <div style={{
                 position: 'absolute', bottom: '-4px', right: '-4px',
                 width: '20px', height: '20px', borderRadius: '50%',
-                background: selectedAgent.color,
+                background: selectedAgent?.color,
                 border: `2px solid ${RIOT_DARK}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '8px', fontWeight: 800, color: '#000',
@@ -2939,7 +2939,7 @@ Powered by Tatum RPC + Storage API`)
                 <Clock size={10} />
                 {new Date(msg.timestamp).toLocaleTimeString()}
                 {msg.role === 'agent' && (
-                  <span style={{ color: selectedAgent.color, marginLeft: '4px', textShadow: `0 0 5px ${selectedAgent?.color}66` }}>{msg.agent}</span>
+                  <span style={{ color: selectedAgent?.color, marginLeft: '4px', textShadow: `0 0 5px ${selectedAgent?.color}66` }}>{msg.agent}</span>
                 )}
               </div>
             </div>
@@ -3015,10 +3015,10 @@ Powered by Tatum RPC + Storage API`)
     </div>
 
     {/* Visited Agents */}
-    {memory.visited_agents && memory.visited_agents.length > 0 && (
+    {memory?.visited_agents?.length > 0 && (
       <>
         <div style={{marginBottom:'8px',fontSize:'11px',color:'#ffd700',fontFamily:"'Rubik Mono One',sans-serif"}}>
-          VISITED AGENTS ({memory.visited_agents.length}/{AGENTS.length})
+          VISITED AGENTS ({memory?.visited_agents?.length}/{AGENTS.length})
         </div>
         <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'12px'}}>
           {AGENTS.map(agent => {
