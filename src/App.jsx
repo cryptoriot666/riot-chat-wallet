@@ -2483,7 +2483,7 @@ Powered by Tatum RPC + Storage API`)
               onMouseLeave={e => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; } }}
               >
                 <div style={{ position: 'relative' }}>
-                  <img src={agent.img} alt={agent.id} style={{
+                  <img src={agent.img} alt={agent.id} onError={(e)=>{e.target.style.display="none"}} style={{
                     width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover',
                     border: `2px solid ${isSelected ? agent.color : agent.color + '44'}`,
                     boxShadow: isSelected ? `0 0 12px ${agent.color}55` : 'none'
@@ -2665,7 +2665,7 @@ Powered by Tatum RPC + Storage API`)
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ position: 'relative' }}>
-              <img src={selectedAgent?.img} alt={selectedAgent?.id} style={{
+              <img src={selectedAgent?.img} alt={selectedAgent?.id} onError={(e)=>{e.target.style.display="none";e.target.nextSibling.style.display="flex"}} style={{
                 width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover',
                 border: `2px solid ${selectedAgent?.color}88`,
                 boxShadow: `0 0 20px ${selectedAgent?.color}44`
