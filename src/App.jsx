@@ -2392,6 +2392,7 @@ Status: Working & Verified
         />
       )}
 
+      <div style={{ display: 'flex', flexDirection: 'row', flex: 1, overflow: 'hidden', height: '100vh' }}>
       {/* MemWal Memory Search Panel */}
       {/* LEFT SIDEBAR - PUNK STYLED */}
       <div style={{
@@ -3276,6 +3277,7 @@ Status: Working & Verified
         )}
         </div>
       )}
+      </div>
 
       {/* CSS Animations + Toast Animations */}
       <style>{`
