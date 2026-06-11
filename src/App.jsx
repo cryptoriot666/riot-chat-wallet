@@ -2467,6 +2467,45 @@ Status: Working & Verified
           {apiStatus === 'offline' && <span style={{ color: '#a08060', marginLeft: '4px' }}>(fallback mode)</span>}
         </div>
 
+        {/* Memory Status — Soul Stats */}
+        {connected && memory && (
+          <div style={{
+            padding: '10px 15px', margin: '0 10px 8px 10px',
+            background: 'rgba(46,196,182,0.06)',
+            border: '1px solid rgba(46,196,182,0.15)',
+            borderRadius: '8px',
+            fontFamily: "'Rubik Mono One', sans-serif"
+          }}>
+            <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'4px'}}>
+              <Database size={10} color='#2ec4b6' />
+              <span style={{fontSize:'9px',color:'#2ec4b6'}}>Sessions: {memory.visit_count || 1} | Agents met: {memory?.visited_agents?.length || 0}/25</span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+              <span style={{fontSize:'9px',color:'#c0a080'}}>Agents: {visitedAgents.size}/25</span>
+              {memory.user_name && (
+                <>
+                  <span style={{color:'#6a5040',fontSize:'8px'}}>|</span>
+                  <User size={10} color='#ff2a6d' />
+                  <span style={{fontSize:'9px',color:RIOT_PINK}}>{memory.user_name}</span>
+                </>
+              )}
+              {walrusSaved && (
+                <>
+                  <span style={{color:'#6a5040',fontSize:'8px'}}>|</span>
+                  <Cloud size={10} color='#2ec4b6' />
+                  <span style={{fontSize:'9px',color:'#2ec4b6'}}>SOUL ARCHIVED</span>
+                </>
+              )}
+              {autoSaveCount > 0 && (
+                <>
+                  <span style={{color:'#6a5040',fontSize:'8px'}}>|</span>
+                  <span style={{fontSize:'9px',color:'#00b4d8'}}>Auto: {autoSaveCount}x</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Agent List - THE 25 LIVING PROOFS */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
           <div style={{ padding: '8px 10px', marginBottom: '8px', fontSize: '10px', color: '#6a5040', fontFamily: "'Rubik Mono One', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -2725,43 +2764,7 @@ Status: Working & Verified
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            {/* Memory Status */}
-            {connected && memory && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '8px 16px',
-                background: 'rgba(46,196,182,0.08)',
-                border: '2px solid rgba(46,196,182,0.2)',
-                borderRadius: '8px', fontSize: '11px',
-                fontFamily: "'Rubik Mono One', sans-serif",
-                boxShadow: '0 0 10px rgba(46,196,182,0.1)'
-              }}>
-                <Database size={12} color="#2ec4b6" />
-                <span style={{ color: '#2ec4b6' }}>Sessions: {memory.visit_count || 1} | Agents met: {memory?.visited_agents?.length || 0}/25</span>
-                <span style={{ color: '#a08060' }}>|</span>
-                <span style={{ color: '#c0a080' }}>Agents: {visitedAgents.size}/25</span>
-                {memory.user_name && (
-                  <>
-                    <span style={{ color: '#a08060' }}>|</span>
-                    <User size={12} color="#ff2a6d" />
-                    <span style={{ color: RIOT_PINK }}>{memory.user_name}</span>
-                  </>
-                )}
-                {walrusSaved && (
-                  <>
-                    <span style={{ color: '#a08060' }}>|</span>
-                    <Cloud size={12} color="#2ec4b6" />
-                    <span style={{ color: '#2ec4b6' }}>WALRUS</span>
-                  </>
-                )}
-                {autoSaveCount > 0 && (
-                  <>
-                    <span style={{ color: '#a08060' }}>|</span>
-                    <span style={{ color: '#00b4d8' }}>Auto: {autoSaveCount}x</span>
-                  </>
-                )}
-              </div>
-            )}
+            
 
             {/* WALRUS SAVE + IMMORTALIZE BUTTONS */}
             {connected && messages.length >= 2 && (
