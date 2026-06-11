@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 RIOT Chat Wallet - Backend API STRICT v5
 Features: PostgreSQL, Walrus MAINNET, DeepSeek AI,
@@ -78,23 +78,46 @@ print(f"[INIT] Walrus: MAINNET")
 # ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
 def get_db_conn():
     if USE_SQLITE:
-        import sqlite3
-        return sqlite3.connect("riot_chat.db")
+        try:
+            import sqlite3
+            return sqlite3.connect("riot_chat.db")
+        except Exception as e:
+            print(f"[DB] SQLite failed: {e}")
+            return None
     else:
-        parsed = urlparse(DATABASE_URL)
-        conn = pg8000.connect(
-            host=parsed.hostname or "localhost",
-            port=parsed.port or 5432,
-            user=parsed.username or "",
-            password=parsed.password or "",
-            database=parsed.path.lstrip("/") or "riot_chat"
-        )
-        conn.autocommit = False
-        return conn
+        try:
+            parsed = urlparse(DATABASE_URL)
+            conn = pg8000.connect(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 5432,
+                user=parsed.username or "",
+                password=parsed.password or "",
+                database=parsed.path.lstrip("/") or "riot_chat",
+                timeout=5
+            )
+            conn.autocommit = False
+            return conn
+        except Exception as e:
+            print(f"[DB] PostgreSQL connection failed ({e}), falling back to SQLite")
+            try:
+                import sqlite3
+                return sqlite3.connect("riot_chat.db")
+            except:
+                return None
 
 def init_db():
-    conn = get_db_conn()
-    c = conn.cursor()
+    try:
+        conn = get_db_conn()
+        c = conn.cursor()
+    except Exception as e:
+        print(f"[DB] init_db failed ({e}), retrying with SQLite")
+        try:
+            import sqlite3
+            conn = sqlite3.connect("riot_chat.db")
+            c = conn.cursor()
+        except:
+            print("[DB] Fatal: cannot initialize any database")
+            raise
 
     if USE_SQLITE:
         c.execute("""
