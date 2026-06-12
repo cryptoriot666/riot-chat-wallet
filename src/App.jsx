@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useWallet, ConnectButton } from '@suiet/wallet-kit'
 import { Send, Lock, Zap, Brain, MessageSquare, User, Hash, Clock, Shield, AlertTriangle, ChevronRight, Save, Database, Wifi, WifiOff, X, Edit3, Globe, Link as LinkIcon, Image as ImageIcon, FileText, Cloud, Search, CheckCircle, Flame, Eye } from 'lucide-react'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
@@ -951,11 +951,11 @@ function OnChainBadge({ objectId, txDigest, timestamp }) {
 
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// TATUM ANALYTICS DASHBOARD COMPONENT
+// SOUL METRICS DASHBOARD
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// TATUM ANALYTICS DASHBOARD - TOP LEVEL COMPONENT
+// SOUL METRICS - STAT CARD COMPONENT
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function StatCard({ label, value, color, icon }) {
@@ -1096,7 +1096,7 @@ function TatumDashboardPanel({ wallet }) {
             fontSize: '11px',
             letterSpacing: '2px',
             color: '#ff2a6d'
-          }}>TATUM ANALYTICS</span>
+          }}>SOUL METRICS</span>
         </div>
         <span style={{
           fontSize: '9px',
@@ -1148,22 +1148,22 @@ function TatumDashboardPanel({ wallet }) {
           {activeTab === 'overview' && (
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
               <DashboardStat
-                label="TOTAL TX"
+                label="SOUL FRAGMENTS"
                 value={stats?.total_transactions || 0}
                 color="#ff2a6d"
               />
               <DashboardStat
-                label="USERS"
+                label="WALLETS AWAKENED"
                 value={stats?.unique_users || 0}
                 color="#2ec4b6"
               />
               <DashboardStat
-                label="AGENTS"
+                label="AGENTS ACTIVE"
                 value={stats?.active_agents || 0}
                 color="#ffb703"
               />
               <DashboardStat
-                label="DATA"
+                label="SOUL DEPTH"
                 value={`${stats?.total_data_mb || 0}MB`}
                 color="#9d4edd"
               />
