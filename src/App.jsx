@@ -2392,7 +2392,6 @@ Status: Working & Verified
         />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'row', flex: 1, overflow: 'hidden', height: '100vh' }}>
       <div className="app-layout">
       {/* MemWal Memory Search Panel */}
       {/* LEFT SIDEBAR - PUNK STYLED */}
@@ -3272,7 +3271,6 @@ Status: Working & Verified
         )}
         </div>
       )}
-      </div>
       </div>
 
       {/* CSS Animations + Toast Animations */}
