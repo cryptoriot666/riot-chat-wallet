@@ -1862,7 +1862,18 @@ export default function App() {
   const messagesEndRef = useRef(null)
 
   const walletHash = hashWallet(account?.address)
-  const userName = memory?.user_name || ''
+  // Load userName: backend first, then localStorage fallback
+  const [userName, setUserName] = useState(() => {
+    const local = localStorage.getItem('riot_user_name')
+    return local || ''
+  })
+  // Sync from memory when loaded
+  useEffect(() => {
+    if (memory?.user_name && memory.user_name !== userName) {
+      setUserName(memory.user_name)
+      localStorage.setItem('riot_user_name', memory.user_name)
+    }
+  }, [memory?.user_name])
 
   // Mobile detection
   useEffect(() => {
@@ -1982,14 +1993,17 @@ const profileData = await apiGetProfile(walletHash)
 
   const handleNameSubmit = async (name) => {
     setShowNameAsk(false)
-    await apiCreateProfile(walletHash, account?.address, name)
+    // Save locally FIRST so it works even if backend fails
+    localStorage.setItem('riot_user_name', name)
+    setUserName(name)
+    await apiCreateProfile(walletHash, account?.address, name).catch(() => {})
     await apiSaveMemory(walletHash, {
       user_name: name,
       summary: `User introduced as ${name}`,
       visited_agents: Array.from(visitedAgents),
       last_agent: selectedAgent.id,
       last_visit: new Date().toISOString()
-    })
+    }).catch(() => {})
     await loadMemoryAndGreet()
   }
 
