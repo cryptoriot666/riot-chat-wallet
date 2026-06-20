@@ -2167,6 +2167,20 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       })
       await loadMemoryAndGreet()
     }
+    // Cache to localStorage after EVERY message so reload preserves history
+    try {
+      const updatedHistory = newMessages.concat([
+        { role: 'agent', content: response || '', agent: selectedAgent.id, timestamp: Date.now() }
+      ])
+      localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(updatedHistory))
+    } catch (e) {}
+
+    // Also cache whenever autoSaveToWalrus would have cached
+    const shouldCache = connected && walletHash && messages.length > 0
+    if (!shouldCache) {
+      // Still cache even without wallet
+      localStorage.setItem('riot_chat_history_temp', JSON.stringify(newMessages))
+    }
   }
 
   const handleKeyPress = (e) => {
