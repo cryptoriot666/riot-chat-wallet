@@ -1944,7 +1944,25 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
   }
 
   const loadMemoryAndGreet = async () => {
+    // Check localStorage FIRST before hitting backend
+    const localName = localStorage.getItem('riot_user_name')
+    const localChats = localStorage.getItem('riot_chat_history_' + walletHash)
+
     let data = await apiLoadMemory(walletHash)
+
+    // If backend has no name but localStorage does, use localStorage name
+    if ((!data || !data.user_name) && localName) {
+      data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
+    }
+
+    if (localChats && messages.length === 0) {
+      try {
+        const parsed = JSON.parse(localChats)
+        if (Array.isArray(parsed) && parsed.length > 1) {
+          setMessages(parsed)
+        }
+      } catch (e) {}
+    }
 
     if (!data || !data.user_name) {
       const walrusData = await apiWalrusLoadChat(walletHash)
@@ -1954,42 +1972,52 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
           timestamp: m.timestamp || Date.now(), agent: m.agent || walrusData.agent_id
         }))
         setMessages(restoredMessages)
+        localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(restoredMessages))
 
         const restoredName = extractNameFromMessages(restoredMessages)
         if (restoredName) {
+          localStorage.setItem('riot_user_name', restoredName)
           await apiSaveMemory(walletHash, {
             user_name: restoredName,
             summary: `Restored from Walrus blob ${walrusData.blob_id}`,
             visited_agents: [walrusData.agent_id],
             last_agent: walrusData.agent_id,
             last_visit: new Date().toISOString()
-          })
+          }).catch(() => {})
         }
         data = await apiLoadMemory(walletHash)
+        if ((!data || !data.user_name) && localName) {
+          data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
+        }
         setWalrusSaved(true)
       }
     }
 
-    if (data) {
-      setMemory(data)
-      if (data.visited_agents) setVisitedAgents(new Set(data.visited_agents))
-      if (data.latest_blob_id) setLatestBlobId(data.latest_blob_id)
+    // Build a fallback data object if backend is completely down
+    const effectiveData = data || {
+      wallet_hash: walletHash,
+      user_name: localName || '',
+      visit_count: 1,
+      visited_agents: [],
+      last_agent: selectedAgent.id,
+      blob_history: []
+    }
 
-const profileData = await apiGetProfile(walletHash)
-      if (profileData?.success && profileData.exists) {
-        setProfile(profileData.profile)
-      }
+    setMemory(effectiveData)
+    if (effectiveData.visited_agents) setVisitedAgents(new Set(effectiveData.visited_agents))
+    if (effectiveData.latest_blob_id) setLatestBlobId(effectiveData.latest_blob_id)
 
-      if (!data.user_name && !showNameAsk) {
-        setShowNameAsk(true)
-      }
+    // Check localStorage name for showNameAsk decision (not backend-only)
+    const hasName = !!(effectiveData.user_name || localName)
+    if (!hasName && !showNameAsk) {
+      setShowNameAsk(true)
+    }
 
-      if (messages.length === 0) {
-        const greeting = generateGreeting(selectedAgent.id, data.user_name, data.visit_count || 1, !!data.user_name)
-        setMessages([{
-          role: 'agent', content: greeting, agent: selectedAgent.id, timestamp: Date.now()
-        }])
-      }
+    if (messages.length === 0) {
+      const greeting = generateGreeting(selectedAgent.id, effectiveData.user_name || localName, effectiveData.visit_count || 1, hasName)
+      setMessages([{
+        role: 'agent', content: greeting, agent: selectedAgent.id, timestamp: Date.now()
+      }])
     }
   }
 
