@@ -1939,6 +1939,8 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
     }))
     const result = await apiWalrusStoreChat(walletHash, messages, agentId)
+    // Also cache to localStorage
+    localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(messages))
   }
 
   const loadMemoryAndGreet = async () => {
@@ -2004,6 +2006,8 @@ const profileData = await apiGetProfile(walletHash)
       last_agent: selectedAgent.id,
       last_visit: new Date().toISOString()
     }).catch(() => {})
+    // Cache chat history to localStorage
+    localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(messages))
     await loadMemoryAndGreet()
   }
 
