@@ -65,30 +65,38 @@ AI_API_URL = "https://api.deepseek.com/v1/chat/completions"
 ENCRYPTION_KEY = b"RIOT_CHAT_WALLET_SECRET_KEY_2026_NANDA"
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
-USE_SQLITE = not DATABASE_URL
+_use_sqlite = not DATABASE_URL
 
 print(f"[INIT] DATABASE_URL present: {bool(DATABASE_URL)}")
-print(f"[INIT] Using: {'SQLite' if USE_SQLITE else 'PostgreSQL'}")
+print(f"[INIT] Using: {'SQLite' if _use_sqlite else 'PostgreSQL'}")
 print(f"[INIT] Walrus: MAINNET")
 
 # 
 # DATABASE
 # 
 def get_db_conn():
-    if USE_SQLITE:
+    global _use_sqlite
+    if _use_sqlite:
         import sqlite3
         return sqlite3.connect("riot_chat.db")
-    else:
+    try:
         parsed = urlparse(DATABASE_URL)
         conn = pg8000.connect(
             host=parsed.hostname or "localhost",
             port=parsed.port or 5432,
             user=parsed.username or "",
             password=parsed.password or "",
-            database=parsed.path.lstrip("/") or "riot_chat"
+            database=parsed.path.lstrip("/") or "riot_chat",
+            timeout=3
         )
         conn.autocommit = False
+        print("[DB] Connected to PostgreSQL")
         return conn
+    except Exception as e:
+        print(f"[DB] PostgreSQL failed ({e}), falling back to SQLite")
+        _use_sqlite = True
+        import sqlite3
+        return sqlite3.connect("riot_chat.db")
 
 def init_db():
     conn = get_db_conn()
