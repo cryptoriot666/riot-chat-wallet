@@ -102,7 +102,7 @@ def init_db():
     conn = get_db_conn()
     c = conn.cursor()
 
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("""
             CREATE TABLE IF NOT EXISTS user_profiles (
                 wallet_hash TEXT PRIMARY KEY,
@@ -200,7 +200,7 @@ def migrate_db():
     conn = get_db_conn()
     c = conn.cursor()
     try:
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("ALTER TABLE memories ADD COLUMN blob_history TEXT DEFAULT '[]'")
         else:
             c.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS blob_history TEXT DEFAULT '[]'")
@@ -212,7 +212,7 @@ def migrate_db():
     
     # Also add latest_blob_id if missing
     try:
-        if not USE_SQLITE:
+        if not _use_sqlite:
             c.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS latest_blob_id VARCHAR(100) DEFAULT ''")
             conn.commit()
             print("[MIGRATE] Added latest_blob_id column")
@@ -328,7 +328,7 @@ def get_or_create_profile(wallet_hash, wallet_address=""):
     conn = get_db_conn()
     c = conn.cursor()
 
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         row = c.fetchone()
         if row:
@@ -430,7 +430,7 @@ def update_profile_name(wallet_hash, name):
     conn = get_db_conn()
     c = conn.cursor()
 
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         row = c.fetchone()
         if row:
@@ -482,7 +482,7 @@ def update_profile_settings(wallet_hash, settings):
     conn = get_db_conn()
     c = conn.cursor()
 
-    if USE_SQLITE:
+    if _use_sqlite:
         set_clauses = []
         values = []
         for field, value in updates.items():
@@ -537,7 +537,7 @@ def get_profile_settings(wallet_hash):
     conn = get_db_conn()
     c = conn.cursor()
 
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("""
             SELECT wallet_hash, name, bio, profile_pic, twitter, discord,
                    telegram, instagram, website, visit_count, preferences,
@@ -572,8 +572,8 @@ def get_profile_settings(wallet_hash):
         },
         "visit_count": row[9] or 1,
         "preferences": row[10] or "",
-        "created_at": row[11] if not USE_SQLITE and row[11] else str(row[11]) if row[11] else "",
-        "updated_at": row[12] if not USE_SQLITE and row[12] else str(row[12]) if row[12] else ""
+        "created_at": row[11] if not _use_sqlite and row[11] else str(row[11]) if row[11] else "",
+        "updated_at": row[12] if not _use_sqlite and row[12] else str(row[12]) if row[12] else ""
     }
 
 # 
@@ -613,7 +613,7 @@ AGENT_PROMPTS = {
 def call_deepseek(agent_id, messages, memory_summary, user_name, wallet_hash):
     conn = get_db_conn()
     c = conn.cursor()
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
     else:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
@@ -674,13 +674,13 @@ def load_memory(wallet_hash):
     blob_history_raw = "[]"
     profile_row = None
     try:
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id FROM memories WHERE wallet_hash = ?", (wallet_hash,))
         else:
             c.execute("SELECT wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id FROM memories WHERE wallet_hash = %s", (wallet_hash,))
         row = c.fetchone()
         try:
-            if USE_SQLITE:
+            if _use_sqlite:
                 c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
             else:
                 c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
@@ -688,7 +688,7 @@ def load_memory(wallet_hash):
             blob_history_raw = bh_row[0] if bh_row else "[]"
         except:
             blob_history_raw = "[]"
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT * FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         else:
             c.execute("SELECT * FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
@@ -857,7 +857,7 @@ def save_memory(wallet_hash, data):
 
         existing_blob_history = "[]"
         try:
-            if USE_SQLITE:
+            if _use_sqlite:
                 c.execute("SELECT blob_history FROM memories WHERE wallet_hash = ?", (wallet_hash,))
             else:
                 c.execute("SELECT blob_history FROM memories WHERE wallet_hash = %s", (wallet_hash,))
@@ -884,7 +884,7 @@ def save_memory(wallet_hash, data):
                 blob_history = blob_history[-100:]
         blob_history_json = json.dumps(blob_history)
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("""
                 INSERT OR REPLACE INTO memories
                 (wallet_hash, wallet_address, summary, visited_agents, last_agent, last_visit, latest_blob_id, blob_history, created_at, updated_at)
@@ -911,7 +911,7 @@ def save_memory(wallet_hash, data):
             try:
                 tx_digest = "from_memory_save_" + datetime.now().isoformat()
                 agent_id = str(data.get("last_agent", ""))
-                if USE_SQLITE:
+                if _use_sqlite:
                     c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (?, ?, ?, ?, ?)",
                               (wallet_hash, tx_digest, blob_id, now, agent_id))
                 else:
@@ -998,7 +998,7 @@ def chat():
 
     conn = get_db_conn()
     c = conn.cursor()
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
     else:
         c.execute("SELECT name FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
@@ -1085,7 +1085,7 @@ def profile_create():
         # Check if exists
         conn = get_db_conn()
         c = conn.cursor()
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT wallet_hash FROM user_profiles WHERE wallet_hash = ?", (wallet_hash,))
         else:
             c.execute("SELECT wallet_hash FROM user_profiles WHERE wallet_hash = %s", (wallet_hash,))
@@ -1208,7 +1208,7 @@ def walrus_load_chat(wallet_hash):
     conn = get_db_conn()
     c = conn.cursor()
     try:
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = ? AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 20", (wallet_hash,))
         else:
             c.execute("SELECT blob_id FROM on_chain_saves WHERE wallet_hash = %s AND blob_id IS NOT NULL ORDER BY timestamp DESC LIMIT 20", (wallet_hash,))
@@ -1256,7 +1256,7 @@ def walrus_save():
     conn = get_db_conn()
     c = conn.cursor()
 
-    if USE_SQLITE:
+    if _use_sqlite:
         c.execute("INSERT INTO on_chain_saves (wallet_hash, tx_digest, blob_id, timestamp, agent_id) VALUES (?, ?, ?, ?, ?)",
                   (wallet_hash, tx_digest, blob_id, datetime.now().isoformat(), data.get("agent_id", "")))
     else:
@@ -1521,7 +1521,7 @@ def move_tx_index():
         conn = get_db_conn()
         c = conn.cursor()
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("""
                 INSERT INTO on_chain_saves (wallet_hash, tx_digest, object_id, blob_id, timestamp, agent_id, data_size)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -1557,7 +1557,7 @@ def move_get_objects(wallet_hash):
         conn = get_db_conn()
         c = conn.cursor()
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("""
                 SELECT tx_digest, object_id, blob_id, agent_id, timestamp
                 FROM on_chain_saves
@@ -1582,7 +1582,7 @@ def move_get_objects(wallet_hash):
                 "object_id": row[1],
                 "blob_id": row[2],
                 "agent_id": row[3],
-                "timestamp": row[4] if USE_SQLITE else (row[4].isoformat() if row[4] else "")
+                "timestamp": row[4] if _use_sqlite else (row[4].isoformat() if row[4] else "")
             })
 
         return jsonify({
@@ -1637,7 +1637,7 @@ def tatum_dashboard():
         conn = get_db_conn()
         c = conn.cursor()
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT COUNT(*) FROM on_chain_saves")
             total_tx = c.fetchone()[0]
 
@@ -1698,7 +1698,7 @@ def tatum_tx_history():
 
         history = []
         for i in range(days - 1, -1, -1):
-            if USE_SQLITE:
+            if _use_sqlite:
                 from datetime import timedelta
                 date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
                 c.execute("""
@@ -1744,7 +1744,7 @@ def tatum_live_feed():
         conn = get_db_conn()
         c = conn.cursor()
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("""
                 SELECT wallet_hash, tx_digest, object_id, blob_id, agent_id, timestamp, data_size
                 FROM on_chain_saves
@@ -1775,7 +1775,7 @@ def tatum_live_feed():
                 "object_id": row[2] or "",
                 "blob_id": row[3] or "",
                 "agent_id": row[4] or "",
-                "timestamp": row[5] if USE_SQLITE else (row[5].isoformat() if row[5] else ""),
+                "timestamp": row[5] if _use_sqlite else (row[5].isoformat() if row[5] else ""),
                 "data_size": row[6] or 0
             })
 
@@ -1797,7 +1797,7 @@ def tatum_wallet_stats(wallet_hash):
         conn = get_db_conn()
         c = conn.cursor()
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE wallet_hash = ?", (wallet_hash,))
             tx_count = c.fetchone()[0]
 
@@ -1836,7 +1836,7 @@ def tatum_wallet_stats(wallet_hash):
                 "data_used_bytes": data_used,
                 "data_used_kb": round(data_used / 1024, 2),
                 "agents_visited": agents_visited,
-                "last_active": last_active if USE_SQLITE else (last_active.isoformat() if last_active else "")
+                "last_active": last_active if _use_sqlite else (last_active.isoformat() if last_active else "")
             }
         })
 
@@ -1854,7 +1854,7 @@ def get_recent_transactions(hours=24):
         from datetime import timedelta
         cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
 
-        if USE_SQLITE:
+        if _use_sqlite:
             c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE timestamp > ?", (cutoff,))
         else:
             c.execute("SELECT COUNT(*) FROM on_chain_saves WHERE timestamp > %s", (cutoff,))
