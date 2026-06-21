@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[![Live App](https://img.shields.io/badge/🚀_Live_App-riot--chat-wallet--temp.vercel.app-000?logo=vercel&style=for-the-badge)](https://riot-chat-wallet-temp.vercel.app)
+[![Live App](https://img.shields.io/badge/🚀_Live_App-riot--chat-app-new.vercel.app-000?logo=vercel&style=for-the-badge)](https://riot-chat-app-new.vercel.app)
 [![Landing Page](https://img.shields.io/badge/🎸_Landing_Page-theriot.vercel.app-ff6b35?style=for-the-badge)](https://theriot.vercel.app)
 [![App Repo](https://img.shields.io/badge/📦_App_Repo-GitHub-181717?style=for-the-badge)](https://github.com/cryptoriot666/riot-chat-wallet)
 [![Landing Repo](https://img.shields.io/badge/🎨_Landing_Repo-GitHub-181717?style=for-the-badge)](https://github.com/cryptoriot666/the-riot-sui)
@@ -25,7 +25,7 @@
 | **Creativity** | ✅ Unique | 25 punk agent personas, cyberpunk UI, conversational wallet interface |
 | **Presentation** | ✅ Ready | README, live demo, video walkthrough, DEMO.md script |
 
-**[▶️ Open Live Demo](https://riot-chat-wallet-temp.vercel.app)**
+**[▶️ Open Live Demo](https://riot-chat-app-new.vercel.app)**
 
 ---
 
@@ -61,7 +61,7 @@ Think of it as a cyberpunk command center: instead of clicking buttons, you **ta
 - ✅ **Agent memory recall** — Echo (J18) can recall past conversations
 
 ### Presentation
-- ✅ **Live demo** at [riot-chat-wallet-temp.vercel.app](https://riot-chat-wallet-temp.vercel.app)
+- ✅ **Live demo** at [riot-chat-app-new.vercel.app](https://riot-chat-app-new.vercel.app)
 - ✅ **Demo script** — see [DEMO.md](./DEMO.md)
 - ✅ **Video walkthrough** — full flow demonstration
 - ✅ **Documentation** — this README + DEMO.md
@@ -124,10 +124,10 @@ Frontend (Vercel)          Backend (Render)          External
 ## Demo Flow (3 minutes)
 
 1. **Connect wallet** → auto-detects address
-2. **Chat with agents** → talk to J6 (Network), J8 (Broker), etc.
-3. **Open MEMORY** → see saved conversations as Walrus blobs
+2. **Chat with agents** — talk to J6 (Network), J8 (Broker), etc.
+3. **Open MEMORY** — see saved conversations as Walrus blobs
 4. **Open BLOCKCHAIN VERIFY** — verify on-chain data
-5. **Click "View" on a blob** → see data on Walrus aggregator
+5. **Click "View" on a blob** — see data on Walrus aggregator
 
 Full script: [DEMO.md](./DEMO.md)
 
@@ -154,11 +154,11 @@ Built for **Sui Overflow 2026**.
 Share this project!
 
 ```text
-🚀 $RIOT - cyberpunk chat wallet with 25 AI agents on #Sui!
+🚀 $RIOT — cyberpunk chat wallet with 25 AI agents on #Sui!
 Every chat auto-stores to @WalrusFoundation as permanent blobs.
 Built for @SuiNetwork Overflow 2026.
 
-Try it: https://riot-chat-wallet-temp.vercel.app
+Try it: https://riot-chat-app-new.vercel.app
 ```
 
 ---
