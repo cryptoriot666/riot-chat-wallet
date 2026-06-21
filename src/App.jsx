@@ -1861,7 +1861,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const messagesEndRef = useRef(null)
 
-  const walletHash = hashWallet(account?.address)
+  const walletHash = hashWallet(account?.address) || 'guest'
   // Load userName: backend first, then localStorage fallback
   const [userName, setUserName] = useState(() => {
     const local = localStorage.getItem('riot_user_name')
@@ -1889,12 +1889,29 @@ export default function App() {
       .catch(() => setApiStatus('offline'))
   }, [])
 
-  // Load memory & profile on connection
+  // Load memory & profile on connection OR from localStorage on mount
   useEffect(() => {
-    if (connected && walletHash) {
+    if (walletHash) {
       loadMemoryAndGreet()
     }
-  }, [connected, walletHash, account?.address])
+  }, [walletHash])
+
+  // Fallback: load from localStorage immediately on mount even without wallet
+  useEffect(() => {
+    const localName = localStorage.getItem('riot_user_name')
+    const localChats = localStorage.getItem('riot_chat_history_guest')
+    if (localName && !userName) {
+      setUserName(localName)
+    }
+    if (localChats && messages.length === 0) {
+      try {
+        const parsed = JSON.parse(localChats)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed)
+        }
+      } catch (e) {}
+    }
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -1940,15 +1957,23 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }))
     const result = await apiWalrusStoreChat(walletHash, messages, agentId)
     // Also cache to localStorage
-    localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(messages))
+    const hashKey = walletHash || 'guest'
+    localStorage.setItem('riot_chat_history_' + hashKey, JSON.stringify(messages))
   }
 
   const loadMemoryAndGreet = async () => {
     // Check localStorage FIRST before hitting backend
     const localName = localStorage.getItem('riot_user_name')
-    const localChats = localStorage.getItem('riot_chat_history_' + walletHash)
+    const cacheKey = walletHash || 'guest'
+    const localChats = localStorage.getItem('riot_chat_history_' + cacheKey)
 
-    let data = await apiLoadMemory(walletHash)
+    // If guest (no wallet), skip backend calls entirely
+    const isGuest = !connected || walletHash === 'guest'
+
+    let data = null
+    if (!isGuest) {
+      data = await apiLoadMemory(walletHash)
+    }
 
     // If backend has no name but localStorage does, use localStorage name
     if ((!data || !data.user_name) && localName) {
@@ -1964,32 +1989,35 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       } catch (e) {}
     }
 
+    // Skip Walrus/backend restore when guest or backend is down
     if (!data || !data.user_name) {
-      const walrusData = await apiWalrusLoadChat(walletHash)
-      if (walrusData && walrusData.success) {
-        const restoredMessages = walrusData.chat_history.map(m => ({
-          role: m.role, content: m.content,
-          timestamp: m.timestamp || Date.now(), agent: m.agent || walrusData.agent_id
-        }))
-        setMessages(restoredMessages)
-        localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(restoredMessages))
+      if (!isGuest) {
+        const walrusData = await apiWalrusLoadChat(walletHash)
+        if (walrusData && walrusData.success) {
+          const restoredMessages = walrusData.chat_history.map(m => ({
+            role: m.role, content: m.content,
+            timestamp: m.timestamp || Date.now(), agent: m.agent || walrusData.agent_id
+          }))
+          setMessages(restoredMessages)
+          localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(restoredMessages))
 
-        const restoredName = extractNameFromMessages(restoredMessages)
-        if (restoredName) {
-          localStorage.setItem('riot_user_name', restoredName)
-          await apiSaveMemory(walletHash, {
-            user_name: restoredName,
-            summary: `Restored from Walrus blob ${walrusData.blob_id}`,
-            visited_agents: [walrusData.agent_id],
-            last_agent: walrusData.agent_id,
-            last_visit: new Date().toISOString()
-          }).catch(() => {})
+          const restoredName = extractNameFromMessages(restoredMessages)
+          if (restoredName) {
+            localStorage.setItem('riot_user_name', restoredName)
+            await apiSaveMemory(walletHash, {
+              user_name: restoredName,
+              summary: `Restored from Walrus blob ${walrusData.blob_id}`,
+              visited_agents: [walrusData.agent_id],
+              last_agent: walrusData.agent_id,
+              last_visit: new Date().toISOString()
+            }).catch(() => {})
+          }
+          data = await apiLoadMemory(walletHash)
+          if ((!data || !data.user_name) && localName) {
+            data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
+          }
+          setWalrusSaved(true)
         }
-        data = await apiLoadMemory(walletHash)
-        if ((!data || !data.user_name) && localName) {
-          data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
-        }
-        setWalrusSaved(true)
       }
     }
 
@@ -2035,7 +2063,8 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       last_visit: new Date().toISOString()
     }).catch(() => {})
     // Cache chat history to localStorage
-    localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(messages))
+    const hashKey = walletHash || 'guest'
+    localStorage.setItem('riot_chat_history_' + hashKey, JSON.stringify(messages))
     await loadMemoryAndGreet()
   }
 
@@ -2169,18 +2198,12 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }
     // Cache to localStorage after EVERY message so reload preserves history
     try {
+      const cacheKey = walletHash || 'guest'
       const updatedHistory = newMessages.concat([
         { role: 'agent', content: response || '', agent: selectedAgent.id, timestamp: Date.now() }
       ])
-      localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(updatedHistory))
+      localStorage.setItem('riot_chat_history_' + cacheKey, JSON.stringify(updatedHistory))
     } catch (e) {}
-
-    // Also cache whenever autoSaveToWalrus would have cached
-    const shouldCache = connected && walletHash && messages.length > 0
-    if (!shouldCache) {
-      // Still cache even without wallet
-      localStorage.setItem('riot_chat_history_temp', JSON.stringify(newMessages))
-    }
   }
 
   const handleKeyPress = (e) => {
