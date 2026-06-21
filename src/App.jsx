@@ -1889,29 +1889,15 @@ export default function App() {
       .catch(() => setApiStatus('offline'))
   }, [])
 
-  // Load memory & profile on connection OR from localStorage on mount
+  // Load from localStorage on mount (synchronous - runs before any async loadMemoryAndGreet)
+  // MUST use a ref to avoid the stale-closure bug in loadMemoryAndGreet
+  const loadedFromLocal = useRef(false)
+  
   useEffect(() => {
     if (walletHash) {
       loadMemoryAndGreet()
     }
   }, [walletHash])
-
-  // Fallback: load from localStorage immediately on mount even without wallet
-  useEffect(() => {
-    const localName = localStorage.getItem('riot_user_name')
-    const localChats = localStorage.getItem('riot_chat_history_guest')
-    if (localName && !userName) {
-      setUserName(localName)
-    }
-    if (localChats && messages.length === 0) {
-      try {
-        const parsed = JSON.parse(localChats)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed)
-        }
-      } catch (e) {}
-    }
-  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -1962,66 +1948,95 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
   }
 
   const loadMemoryAndGreet = async () => {
-    // Check localStorage FIRST before hitting backend
+    // Read localStorage synchronously first
     const localName = localStorage.getItem('riot_user_name')
     const cacheKey = walletHash || 'guest'
     const localChats = localStorage.getItem('riot_chat_history_' + cacheKey)
 
-    // If guest (no wallet), skip backend calls entirely
-    const isGuest = !connected || walletHash === 'guest'
-
-    let data = null
-    if (!isGuest) {
-      data = await apiLoadMemory(walletHash)
-    }
-
-    // If backend has no name but localStorage does, use localStorage name
-    if ((!data || !data.user_name) && localName) {
-      data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
-    }
-
-    if (localChats && messages.length === 0) {
+    let hasLocalChats = false
+    if (localChats) {
       try {
         const parsed = JSON.parse(localChats)
         if (Array.isArray(parsed) && parsed.length > 1) {
+          hasLocalChats = true
+          // Set messages from localStorage using setState callback to avoid stale closure
           setMessages(parsed)
+          loadedFromLocal.current = true
         }
       } catch (e) {}
     }
 
-    // Skip Walrus/backend restore when guest or backend is down
-    if (!data || !data.user_name) {
-      if (!isGuest) {
-        const walrusData = await apiWalrusLoadChat(walletHash)
-        if (walrusData && walrusData.success) {
-          const restoredMessages = walrusData.chat_history.map(m => ({
-            role: m.role, content: m.content,
-            timestamp: m.timestamp || Date.now(), agent: m.agent || walrusData.agent_id
-          }))
-          setMessages(restoredMessages)
-          localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(restoredMessages))
+    // If we loaded from localStorage, we're done - skip backend entirely
+    if (loadedFromLocal.current && localName) {
+      setMemory({
+        wallet_hash: walletHash,
+        user_name: localName,
+        visit_count: 1,
+        visited_agents: [],
+        last_agent: selectedAgent.id,
+        blob_history: []
+      })
+      return
+    }
 
-          const restoredName = extractNameFromMessages(restoredMessages)
-          if (restoredName) {
-            localStorage.setItem('riot_user_name', restoredName)
-            await apiSaveMemory(walletHash, {
-              user_name: restoredName,
-              summary: `Restored from Walrus blob ${walrusData.blob_id}`,
-              visited_agents: [walrusData.agent_id],
-              last_agent: walrusData.agent_id,
-              last_visit: new Date().toISOString()
-            }).catch(() => {})
-          }
-          data = await apiLoadMemory(walletHash)
-          if ((!data || !data.user_name) && localName) {
-            data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
-          }
-          setWalrusSaved(true)
+    // Guest mode (no wallet): use localStorage or show name prompt
+    const isGuest = !connected || walletHash === 'guest'
+
+    if (isGuest) {
+      // Just set memory with localName (or empty for name prompt)
+      setMemory({
+        wallet_hash: walletHash,
+        user_name: localName || '',
+        visit_count: 1,
+        visited_agents: [],
+        last_agent: selectedAgent.id,
+        blob_history: []
+      })
+      if (!localName && !showNameAsk) setShowNameAsk(true)
+      if (!hasLocalChats && !localName) {
+        const greeting = generateGreeting(selectedAgent.id, '', 1, false)
+        setMessages([{ role: 'agent', content: greeting, agent: selectedAgent.id, timestamp: Date.now() }])
+      }
+      return
+    }
+
+    // Connected with wallet - hit backend
+    let data = await apiLoadMemory(walletHash)
+
+    if ((!data || !data.user_name) && localName) {
+      data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
+    }
+
+    // Try Walrus restore if no user_name on backend
+    if (!data || !data.user_name) {
+      const walrusData = await apiWalrusLoadChat(walletHash)
+      if (walrusData && walrusData.success) {
+        const restoredMessages = walrusData.chat_history.map(m => ({
+          role: m.role, content: m.content,
+          timestamp: m.timestamp || Date.now(), agent: m.agent || walrusData.agent_id
+        }))
+        setMessages(restoredMessages)
+        localStorage.setItem('riot_chat_history_' + walletHash, JSON.stringify(restoredMessages))
+
+        const restoredName = extractNameFromMessages(restoredMessages)
+        if (restoredName) {
+          localStorage.setItem('riot_user_name', restoredName)
+          await apiSaveMemory(walletHash, {
+            user_name: restoredName,
+            summary: 'Restored from Walrus blob ' + walrusData.blob_id,
+            visited_agents: [walrusData.agent_id],
+            last_agent: walrusData.agent_id,
+            last_visit: new Date().toISOString()
+          }).catch(() => {})
         }
+        data = await apiLoadMemory(walletHash)
+        if ((!data || !data.user_name) && localName) {
+          data = { ...(data || {}), user_name: localName, visit_count: data?.visit_count || 1 }
+        }
+        setWalrusSaved(true)
       }
     }
 
-    // Build a fallback data object if backend is completely down
     const effectiveData = data || {
       wallet_hash: walletHash,
       user_name: localName || '',
@@ -2035,13 +2050,12 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     if (effectiveData.visited_agents) setVisitedAgents(new Set(effectiveData.visited_agents))
     if (effectiveData.latest_blob_id) setLatestBlobId(effectiveData.latest_blob_id)
 
-    // Check localStorage name for showNameAsk decision (not backend-only)
+    // Only show name prompt AND greeting if we have NO data at all
     const hasName = !!(effectiveData.user_name || localName)
-    if (!hasName && !showNameAsk) {
-      setShowNameAsk(true)
-    }
+    if (!hasName && !showNameAsk) setShowNameAsk(true)
 
-    if (messages.length === 0) {
+    // Only set greeting if we haven't already set messages from localStorage
+    if (messages.length === 0 && !hasLocalChats) {
       const greeting = generateGreeting(selectedAgent.id, effectiveData.user_name || localName, effectiveData.visit_count || 1, hasName)
       setMessages([{
         role: 'agent', content: greeting, agent: selectedAgent.id, timestamp: Date.now()
