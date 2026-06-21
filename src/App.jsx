@@ -1942,9 +1942,10 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       role: m.role, content: m.content, timestamp: m.timestamp, agent: m.agent || agentId
     }))
     const result = await apiWalrusStoreChat(walletHash, messages, agentId)
-    // Also cache to localStorage
+    // Also cache to localStorage (global + per-agent)
     const hashKey = walletHash || 'guest'
     localStorage.setItem('riot_chat_history_' + hashKey, JSON.stringify(messages))
+    cacheMessagesPerAgent(messages)
   }
 
   const loadMemoryAndGreet = async () => {
@@ -2076,9 +2077,10 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
       last_agent: selectedAgent.id,
       last_visit: new Date().toISOString()
     }).catch(() => {})
-    // Cache chat history to localStorage
+    // Cache chat history to localStorage (global + per-agent)
     const hashKey = walletHash || 'guest'
     localStorage.setItem('riot_chat_history_' + hashKey, JSON.stringify(messages))
+    cacheMessagesPerAgent(messages)
     await loadMemoryAndGreet()
   }
 
@@ -2108,9 +2110,24 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
 
   const handleAgentSwitch = (agent) => {
     setSelectedAgent(agent)
-    setMessages([])
     setVisitedAgents(prev => new Set([...prev, agent.id]))
 
+    // Try to restore per-agent chat history from localStorage
+    const cacheKey = walletHash || 'guest'
+    const agentHistory = localStorage.getItem('riot_chat_agent_' + agent.id + '_' + cacheKey)
+    
+    if (agentHistory) {
+      try {
+        const parsed = JSON.parse(agentHistory)
+        if (Array.isArray(parsed) && parsed.length > 1) {
+          setMessages(parsed)
+          return // Skip greeting, show cached history
+        }
+      } catch (e) {}
+    }
+
+    // No cached history for this agent - show greeting
+    setMessages([])
     const visitCount = memory?.visit_count || 1
     const hasMemory = !!memory?.user_name
     const greeting = generateGreeting(agent.id, memory?.user_name || '', visitCount, hasMemory)
@@ -2127,6 +2144,15 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
         last_visit: new Date().toISOString()
       })
     }
+  }
+
+  // Helper: save current messages to per-agent localStorage cache
+  const cacheMessagesPerAgent = (msgs) => {
+    const cacheKey = walletHash || 'guest'
+    const agentId = selectedAgent?.id || 'J4'
+    try {
+      localStorage.setItem('riot_chat_agent_' + agentId + '_' + cacheKey, JSON.stringify(msgs))
+    } catch (e) {}
   }
 
   const handleSend = async () => {
@@ -2212,12 +2238,16 @@ await apiWalrusStoreChat(walletHash, chatHistory, agentId)
     }
     // Cache to localStorage after EVERY message so reload preserves history
     try {
-      const cacheKey = walletHash || 'guest'
       const updatedHistory = newMessages.concat([
         { role: 'agent', content: response || '', agent: selectedAgent.id, timestamp: Date.now() }
       ])
+      const cacheKey = walletHash || 'guest'
       localStorage.setItem('riot_chat_history_' + cacheKey, JSON.stringify(updatedHistory))
     } catch (e) {}
+    // Also cache per-agent for agent-switch persistence
+    cacheMessagesPerAgent(newMessages.concat([
+      { role: 'agent', content: response || '', agent: selectedAgent.id, timestamp: Date.now() }
+    ]))
   }
 
   const handleKeyPress = (e) => {
